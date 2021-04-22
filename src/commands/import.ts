@@ -1,7 +1,8 @@
 import { Command, flags } from "@oclif/command";
-import * as fs from "fs";
+import { promises as fs } from "fs";
 import * as path from "path";
 import * as matter from "gray-matter";
+import { Console } from "console";
 
 export default class Import extends Command {
   static description =
@@ -49,32 +50,14 @@ hello world from ./src/hello.ts!
   }
 
   readPath = async (directoryPath: string) => {
-    fs.readdir(directoryPath, (err, files) => {
-      //handling error
-      if (err) {
-        return console.log("Unable to scan directory: " + err);
-      }
-      //get the directories in case we want it to import recusively
-      let directories = this.getDirectories(directoryPath);
+    let files = await fs.readdir(directoryPath);
 
-      //filter files by extension
+    files = this.filterExtension(files, [".md"]);
 
-      files = this.filterExtension(files, [".md"]);
-
-      files.forEach( (fileName)=> {
-        let filePath = path.join(directoryPath, fileName);
-        fs.readFile(filePath, "utf8", (err, data) => {
-          if (err) {
-            console.error(err);
-            return;
-          }
-
-          this.parseFrontMatter(data)
-          //console.log(data);
-          return
-        });
-      });
-    });
+    for (let fileName of files) {
+      let filePath = path.join(directoryPath, fileName);
+      let note = await this.makeNote(filePath);
+    }
   };
 
   filterExtension = (files: string[], extensions: string[]): string[] => {
@@ -86,14 +69,35 @@ hello world from ./src/hello.ts!
     });
   };
 
-  getDirectories = (directoryPath: string): string[] => {
-    return fs
-      .readdirSync(directoryPath, { withFileTypes: true })
-      .filter((dirent) => dirent.isDirectory())
-      .map((dirent) => dirent.name);
-  };
+  makeNote = async (filePath: string): Promise<NoteType> => {
+    let note: NoteType = {};
+    let data: string = "";
+    try {
+      data = await fs.readFile(filePath, "utf8");
+    } catch (error) {
+      console.log("Unable to read", filePath, error);
+    }
 
-  parseFrontMatter = (data: string): any => {
-    console.log(matter(data));
+    //gray-matter object
+    try {
+      let m = matter(data);
+
+      note.content = m.content;
+
+      for (let prop in m.data) {
+        note[prop] = m.data[prop];
+      }
+
+      return note;
+    } catch (e) {
+      console.log("Error parsing YAML for note: ", filePath, e);
+      return note;
+    }
   };
+}
+
+interface NoteType {
+  //typesafeProp1?: number,
+  //requiredProp1: string,
+  [key: string]: any;
 }
