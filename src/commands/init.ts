@@ -5,9 +5,9 @@ import * as path from "path";
 import * as matter from "gray-matter";
 import { Console } from "console";
 
-export default class Import extends Command {
+export default class Init extends Command {
   static description =
-    "Parses a given Foam repo and generates an array of notes with their corresponding metadata";
+    "Opens latest repo and starts listening for commands";
 
   static examples = [
     `$ ipmm hello
@@ -20,7 +20,7 @@ hello world from ./src/hello.ts!
     /*
     recursive: flags.boolean({
       char: "r",
-      description: "import files recursively",
+      description: "Init files recursively",
       default: false,
       //default: getCurrentPath()
     }),*/
@@ -30,14 +30,14 @@ hello world from ./src/hello.ts!
     {
       name: "repoPath",
       required: false,
-      description: "path of the repo to import",
+      description: "path of the repo to Init",
       hidden: false,
       default: process.cwd(),
     },
   ];
 
   async run() {
-    const { args, flags } = this.parse(Import);
+    const { args, flags } = this.parse(Init);
 
     this.readPath(args.repoPath);
 
