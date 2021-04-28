@@ -27,13 +27,14 @@ hello world from ./src/hello.ts!
   };
 
   static args = [
-    {
+   /* {
       name: "repoPath",
       required: false,
       description: "path of the repo to Init",
       hidden: false,
       default: process.cwd(),
     },
+    */  
   ];
 
   async run() {

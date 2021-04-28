@@ -1,66 +1,67 @@
 # ipmm-cli
 
-# Ref
+# Dev references
 
-https://dev.to/kenanchristian/build-an-interactive-cli-using-typescript-11fl
+CLI
 
-An option tells the function how to act (e.g. -a, -l, --verbose, --output , -name , -c , etc), whist an arguments tells the function what to act on/from (e.g. \*, file1, hostname, database).
+- https://dev.to/kenanchristian/build-an-interactive-cli-using-typescript-11fl
+- Option tells the function how to act (e.g. -a, -l, --verbose, --output , -name , -c , etc)
+- Arguments tells the function what to act on/from (e.g. \*, file1, hostname, database).
+
+Node commnication
+
+- https://medium.com/@NorbertdeLangen/communicating-between-nodejs-processes-4e68be42b917
 
 # Overview
 
-## Processs
-
-`init`: Loads the last repo and starts listening for calls. Shows status and logs
-`watch`: Starts listening to the foam repo for changes and it updates the ipmm repo
-`sync`: Exclusive to `watch` is biderectional
-
-## Calls:
-
-`add` <note path>: Creates a new note. Returns its [[note-uid-1612383211]]
-`get` <[[note-uid-1612383211]]>: Returns a JSON object of the given [[note-1612421759]]
-`update` <[[note-uid-1612383211]], JSON object> Overrides a given note. If is in `sync` mode it will override the Foam note too.
+The Ipmm repo is currently a single JSON file when stored in disk. It could be a single JSON/IPLD object per note
+Each command registers to a log file.
+Each command loads the entire Ipmm repo unless the `init` daemon is running in which case it will be in memory.
+Unless specified it uses the repo paths specified in the `config.json` file
 
 # Commands
 
-## foam
+`init`[daemon]: Loads the Ipmm repo in memory. Runs the rest of commands over it. When a command is ran it stores the repo back into disk.
+`add` <notePath>: Creates a new note. Returns its noteUid.
+`get` <noteUid>: Returns a JSON object of the given note
+`update` <noteUid, JSON object> Overrides a given note. If is in `sync` mode it will override the Foam note too.
+`stats`: Has multiple statistical data about ipmm
+`status`: Outputs info about the running demons and the state of the ipmm repo
+`logs`: Outputs the latest opperations
+`publish`: Exports a JSON object based on each note access control configuration
+`config`: Sets properties of the config file
 
-> Commands to opperate with a Foam repo
+- `ipmm_path`: Sets the default repo path for ipmmm
+- `foam_path`: Sets the default repo path for foam
 
-### sync
+`foam`: Foam related commands
 
-### import
+- `import`: Parses the Foam repo and creates a new ipmm repo
+- `export`: Outputs a Foam repo from the ipmm repo
+- `watch`[daemon]: Listens to the foam repo for changes and it updates the ipmm repo
+- `sync`[daemon]: Listen for changes in foam and ipmm and syncs the other one. Exclusive to `watch`
+
+# Reference
+
+## Foam
+
+Flags
+
+-fr=<path>, --foam_repo=<path>: Path of the FOAM repository. Defaults to config file if not specified
+-ir=<path>, --ipmm_repo=<path>: Path of the Ipmm repository. Defaults to config file if not specfifed
+
+`foam import`
 
 > Parses a FOAM repo and converts it in a IPMM repo that lives in memory
 > Takes the current folder if is not specified with `path`
 
-Args
+`foam export`
 
-- repo_path: Path of the FOAM repository to import
+`foam sync`
 
-### snapshot
-
-> Takes current IPMM repo and converts it into a JSON array o notes
-> If no `snapshot_path` is specified it outputs a file in the current directory like <ipmm_timestamp.json>
-
-Args
-
-- snapshot_path: Path of the generated JSON file
-
-### export
-
-> Takes a IPMM repo and creates a FOAM repo
-> If no `repo_path` is specified it will use the current one
-
-Args
-
-- repo_path: Path of the FOAM repository to export
+`foam watch`
 
 ## status
-
-> Logs the status of the IPMM repo
->
-> - Number of notes
-> - Last imported time
 
 ## stats
 

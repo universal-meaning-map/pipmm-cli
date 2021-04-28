@@ -4,8 +4,9 @@ import { promises as fs } from "fs";
 import * as path from "path";
 import * as matter from "gray-matter";
 import { Console } from "console";
+import { promises } from "dns";
 
-export default class Import extends Command {
+export default class Foam extends Command {
   static description =
     "Parses a given Foam repo and generates an array of notes with their corresponding metadata";
 
@@ -17,37 +18,64 @@ hello world from ./src/hello.ts!
 
   static flags = {
     help: flags.help({ char: "h" }),
-    /*
-    recursive: flags.boolean({
-      char: "r",
-      description: "import files recursively",
-      default: false,
-      //default: getCurrentPath()
-    }),*/
+
+    ipmmRepo: flags.string({
+      name: "ipmm_repo",
+      char: "i",
+      description:
+        "path to IPMM repository. If not specified it defaults to thte config one",
+      // default: getCurrentPath()
+    }),
+    foamRepo: flags.string({
+      name: "foam_repo",
+      char: "f",
+      description:
+        "path the FOAM repository. If not specified it defaults to thte config one",
+      // default: getCurrentPath()
+    }),
   };
 
   static args = [
     {
+      name: "subcommand",
+      required: true,
+      description: "subcommand to execute: import, export, sync, watch",
+      hidden: false,
+    },
+    /*{
       name: "repoPath",
       required: false,
       description: "path of the repo to import",
       hidden: false,
       default: process.cwd(),
-    },
+    },*/
   ];
 
   async run() {
-    const { args, flags } = this.parse(Import);
+    const { args, flags } = this.parse(Foam);
 
-    this.readPath(args.repoPath);
-
-    /*const name = flags.name ?? "world";
-    this.log(`hello ${name} from ./src/commands/hello.ts`);
-    if (args.file && flags.force) {
-      this.log(`you input --force and --file: ${args.file}`);
+    if (!args.subcommand) {
+      this.error("No Foam command specified");
+      // exit with status code
+      this.exit(1);
     }
-    */
+    let config = await this.loadConfig("");
+
+    let ipmmRepo: string = flags.ipmmRepo ? flags.ipmmRepo : config.ipmmRepo;
+    let foamRepo: string = flags.foamRepo ? flags.foamRepo : config.foamRepo;
+
+    if (args.subcommand == "import") {
+      this.foamImport(ipmmRepo, foamRepo);
+    } else if (args.subcommand == "export") {
+      this.foamExport(ipmmRepo, foamRepo);
+    }
   }
+
+  foamImport = async (ipmmRepo: String, foamRepo: string): Promise<void> => {
+    await this.readPath(foamRepo);
+  };
+
+  foamExport = (ipmmRepo: String, foamRepo: string) => void {};
 
   readPath = async (directoryPath: string) => {
     let files = await fs.readdir(directoryPath);
@@ -108,10 +136,25 @@ hello world from ./src/hello.ts!
       return note;
     }
   };
+
+  loadConfig = async (filePath: string): Promise<Config> => {
+    let config = new Config("ipmmPath", "ipfoamPath");
+    return config;
+  };
 }
 
 interface NoteType {
   //typesafeProp1?: number,
   //requiredProp1: string,
   [key: string]: any;
+}
+
+class Config {
+  ipmmRepo: string;
+  foamRepo: string;
+
+  constructor(ipmmrepo: string, foamRepo: string) {
+    this.ipmmRepo = ipmmrepo;
+    this.foamRepo = foamRepo;
+  }
 }
