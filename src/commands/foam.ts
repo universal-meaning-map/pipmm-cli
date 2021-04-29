@@ -3,6 +3,7 @@ import cli, { config } from "cli-ux";
 import ConfigController from "../lib/configController";
 import FoamController from "../lib/foamController";
 import ErrorController from "../lib/errorController";
+import LogsController from "../lib/logsController";
 
 export default class FoamCommand extends Command {
   static description =
@@ -65,7 +66,8 @@ hello world from ./src/hello.ts!
     } else if (args.subcommand == "export") {
       await this.foamExport(ipmmRepo, foamRepo);
     }
-    ErrorController.logProcessErrors();
+
+    ErrorController.saveLogs("foam", args.subcommand);
   }
 
   foamExport = (ipmmRepo: String, foamRepo: string) => void {};

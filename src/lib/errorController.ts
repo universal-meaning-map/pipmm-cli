@@ -1,3 +1,5 @@
+import LogsController from "./logsController";
+
 export default class ErrorController {
   private static processErrors: ProcessError[] = [];
 
@@ -11,15 +13,23 @@ export default class ErrorController {
     );
   };
 
+  static saveLogs(command: string, subcommand: string) {
+    LogsController.saveErrorLogs(
+      command,
+      subcommand,
+      ErrorController.processErrors
+    );
+  }
+
   static logProcessErrors = (): void => {
     for (let e of ErrorController.processErrors)
-      console.log("Error " + e.processName + " for " + e.notePath);
+      console.log("Error " + e.processName + " for " + e.filePath);
   };
 }
 
-class ProcessError {
+export class ProcessError {
   constructor(
-    public notePath: string,
+    public filePath: string,
     public processName: string,
     public error: string
   ) {}

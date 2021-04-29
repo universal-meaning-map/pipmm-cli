@@ -1,9 +1,5 @@
-import { Config } from "@oclif/config";
-import { config } from "cli-ux";
 import * as fs from "fs";
-import { utils } from "mocha";
 import * as path from "path";
-import ConfigCommand from "../commands/config";
 import Utils from "./utils";
 
 export default class ConfigController {
@@ -36,16 +32,6 @@ export default class ConfigController {
     }
   };
 
-  private static saveConfig = (config: ConfigController): void => {
-    let configPath = ConfigController.configPath;
-    if (!fs.existsSync(configPath)) {
-      console.log("No config file exist, creating new file at " + configPath);
-      fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    }
-    fs.writeFileSync(configPath, JSON.stringify(config));
-    console.log(JSON.stringify(config));
-  };
-
   static get config(): ConfigFile {
     if (ConfigController._configFile) {
       return ConfigController._configFile;
@@ -56,7 +42,7 @@ export default class ConfigController {
 
   static set ipmmRepoPath(ipmmRepoPath: string) {
     ConfigController.loadConfig();
-    ConfigController._configFile.ipmmRepo = ipmmRepoPath;
+    ConfigController._configFile.ipmmRepo = Utils.resolveHome(ipmmRepoPath);
     ConfigController.save();
   }
 
@@ -66,7 +52,7 @@ export default class ConfigController {
 
   static set foamRepoPath(foamRepoPath: string) {
     ConfigController.loadConfig();
-    ConfigController._configFile.foamRepo = foamRepoPath;
+    ConfigController._configFile.foamRepo = Utils.resolveHome(foamRepoPath);
     ConfigController.save();
   }
 
