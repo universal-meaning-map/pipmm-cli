@@ -1,7 +1,6 @@
 import { config } from "cli-ux";
 import * as fs from "fs";
 import * as path from "path";
-import Daemon from "./daemon";
 import Utils from "./utils";
 
 export default class ConfigController {

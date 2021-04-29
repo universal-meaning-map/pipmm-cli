@@ -12,4 +12,13 @@ export default class Utils {
     }
     return filepath;
   };
+
+  static filterExtension = (files: string[], extensions: string[]): string[] => {
+    return files.filter(function (file) {
+      for (let extension of extensions) {
+        if (path.extname(file).toLowerCase() === extension) return true;
+      }
+      return false;
+    });
+  };
 }

@@ -19,7 +19,7 @@ hello world from ./src/hello.ts!
     {
       name: "subcommand",
       required: true,
-      description: "The subcommand to run required : get, set",
+      description: "The subcommand to run : get, set",
       hidden: false,
     },
   ];
