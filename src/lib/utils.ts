@@ -1,4 +1,5 @@
 import * as path from "path";
+import * as fs from "fs";
 
 export default class Utils {
   static resolveHome = (filepath: string) => {
@@ -13,12 +14,22 @@ export default class Utils {
     return filepath;
   };
 
-  static filterExtension = (files: string[], extensions: string[]): string[] => {
+  static filterExtension = (
+    files: string[],
+    extensions: string[]
+  ): string[] => {
     return files.filter(function (file) {
       for (let extension of extensions) {
         if (path.extname(file).toLowerCase() === extension) return true;
       }
       return false;
     });
+  };
+
+  static saveFile = (fileData: string, filePath: string): void => {
+    if (!fs.existsSync(filePath)) {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    }
+    fs.writeFileSync(filePath, fileData);
   };
 }

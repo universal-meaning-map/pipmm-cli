@@ -58,7 +58,7 @@ export default class FoamController {
     } catch (error) {
       ErrorController.recordProcessError(
         filePath,
-        "parsin Front Matter file",
+        "parsing Front Matter file",
         error
       );
     }

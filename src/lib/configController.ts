@@ -1,6 +1,9 @@
+import { Config } from "@oclif/config";
 import { config } from "cli-ux";
 import * as fs from "fs";
+import { utils } from "mocha";
 import * as path from "path";
+import ConfigCommand from "../commands/config";
 import Utils from "./utils";
 
 export default class ConfigController {
@@ -52,9 +55,9 @@ export default class ConfigController {
   }
 
   static set ipmmRepoPath(ipmmRepoPath: string) {
-    let config = this.config;
-    config.ipmmRepo = ipmmRepoPath;
-    this.saveConfig(config);
+    ConfigController.loadConfig();
+    ConfigController._configFile.ipmmRepo = ipmmRepoPath;
+    ConfigController.save();
   }
 
   static get ipmmRepoPath(): string {
@@ -62,13 +65,17 @@ export default class ConfigController {
   }
 
   static set foamRepoPath(foamRepoPath: string) {
-    let config = this.config;
-    config.foamRepo = foamRepoPath;
-    this.saveConfig(config);
+    ConfigController.loadConfig();
+    ConfigController._configFile.foamRepo = foamRepoPath;
+    ConfigController.save();
   }
 
   static get foamRepoPath(): string {
     return this.config.foamRepo;
+  }
+
+  private static save() {
+    Utils.saveFile(JSON.stringify(this.config), ConfigController.configPath);
   }
 }
 

@@ -47,6 +47,7 @@ hello world from ./src/hello.ts!
 
     if (args.subcommand == "get") {
       console.log(ConfigController.config);
+      
     } else if (args.subcommand == "set") {
       if (flags.ipmmRepo) ConfigController.ipmmRepoPath = flags.ipmmRepo;
       if (flags.foamRepo) ConfigController.foamRepoPath = flags.foamRepo;
