@@ -4,11 +4,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as matter from "gray-matter";
 import { Console } from "console";
-import Config from "../lib/config"
-
+import ConfigController from "../lib/configController";
 
 export default class ConfigCommand extends Command {
-  
   static description = "Use flags to config variables";
 
   static examples = [
@@ -17,31 +15,43 @@ hello world from ./src/hello.ts!
 `,
   ];
 
+  static args = [
+    {
+      name: "subcommand",
+      required: true,
+      description: "The subcommand to run required : get, set",
+      hidden: false,
+    },
+  ];
+
   static flags = {
     help: flags.help({ char: "h" }),
 
     ipmmRepo: flags.string({
       char: "i",
-      description: "Set path for Ipmm repository",
+      description: "Path for IPMM repository",
     }),
 
     foamRepo: flags.string({
       char: "f",
-      description: "Set path for FOAM repository",
+      description: "Path for FOAM repository",
     }),
   };
 
   async run() {
     const { args, flags } = this.parse(ConfigCommand);
 
-    console.log("hellos")
-    await Config.loadConfig();
+    if (!args.subcommand) {
+      this.error("No config command specified");
+    }
 
-    if (flags.foamRepo) {
+    if (args.subcommand == "get") {
+      console.log(ConfigController.config);
+    } else if (args.subcommand == "set") {
+      if (flags.ipmmRepo) ConfigController.ipmmRepoPath = flags.ipmmRepo;
+      if (flags.foamRepo) ConfigController.foamRepoPath = flags.foamRepo;
+    } else {
+      this.error("Config command " + args.subcommand + " does not exist");
     }
   }
-
-  
 }
-
-

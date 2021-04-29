@@ -5,7 +5,7 @@ import * as path from "path";
 import * as matter from "gray-matter";
 import { Console } from "console";
 import { promises } from "dns";
-import Config from "../lib/config"
+import ConfigController from "../lib/configController"
 
 
 export default class Foam extends Command {
@@ -63,7 +63,7 @@ hello world from ./src/hello.ts!
       // exit with status code
       this.exit(1);
     }
-    let config = await Config.loadConfig();
+    let config =  ConfigController.config;
 
     let ipmmRepo: string = flags.ipmmRepo ? flags.ipmmRepo : config.ipmmRepo;
     let foamRepo: string = flags.foamRepo ? flags.foamRepo : config.foamRepo;
