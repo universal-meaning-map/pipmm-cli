@@ -1,10 +1,12 @@
 import { Command, flags } from "@oclif/command";
-import cli from "cli-ux";
+import cli, { config } from "cli-ux";
 import { promises as fs } from "fs";
 import * as path from "path";
 import * as matter from "gray-matter";
 import { Console } from "console";
 import { promises } from "dns";
+import Config from "../lib/config"
+
 
 export default class Foam extends Command {
   static description =
@@ -23,14 +25,14 @@ hello world from ./src/hello.ts!
       name: "ipmm_repo",
       char: "i",
       description:
-        "path to IPMM repository. If not specified it defaults to thte config one",
+        "Path to IPMM repository. If not specified it defaults to the config one",
       // default: getCurrentPath()
     }),
     foamRepo: flags.string({
       name: "foam_repo",
       char: "f",
       description:
-        "path the FOAM repository. If not specified it defaults to thte config one",
+        "Path the FOAM repository. If not specified it defaults to the config one",
       // default: getCurrentPath()
     }),
   };
@@ -39,7 +41,7 @@ hello world from ./src/hello.ts!
     {
       name: "subcommand",
       required: true,
-      description: "subcommand to execute: import, export, sync, watch",
+      description: "what to execute: import, export, sync, watch",
       hidden: false,
     },
     /*{
@@ -51,6 +53,8 @@ hello world from ./src/hello.ts!
     },*/
   ];
 
+  processErrors: ProcessError[] = [];
+
   async run() {
     const { args, flags } = this.parse(Foam);
 
@@ -59,48 +63,49 @@ hello world from ./src/hello.ts!
       // exit with status code
       this.exit(1);
     }
-    let config = await this.loadConfig("");
+    let config = await Config.loadConfig();
 
     let ipmmRepo: string = flags.ipmmRepo ? flags.ipmmRepo : config.ipmmRepo;
     let foamRepo: string = flags.foamRepo ? flags.foamRepo : config.foamRepo;
 
     if (args.subcommand == "import") {
-      this.foamImport(ipmmRepo, foamRepo);
+      await this.foamImport(ipmmRepo, foamRepo);
     } else if (args.subcommand == "export") {
-      this.foamExport(ipmmRepo, foamRepo);
+      await this.foamExport(ipmmRepo, foamRepo);
     }
+    this.logProcessErrors()
   }
 
   foamImport = async (ipmmRepo: String, foamRepo: string): Promise<void> => {
-    await this.readPath(foamRepo);
-  };
-
-  foamExport = (ipmmRepo: String, foamRepo: string) => void {};
-
-  readPath = async (directoryPath: string) => {
-    let files = await fs.readdir(directoryPath);
+    let files = await fs.readdir(foamRepo);
 
     files = this.filterExtension(files, [".md"]);
 
-    const progressBar = cli.progress({
-      format: "{bar} {value}/{total} Notes",
-      barCompleteChar: "\u2588",
-      barIncompleteChar: "\u2591",
-    });
-
-    progressBar.start(files.length, 0);
+    this.log(
+      "Importing FOAM repository from ",
+      path.resolve(process.cwd(), foamRepo),
+      "..."
+    );
 
     let i: number = 0;
 
-    for (let fileName of files) {
-      i++;
-      let filePath = path.join(directoryPath, fileName);
-      let note = await this.makeNote(filePath);
-      progressBar.update(i);
-    }
+    const progressBar = cli.progress({
+      format: "{file}, {bar} {value}/{total} Notes",
+      barCompleteChar: "\u2588",
+      barIncompleteChar: "\u2591",
+    });
+    progressBar.start(files.length, 0);
 
+    for (let fileName of files) {
+      progressBar.update({ file: fileName });
+      i++;
+      let filePath = path.join(foamRepo, fileName);
+      let note = await this.makeNote(filePath);
+    }
     progressBar.stop();
   };
+
+  foamExport = (ipmmRepo: String, foamRepo: string) => void {};
 
   filterExtension = (files: string[], extensions: string[]): string[] => {
     return files.filter(function (file) {
@@ -116,8 +121,9 @@ hello world from ./src/hello.ts!
     let data: string = "";
     try {
       data = await fs.readFile(filePath, "utf8");
-    } catch (error) {
-      console.log("Unable to read", filePath, error);
+    } catch (e) {
+      this.recordProcessError(new ProcessError(filePath, "reading file", e));
+      //this.error("Unable to read" + filePath + e);
     }
 
     //gray-matter object
@@ -132,29 +138,46 @@ hello world from ./src/hello.ts!
 
       return note;
     } catch (e) {
-      console.log("Error parsing YAML for note: ", filePath, e);
+      this.recordProcessError(
+        new ProcessError(filePath, "parsing Front Matter", e)
+      );
+      //this.error("Error parsing YAML for note: " + filePath + e);
       return note;
     }
   };
 
-  loadConfig = async (filePath: string): Promise<Config> => {
-    let config = new Config("ipmmPath", "ipfoamPath");
-    return config;
+  recordProcessError = (noteError: ProcessError): void => {
+    this.processErrors.push(noteError);
+  };
+
+  logProcessErrors = (): void => {
+    for (let e of this.processErrors)
+      this.log("Error " + e.processName + " for " + e.notePath);
   };
 }
 
 interface NoteType {
-  //typesafeProp1?: number,
-  //requiredProp1: string,
   [key: string]: any;
 }
 
-class Config {
-  ipmmRepo: string;
-  foamRepo: string;
-
-  constructor(ipmmrepo: string, foamRepo: string) {
-    this.ipmmRepo = ipmmrepo;
-    this.foamRepo = foamRepo;
-  }
+class ProcessError {
+  constructor(
+    public notePath: string,
+    public processName: string,
+    public error: string
+  ) {}
 }
+
+
+
+/*
+const progressBar = cli.progress({
+      format: "{bar} {value}/{total} Notes",
+      barCompleteChar: "\u2588",
+      barIncompleteChar: "\u2591",
+    });
+
+    progressBar.start(files.length, 0);
+    progressBar.update(i);
+    progressBar.stop();
+*/
