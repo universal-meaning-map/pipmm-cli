@@ -37,11 +37,10 @@ export default class LogsController {
 
     if (fs.existsSync(logsPath)) {
       let data = JSON.parse(fs.readFileSync(logsPath, "utf8"));
-
       let logsFile: ProcessError[] = [];
       for (let d of data) {
         logsFile.push(
-          new ProcessError(data.filePath, data.processName, data.error)
+          new ProcessError(d.filePath, d.processName, d.error)
         );
       }
 
