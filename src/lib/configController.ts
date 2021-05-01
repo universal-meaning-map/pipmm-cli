@@ -10,7 +10,7 @@ export default class ConfigController {
     return Utils.resolveHome(ConfigController._configPath);
   }
 
-  private static loadConfig = (): ConfigFile => {
+  private static load = (): ConfigFile => {
     let configPath = ConfigController.configPath;
 
     if (fs.existsSync(configPath)) {
@@ -36,12 +36,12 @@ export default class ConfigController {
     if (ConfigController._configFile) {
       return ConfigController._configFile;
     } else {
-      return ConfigController.loadConfig();
+      return ConfigController.load();
     }
   }
 
   static set ipmmRepoPath(ipmmRepoPath: string) {
-    ConfigController.loadConfig();
+    ConfigController.load();
     ConfigController._configFile.ipmmRepo = Utils.resolveHome(ipmmRepoPath);
     ConfigController.save();
   }
@@ -51,7 +51,7 @@ export default class ConfigController {
   }
 
   static set foamRepoPath(foamRepoPath: string) {
-    ConfigController.loadConfig();
+    ConfigController.load();
     ConfigController._configFile.foamRepo = Utils.resolveHome(foamRepoPath);
     ConfigController.save();
   }

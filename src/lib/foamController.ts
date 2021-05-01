@@ -2,10 +2,15 @@ import ErrorController from "./errorController";
 import Utils from "./utils";
 import * as matter from "gray-matter";
 import * as path from "path";
-import {promises as fs} from "fs";
+import { promises as fs } from "fs";
+import { NoteType } from "../lib/ipmm";
+import Ipmm from "./ipmm";
 
 export default class FoamController {
-  static import = async (ipmmRepo: String, foamRepo: string): Promise<void> => {
+  static import = async (
+    ipmmRepo: String,
+    foamRepo: string
+  ): Promise<NoteType[]> => {
     let files = await fs.readdir(foamRepo);
 
     files = Utils.filterExtension(files, [".md"]);
@@ -26,13 +31,18 @@ export default class FoamController {
     });
     progressBar.start(files.length, 0);
 */
+    let notes: NoteType[] = [];
+
     for (let fileName of files) {
       //progressBar.update({ file: fileName });
       i++;
       let filePath = path.join(foamRepo, fileName);
       let note = await FoamController.makeNote(filePath);
+      notes.push(note);
     }
-   // progressBar.stop();
+
+    return notes;
+    // progressBar.stop();
   };
 
   static makeNote = async (filePath: string): Promise<NoteType> => {
@@ -65,8 +75,6 @@ export default class FoamController {
 
     return note;
   };
-}
 
-interface NoteType {
-  [key: string]: any;
+  save() {}
 }

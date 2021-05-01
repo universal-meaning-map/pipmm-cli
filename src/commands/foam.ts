@@ -4,6 +4,7 @@ import ConfigController from "../lib/configController";
 import FoamController from "../lib/foamController";
 import ErrorController from "../lib/errorController";
 import LogsController from "../lib/logsController";
+import Ipmm from "../lib/ipmm";
 
 export default class FoamCommand extends Command {
   static description =
@@ -62,7 +63,9 @@ hello world from ./src/hello.ts!
     let foamRepo: string = flags.foamRepo ? flags.foamRepo : config.foamRepo;
 
     if (args.subcommand == "import") {
-      await FoamController.import(ipmmRepo, foamRepo);
+      let notes = await FoamController.import(ipmmRepo, foamRepo);
+      Ipmm.save(notes, ipmmRepo)
+      
     } else if (args.subcommand == "export") {
       await this.foamExport(ipmmRepo, foamRepo);
     }
