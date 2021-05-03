@@ -41,7 +41,7 @@ Unless specified it uses the repo paths specified in the `config.json` file
 - `watch`[daemon]: Listens to the foam repo for changes and it updates the ipmm repo
 - `sync`[daemon]: Listen for changes in foam and ipmm and syncs the other one. Exclusive to `watch`
 
-# Reference
+# Reference 
 
 ## Foam
 

@@ -4,7 +4,6 @@ import Utils from "./utils";
 import * as path from "path";
 
 export default class Ipmm {
-  private static repo: NoteType[];
 
   private static load = (ipmmPath: string): NoteType[] => {
     if (!fs.existsSync(ipmmPath))

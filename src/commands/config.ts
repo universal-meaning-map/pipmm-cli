@@ -9,12 +9,6 @@ import ConfigController from "../lib/configController";
 export default class ConfigCommand extends Command {
   static description = "Use flags to config variables";
 
-  static examples = [
-    `$ ipmm hello
-hello world from ./src/hello.ts!
-`,
-  ];
-
   static args = [
     {
       name: "subcommand",

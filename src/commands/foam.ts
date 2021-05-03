@@ -10,12 +10,6 @@ export default class FoamCommand extends Command {
   static description =
     "Parses a given Foam repo and generates an array of notes with their corresponding metadata";
 
-  static examples = [
-    `$ ipmm hello
-hello world from ./src/hello.ts!
-`,
-  ];
-
   static flags = {
     help: flags.help({ char: "h" }),
 
@@ -42,13 +36,7 @@ hello world from ./src/hello.ts!
       description: "The subcommand to run: import, export, sync, watch",
       hidden: false,
     },
-    /*{
-      name: "repoPath",
-      required: false,
-      description: "path of the repo to import",
-      hidden: false,
-      default: process.cwd(),
-    },*/
+   
   ];
 
   async run() {
