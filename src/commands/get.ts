@@ -5,7 +5,6 @@ import * as path from "path";
 import * as matter from "gray-matter";
 import { Console } from "console";
 import ConfigController from "../lib/configController";
-import DaemonClient from "../lib/daemonClient";
 
 
 export default class GetCommand extends Command {
@@ -27,6 +26,6 @@ export default class GetCommand extends Command {
      // this.error("No config NoteUID specified");
     }
 
-    DaemonClient.init();
+   
   }
 }
