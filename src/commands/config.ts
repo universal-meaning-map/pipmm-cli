@@ -34,6 +34,7 @@ export default class ConfigCommand extends Command {
 
   async run() {
     const { args, flags } = this.parse(ConfigCommand);
+    console.log(args,flags)
 
     if (!args.subcommand) {
       this.error("No config command specified");

@@ -10,34 +10,28 @@ export default class ConfigController {
     return Utils.resolveHome(ConfigController._configPath);
   }
 
-  private static load = (): ConfigFile => {
+  private static load = () => {
     let configPath = ConfigController.configPath;
 
     if (fs.existsSync(configPath)) {
-      //console.log("No config file exists at " + configPath);
+      //console.log("Config already exists at " + configPath);
       let data = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      let config: ConfigFile = {
+      ConfigController._configFile = {
         ipmmRepo: data.ipmmRepo,
         foamRepo: data.foamRepo,
       };
-
-      ConfigController._configFile = config;
-      return config;
     } else {
-      let config: ConfigFile = {
+      //console.log("No config file exists at " + configPath);
+      ConfigController._configFile = {
         ipmmRepo: "",
         foamRepo: "",
       };
-      return config;
     }
   };
 
   static get config(): ConfigFile {
-    if (ConfigController._configFile) {
-      return ConfigController._configFile;
-    } else {
-      return ConfigController.load();
-    }
+    if (!ConfigController._configFile) ConfigController.load();
+    return ConfigController._configFile;
   }
 
   static set ipmmRepoPath(ipmmRepoPath: string) {
