@@ -4,7 +4,7 @@ import * as matter from "gray-matter";
 import * as path from "path";
 import { promises as fs } from "fs";
 import { NoteType } from "../lib/ipmm";
-import Ipmm from "./ipmm";
+const dagCBOR = require('ipld-dag-cbor')
 
 export default class FoamController {
   static import = async (
@@ -13,7 +13,7 @@ export default class FoamController {
   ): Promise<NoteType[]> => {
     let files = await fs.readdir(foamRepo);
 
-    files = Utils.filterExtension(files, [".md"]);
+    files = Utils.filterByExtensions(files, [".md"]);
 
     console.log(
       "Importing FOAM repository from ",
@@ -35,15 +35,31 @@ export default class FoamController {
 
     for (let fileName of files) {
       //progressBar.update({ file: fileName });
+      // This can be parallelized
       i++;
+      let iid = await FoamController.makeIntentIdentifier(fileName)
+
       let filePath = path.join(foamRepo, fileName);
       let note = await FoamController.makeNote(filePath);
+
       notes.push(note);
     }
 
     return notes;
     // progressBar.stop();
   };
+
+  static makeIntentIdentifier = async (fileName:string):Promise<string> =>{
+
+    //Using defult IPFS parameters:
+    //TODO: Define which ones we use, and be explicit when calling the function
+    let foamId = Utils.removeFileExtension(fileName)
+    let cid = await dagCBOR.util.cid(foamId); 
+    let iid = cid.toString()
+    console.log(iid, foamId)
+    return iid
+
+  }
 
   static makeNote = async (filePath: string): Promise<NoteType> => {
     let note: NoteType = {};

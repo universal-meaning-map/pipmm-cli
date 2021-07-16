@@ -14,7 +14,7 @@ export default class Utils {
     return filepath;
   };
 
-  static filterExtension = (
+  static filterByExtensions = (
     files: string[],
     extensions: string[]
   ): string[] => {
@@ -24,6 +24,10 @@ export default class Utils {
       }
       return false;
     });
+  };
+
+  static removeFileExtension = (filename: string): string => {
+    return filename.replace(/\.[^/.]+$/, "");
   };
 
   static saveFile = (fileData: string, filePath: string): void => {

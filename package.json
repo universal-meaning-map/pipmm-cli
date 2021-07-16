@@ -61,6 +61,7 @@
     "@oclif/plugin-help": "^3.2.2",
     "cli-ux": "^5.5.1",
     "gray-matter": "^4.0.2",
+    "ipld-dag-cbor": "^1.0.0",
     "node-ipc": "^9.1.4",
     "tslib": "^1.14.1"
   }
