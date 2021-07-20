@@ -16,9 +16,19 @@ export default class ConfigCommand extends Command {
       description: "The subcommand to run : get, set",
       hidden: false,
     },
-    
+    {
+      name: "property",
+      required: true,
+      description:
+        "property key to set or get. Use 'all' to get the entire config.",
+    },
+    {
+      name: "value",
+      required: true,
+      description: "value",
+    },
   ];
-
+  /*
   static flags = {
     help: flags.help({ char: "h" }),
 
@@ -29,13 +39,13 @@ export default class ConfigCommand extends Command {
 
     foamRepo: flags.string({
       char: "f",
-      description: "Path for FOAM repository",
+      description: "Path for [[FOAM repository",
     }),
   };
-
+*/
   async run() {
     const { args, flags } = this.parse(ConfigCommand);
-    console.log(args,flags)
+    console.log(args, flags);
 
     if (!args.subcommand) {
       this.error("No config command specified");
@@ -43,10 +53,16 @@ export default class ConfigCommand extends Command {
 
     if (args.subcommand == "get") {
       console.log(ConfigController.config);
-      
     } else if (args.subcommand == "set") {
-      if (flags.ipmmRepo) ConfigController.ipmmRepoPath = flags.ipmmRepo;
-      if (flags.foamRepo) ConfigController.foamRepoPath = flags.foamRepo;
+      if (args.property == "ipmmRepo")
+        ConfigController.ipmmRepoPath = args.value;
+      else if (args.property == "foamRepo")
+        ConfigController.foamRepoPath = args.value;
+      else if (args.property == "ipfsRepo")
+        ConfigController.ipfsRepoPath = args.value;
+      else {
+        this.error("Property " + args.property +  "does not exist");
+      }
     } else {
       this.error("Config command " + args.subcommand + " does not exist");
     }

@@ -1,9 +1,14 @@
+import { Config } from "@oclif/config";
 import * as fs from "fs";
 import * as path from "path";
 import Utils from "./utils";
 
+
 export default class ConfigController {
   private static _configPath = "~/.ipmm/config.json";
+  private static _defaultIpfsPath = "~/.ipmm/ipfsRepo";
+  private static _defaultIpmmPath = "~/.ipmm/ipmmRepo";
+
   private static _configFile: ConfigFile;
 
   private static get configPath(): string {
@@ -19,14 +24,14 @@ export default class ConfigController {
       ConfigController._configFile = {
         ipmmRepo: data.ipmmRepo,
         foamRepo: data.foamRepo,
-        ipfsRepo: data.ipfsRepo
+        ipfsRepo: data.ipfsRepo,
       };
     } else {
       //console.log("No config file exists at " + configPath);
       ConfigController._configFile = {
-        ipmmRepo: "",
+        ipmmRepo: ConfigController._defaultIpmmPath,
         foamRepo: "",
-        ipfsRepo: "",
+        ipfsRepo: ConfigController._defaultIpfsPath,
       };
     }
   };
@@ -56,6 +61,16 @@ export default class ConfigController {
     return this.config.foamRepo;
   }
 
+  static set ipfsRepoPath(ipfsRepoPath: string) {
+    ConfigController.load();
+    ConfigController._configFile.ipfsRepo = Utils.resolveHome(ipfsRepoPath);
+    ConfigController.save();
+  }
+
+  static get ipfsRepoPath(): string {
+    return this.config.ipfsRepo;
+  }
+  
   private static save() {
     Utils.saveFile(JSON.stringify(this.config), ConfigController.configPath);
   }
