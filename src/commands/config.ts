@@ -16,6 +16,7 @@ export default class ConfigCommand extends Command {
       description: "The subcommand to run : get, set",
       hidden: false,
     },
+    
   ];
 
   static flags = {

@@ -19,12 +19,14 @@ export default class ConfigController {
       ConfigController._configFile = {
         ipmmRepo: data.ipmmRepo,
         foamRepo: data.foamRepo,
+        ipfsRepo: data.ipfsRepo
       };
     } else {
       //console.log("No config file exists at " + configPath);
       ConfigController._configFile = {
         ipmmRepo: "",
         foamRepo: "",
+        ipfsRepo: "",
       };
     }
   };
@@ -62,4 +64,5 @@ export default class ConfigController {
 interface ConfigFile {
   ipmmRepo: string;
   foamRepo: string;
+  ipfsRepo: string;
 }

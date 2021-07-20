@@ -4,7 +4,9 @@ import * as matter from "gray-matter";
 import * as path from "path";
 import { promises as fs } from "fs";
 import { NoteType } from "../lib/ipmm";
-const dagCBOR = require('ipld-dag-cbor')
+import IpldController from "./ipldController";
+import ConfigController from "./configController";
+const dagCBOR = require("ipld-dag-cbor");
 
 export default class FoamController {
   static import = async (
@@ -21,8 +23,6 @@ export default class FoamController {
       "..."
     );
 
-    let i: number = 0;
-
     /*
     const progressBar = cli.progress({
       format: "{file}, {bar} {value}/{total} Notes",
@@ -36,11 +36,11 @@ export default class FoamController {
     for (let fileName of files) {
       //progressBar.update({ file: fileName });
       // This can be parallelized
-      i++;
-      let iid = await FoamController.makeIntentIdentifier(fileName)
+      let iid = await FoamController.makeIntentIdentifier(fileName);
 
       let filePath = path.join(foamRepo, fileName);
-      let note = await FoamController.makeNote(filePath);
+      let note: NoteType = await FoamController.makeNote(filePath);
+      let cid: string = await FoamController.makeIpldNodeAndGetCid(note);
 
       notes.push(note);
     }
@@ -49,17 +49,15 @@ export default class FoamController {
     // progressBar.stop();
   };
 
-  static makeIntentIdentifier = async (fileName:string):Promise<string> =>{
-
-    //Using defult IPFS parameters:
+  static makeIntentIdentifier = async (fileName: string): Promise<string> => {
+    //Using defult IPFS parameters
     //TODO: Define which ones we use, and be explicit when calling the function
-    let foamId = Utils.removeFileExtension(fileName)
-    let cid = await dagCBOR.util.cid(foamId); 
-    let iid = cid.toString()
-    console.log(iid, foamId)
-    return iid
-
-  }
+    let foamId = Utils.removeFileExtension(fileName);
+    let cid = await dagCBOR.util.cid(foamId);
+    let iid = cid.toString();
+    console.log(iid, foamId);
+    return iid;
+  };
 
   static makeNote = async (filePath: string): Promise<NoteType> => {
     let note: NoteType = {};
@@ -90,6 +88,14 @@ export default class FoamController {
     }
 
     return note;
+  };
+
+  static makeIpldNodeAndGetCid = async (note: NoteType): Promise<string> => {
+    if (!IpldController.ipld)
+      await IpldController.init("ConfigController.ipmmRepoPath");
+
+    const cid = await IpldController.put(note);
+    return cid;
   };
 
   save() {}
