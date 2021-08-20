@@ -6,7 +6,7 @@ import { promises as fs } from "fs";
 import { NoteType } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import ConfigController from "./configController";
-const dagCBOR = require("ipld-dag-cbor");
+import * as dagCBOR from "@ipld/dag-cbor"
 
 export default class FoamController {
   static import = async (
@@ -53,7 +53,9 @@ export default class FoamController {
     //Using defult IPFS parameters
     //TODO: Define which ones we use, and be explicit when calling the function
     let foamId = Utils.removeFileExtension(fileName);
-    let cid = await dagCBOR.util.cid(foamId);
+    let cid = "fakeCID.FixMe"
+    //TOOD use ipldController to get CID
+    //let cid = await dagCBOR.util.cid(foamId);
     let iid = cid.toString();
     console.log(iid, foamId);
     return iid;
@@ -91,8 +93,8 @@ export default class FoamController {
   };
 
   static makeIpldNodeAndGetCid = async (note: NoteType): Promise<string> => {
-    if (!IpldController.ipld)
-      await IpldController.init(ConfigController.ipfsRepoPath);
+    //if (!IpldController.ipld)
+      //await IpldController.init(ConfigController.ipfsRepoPath);
 
     const cid = await IpldController.put(note);
     return cid;
