@@ -7,14 +7,14 @@ export default class IpldController {
    static ipld: any;
 
   static init = async (ipfsRepoPath: string): Promise<void> => {
-    console.log(ipfsRepoPath)
-    const repo = new IpfsRepo(ipfsRepoPath);
-    await repo.init({});
-    await repo.open();
-    const blockService = new IpfsBlockService(repo);
-    IpldController.ipld = Ipld({ blockService: blockService });
+    console.log(IpfsRepo)
+    //const repo =  new IpfsRepo(ipfsRepoPath);
+    //await repo.init({});
+    //await repo.open();
+    //const blockService = new IpfsBlockService(repo);
+    //sIpldController.ipld = Ipld({ blockService: blockService });
   };
-
+/*
   static put = async (node:any):Promise<string> =>{
     const cid = (await IpldController.ipld.put(node, { format: 'dag-cbor', hashAlg: 'sha2-256' })).toString()
     return cid 
@@ -23,5 +23,6 @@ export default class IpldController {
       return {}
 
   }
+  */s
 
 }

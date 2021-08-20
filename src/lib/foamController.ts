@@ -92,7 +92,7 @@ export default class FoamController {
 
   static makeIpldNodeAndGetCid = async (note: NoteType): Promise<string> => {
     if (!IpldController.ipld)
-      await IpldController.init("ConfigController.ipmmRepoPath");
+      await IpldController.init(ConfigController.ipfsRepoPath);
 
     const cid = await IpldController.put(note);
     return cid;
