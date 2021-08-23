@@ -6,7 +6,7 @@ import { promises as fs } from "fs";
 import { NoteType } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import ConfigController from "./configController";
-import * as dagCBOR from "@ipld/dag-cbor"
+import * as dagCBOR from "@ipld/dag-cbor";
 
 export default class FoamController {
   static import = async (
@@ -31,33 +31,32 @@ export default class FoamController {
     });
     progressBar.start(files.length, 0);
 */
-    let notes: NoteType[] = [];
+    const notes: NoteType[] = [];
+    const iidMap: { [iid: string]: string } = {};
 
     for (let fileName of files) {
       //progressBar.update({ file: fileName });
       // This can be parallelized
-      let iid = await FoamController.makeIntentIdentifier(fileName);
+      const iid = await FoamController.makeIntentIdentifier(fileName);
 
-      let filePath = path.join(foamRepo, fileName);
-      let note: NoteType = await FoamController.makeNote(filePath);
-      let cid: string = await FoamController.makeIpldNodeAndGetCid(note);
+      const filePath = path.join(foamRepo, fileName);
+      const note: NoteType = await FoamController.makeNote(filePath);
+      const block = await IpldController.anyToDagCborBlock(note);
 
+      iidMap[iid] = block.cid.toString();
       notes.push(note);
     }
+    console.log(iidMap);
 
     return notes;
     // progressBar.stop();
   };
 
   static makeIntentIdentifier = async (fileName: string): Promise<string> => {
-    //Using defult IPFS parameters
-    //TODO: Define which ones we use, and be explicit when calling the function
-    let foamId = Utils.removeFileExtension(fileName);
-    let cid = "fakeCID.FixMe"
-    //TOOD use ipldController to get CID
-    //let cid = await dagCBOR.util.cid(foamId);
-    let iid = cid.toString();
-    console.log(iid, foamId);
+    //TODO: Define how IID should be generated.
+    const foamId = Utils.removeFileExtension(fileName);
+    const fileNameCid = await IpldController.anyToDagCborBlock(fileName);
+    const iid = fileNameCid.cid.toString();
     return iid;
   };
 
@@ -77,7 +76,12 @@ export default class FoamController {
       note.content = m.content;
 
       for (let prop in m.data) {
-        note[prop] = m.data[prop];
+        if (m.data[prop] instanceof Date) {
+          //DAG-CBOR seralization does not support Date
+          note[prop] = m.data[prop].toString();
+        } else {
+          note[prop] = m.data[prop];
+        }
       }
 
       return note;
@@ -90,14 +94,6 @@ export default class FoamController {
     }
 
     return note;
-  };
-
-  static makeIpldNodeAndGetCid = async (note: NoteType): Promise<string> => {
-    //if (!IpldController.ipld)
-      //await IpldController.init(ConfigController.ipfsRepoPath);
-
-    const cid = await IpldController.put(note);
-    return cid;
   };
 
   save() {}
