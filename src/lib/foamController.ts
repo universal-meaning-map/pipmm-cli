@@ -5,14 +5,17 @@ import * as path from "path";
 import { promises as fs } from "fs";
 import { NoteType } from "../lib/ipmm";
 import IpldController from "./ipldController";
-import ConfigController from "./configController";
-import * as dagCBOR from "@ipld/dag-cbor";
+import Tokenizer from "./tokenizer";
+
+const iidToCidMap: { [iid: string]: string } = {};
+const foamIdToIidMap: { [fileName: string]: string } = {};
+
 
 export default class FoamController {
   static import = async (
     ipmmRepo: String,
     foamRepo: string
-  ): Promise<NoteType[]> => {
+  ): Promise<NoteType[]> => { 
     let files = await fs.readdir(foamRepo);
 
     files = Utils.filterByExtensions(files, [".md"]);
@@ -32,35 +35,40 @@ export default class FoamController {
     progressBar.start(files.length, 0);
 */
     const notes: NoteType[] = [];
-    const iidMap: { [iid: string]: string } = {};
 
     for (let fileName of files) {
       //progressBar.update({ file: fileName });
       // This can be parallelized
-      const iid = await FoamController.makeIntentIdentifier(fileName);
+      const foamId = Utils.removeFileExtension(fileName);
+      const iid = await FoamController.makeIntentIdentifier(foamId);
 
       const filePath = path.join(foamRepo, fileName);
       const note: NoteType = await FoamController.makeNote(filePath);
       const block = await IpldController.anyToDagCborBlock(note);
-
-      iidMap[iid] = block.cid.toString();
+      foamIdToIidMap [foamId] = iid
+      iidToCidMap[iid] = block.cid.toString();
       notes.push(note);
     }
-    console.log(iidMap);
-
+    console.log(iidToCidMap)
     return notes;
     // progressBar.stop();
   };
 
-  static makeIntentIdentifier = async (fileName: string): Promise<string> => {
+  static makeIntentIdentifier = async (foamId: string): Promise<string> => {
     //TODO: Define how IID should be generated.
-    const foamId = Utils.removeFileExtension(fileName);
-    const fileNameCid = await IpldController.anyToDagCborBlock(fileName);
+    const fileNameCid = await IpldController.anyToDagCborBlock(foamId);
     const iid = fileNameCid.cid.toString();
     return iid;
   };
 
+  static getIidFromFoamId(foamId:string):string{
+    const iid = foamIdToIidMap[foamId]
+    //console.log("iid of",filename, iid)
+    return iid;
+  }
+
   static makeNote = async (filePath: string): Promise<NoteType> => {
+    //console.log("Making..."+filePath)
     let note: NoteType = {};
     let data: string = "";
     try {
@@ -72,6 +80,8 @@ export default class FoamController {
     //gray-matter object
     try {
       let m = matter(data);
+
+      Tokenizer.replaceWikilnksWithTransclusions(m.content);
 
       note.content = m.content;
 
