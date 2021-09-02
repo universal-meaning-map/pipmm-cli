@@ -57,6 +57,10 @@ export default class FoamCommand extends Command {
     } else if (args.subcommand == "export") {
       await this.foamExport(ipmmRepo, foamRepo);
     }
+    else if (args.subcommand == "buildTypes")
+  {
+    await FoamController.buildTypes(ipmmRepo, foamRepo);
+  }
 
     ErrorController.saveLogs("foam", args.subcommand);
   }

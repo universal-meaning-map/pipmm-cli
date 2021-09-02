@@ -10,12 +10,11 @@ import Tokenizer from "./tokenizer";
 const iidToCidMap: { [iid: string]: string } = {};
 const foamIdToIidMap: { [fileName: string]: string } = {};
 
-
 export default class FoamController {
   static import = async (
     ipmmRepo: String,
     foamRepo: string
-  ): Promise<NoteType[]> => { 
+  ): Promise<NoteType[]> => {
     let files = await fs.readdir(foamRepo);
 
     files = Utils.filterByExtensions(files, [".md"]);
@@ -45,11 +44,11 @@ export default class FoamController {
       const filePath = path.join(foamRepo, fileName);
       const note: NoteType = await FoamController.makeNote(filePath);
       const block = await IpldController.anyToDagCborBlock(note);
-      foamIdToIidMap [foamId] = iid
+      foamIdToIidMap[foamId] = iid;
       iidToCidMap[iid] = block.cid.toString();
       notes.push(note);
     }
-    console.log(iidToCidMap)
+    console.log(iidToCidMap);
     return notes;
     // progressBar.stop();
   };
@@ -61,8 +60,8 @@ export default class FoamController {
     return iid;
   };
 
-  static getIidFromFoamId(foamId:string):string{
-    const iid = foamIdToIidMap[foamId]
+  static getIidFromFoamId(foamId: string): string {
+    const iid = foamIdToIidMap[foamId];
     //console.log("iid of",filename, iid)
     return iid;
   }
@@ -104,6 +103,15 @@ export default class FoamController {
     }
 
     return note;
+  };
+
+  static buildTypes = async (
+    ipmmRepo: String,
+    foamRepo: string
+  ): Promise<void> => {
+    const schema = `type Foo string`;
+    const data = {};
+    IpldController.dataMatchesType(data, schema, "");
   };
 
   save() {}
