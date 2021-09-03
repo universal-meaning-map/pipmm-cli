@@ -36,7 +36,12 @@ export default class FoamCommand extends Command {
       description: "The subcommand to run: import, export, sync, watch",
       hidden: false,
     },
-   
+    {
+      name: "fileName",
+      required: false,
+      description: "File name to import within the Foam root directory",
+      hidden: false,
+    },
   ];
 
   async run() {
@@ -51,16 +56,26 @@ export default class FoamCommand extends Command {
     let foamRepo: string = flags.foamRepo ? flags.foamRepo : config.foamRepo;
 
     if (args.subcommand == "import") {
-      let notes = await FoamController.import(ipmmRepo, foamRepo);
-      Ipmm.save(notes, ipmmRepo)
-      
+      //import a single file
+      if (args.fileName) {
+        console.log("in");
+        let note = await FoamController.importFile(
+          ipmmRepo,
+          foamRepo,
+          args.fileName
+        );
+      }
+
+      //import everything
+      else {
+        await FoamController.importAll(ipmmRepo, foamRepo);
+        //Ipmm.save(notes, ipmmRepo);
+      }
     } else if (args.subcommand == "export") {
       await this.foamExport(ipmmRepo, foamRepo);
+    } else if (args.subcommand == "buildTypes") {
+      await FoamController.buildTypes(ipmmRepo, foamRepo);
     }
-    else if (args.subcommand == "buildTypes")
-  {
-    await FoamController.buildTypes(ipmmRepo, foamRepo);
-  }
 
     ErrorController.saveLogs("foam", args.subcommand);
   }

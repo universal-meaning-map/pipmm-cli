@@ -1,7 +1,7 @@
 import FoamController from "./foamController";
 
 export default class Tokenizer {
-  static replaceWikilnksWithTransclusions(text: string): string {
+  static wikilinksToTransclusions(text: string): string {
     const wikilinkWithTokens = /\[{2}(.*?)\]{2}/g;
     //let wikilinkWithoutTokens = /[^[\]]+(?=]])/g;
     const res = text.replace(
