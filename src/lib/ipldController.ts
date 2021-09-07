@@ -22,7 +22,7 @@ export default class IpldController {
 
   static geIidForFoamId = async (foamId: string): Promise<any> => {
     const block = await IpldController.anyToDagCborBlock(foamId.toLowerCase())
-    return block.cid.toString();
+    return block.cid.toString().slice(-8);
   };
 
   static dataMatchesType = async (

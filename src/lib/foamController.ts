@@ -175,7 +175,7 @@ export default class FoamController {
 
       if (!typeProps[TYPE_PROP_CONSTRAINS])
         console.log(TYPE_PROP_CONSTRAINS + " for Type does not exist");
-        
+
       const ipmmType = new IpmmType(
         typeProps[TYPE_PROP_DEFAULT_NAME],
         typeProps[TYPE_PROP_REPRESENTS],
@@ -186,8 +186,8 @@ export default class FoamController {
       foamIdToTypeCid[foamId] = cid;
     }
     //console.log(iid, block.cid.toString, filePath)
-
-    //console.log(note);
+    console.log("\n")
+    console.log(note);
     return note;
   };
 
