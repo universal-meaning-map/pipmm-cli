@@ -12,7 +12,7 @@ export default class Referencer {
   static readonly TYPE_PROP_IPLD_SCHEMA = "$ipld-schema";
 
   static iidToCidMap: { [iid: string]: string } = {};
-  static iidToTypeMap: { [cid: string]: IpmmType } = {};
+  static iidToTypeMap: { [iid: string]: IpmmType } = {};
 
   static addIId(iid: string, cid: string): void {
     Referencer.iidToCidMap[iid] = cid;
