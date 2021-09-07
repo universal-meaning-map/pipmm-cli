@@ -18,6 +18,11 @@ export default class IpldController {
     const codec = dagCbor;
     const block = await Block.encode({ value, codec, hasher });
     return block;
+  };  
+
+  static geIidForFoamId = async (foamId: string): Promise<any> => {
+    const block = await IpldController.anyToDagCborBlock(foamId.toLowerCase())
+    return block.cid.toString();
   };
 
   static dataMatchesType = async (
