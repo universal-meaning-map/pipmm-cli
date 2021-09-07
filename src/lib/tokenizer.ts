@@ -1,4 +1,5 @@
 import FoamController from "./foamController";
+import IpldController from "./ipldController";
 
 export default class Tokenizer {
   static wikilinksToTransclusions(text: string): string {
@@ -12,14 +13,15 @@ export default class Tokenizer {
   }
 
   static wikilinkToTransclusionExpression(wl: string): string {
-    const ir = Tokenizer.wikilinkToIr(wl);
+    const ir = Tokenizer.wikilinkToItentReference(wl);
     const te = Tokenizer.makeTransclusionExpression(ir);
     return te;
   }
 
-  static wikilinkToIr(wl: string): string {
-    const fn = wl.slice(2, -2);
-    const iid = FoamController.getIidFromFoamId(fn);
+  static wikilinkToItentReference(wikilink: string): string {
+    const fileName = wikilink.slice(2, -2);//removes square brackets
+    const iid = IpldController.makeIIdFromFoamIdOrFileName(fileName);
+    const propTitleIid = FoamController.PROP_TITLE_FOAMID
     // console.log(iid);
     const ir = iid + "/prop-Title-1612697362";
     return ir;

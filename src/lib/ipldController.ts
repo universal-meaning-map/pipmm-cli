@@ -9,6 +9,7 @@ import { sha256 as hasher } from "multiformats/hashes/sha2";
 import * as validator from "@ipld/schema-validation";
 // @ts-ignore
 import { parse as parser } from "ipld-schema";
+import Utils from "./utils";
 
 export default class IpldController {
   static ipld: any;
@@ -20,7 +21,8 @@ export default class IpldController {
     return block;
   };  
 
-  static geIidForFoamId = async (foamId: string): Promise<any> => {
+  static makeIIdFromFoamIdOrFileName = async (foamId: string): Promise<any> => {
+    foamId = Utils.removeFileExtension(foamId)
     const block = await IpldController.anyToDagCborBlock(foamId.toLowerCase())
     return block.cid.toString().slice(-8);
   };

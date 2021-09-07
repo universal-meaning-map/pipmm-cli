@@ -7,20 +7,13 @@ import { NoteType } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
+import Referencer from "./referencer";
 
-const PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
-const PROP_VIEW_FOAMID = "prop-view-1612698885";
-const TYPE_PROP_DEFAULT_NAME = "$default-name";
-const TYPE_PROP_REPRESENTS = "$represents";
-const TYPE_PROP_CONSTRAINS = "$constrains";
-const TYPE_PROP_IPLD_SCHEMA = "$ipld-schema";
 
 let foamRepo: string;
 let ipmmRepo: string;
-const iidToCidMap: { [iid: string]: string } = {};
-const foamIdToIidMap: { [foamId: string]: string } = {};
+//const foamIdToIidMap: { [foamId: string]: string } = {};
 const foamIdToTypeCid: { [foamId: string]: string } = {};
-const iidToTypeMap: { [cid: string]: IpmmType } = {};
 
 export default class FoamController {
   static importAll = async (
@@ -46,7 +39,7 @@ export default class FoamController {
       const note: NoteType = await FoamController.makeNote(fileName);
       notes.push(note);
     }
-    //console.log(iidToCidMap);
+    //console.log(Referencer.iidToCidMap);
   };
 
   static importFile = async (
@@ -66,7 +59,7 @@ export default class FoamController {
   ): Promise<NoteType> => {
     console.log("\nImporting " + foamRepo + "/" + fileName);
     const foamId = Utils.removeFileExtension(fileName).toLowerCase();
-    const iid = await FoamController.makeIntentIdentifier(foamId);
+    const iid = await IpldController.makeIIdFromFoamIdOrFileName(foamId);
     const filePath = path.join(foamRepo, fileName);
 
     //read file
@@ -108,7 +101,7 @@ export default class FoamController {
 
     //chekc if the note is a type definition
     let isType = false;
-    if (m.data[PROP_TYPE_FOAMID]) {
+    if (m.data[Referencer.PROP_TYPE_FOAMID]) {
       isType = true;
 
       //¿prevent the note to have other property types not related to the typ
@@ -122,7 +115,7 @@ export default class FoamController {
     console.log("Is Type", isType, "- Should be a type", shouldBeAType);
     if (shouldBeAType && !isType) {
       throw (
-        foamId + " should be a type but " + PROP_TYPE_FOAMID + " was not found."
+        foamId + " should be a type but " + Referencer.PROP_TYPE_FOAMID + " was not found."
       );
     }
 
@@ -132,7 +125,7 @@ export default class FoamController {
     if (m.content) {
       const view = Tokenizer.wikilinksToTransclusions(m.content);
       const viewProp = await FoamController.processProperty(
-        PROP_VIEW_FOAMID,
+        Referencer.PROP_VIEW_FOAMID,
         view
       );
       note[viewProp.key] = viewProp.value;
@@ -141,10 +134,10 @@ export default class FoamController {
     //convert property keys into iids
 
     if (isType) {
-      for (let key in m.data[PROP_TYPE_FOAMID]) {
+      for (let key in m.data[Referencer.PROP_TYPE_FOAMID]) {
         const prop = await FoamController.processTypeProperty(
           key,
-          m.data[PROP_TYPE_FOAMID][key]
+          m.data[Referencer.PROP_TYPE_FOAMID][key]
         );
         note[prop.key] = prop.value;
       }
@@ -156,66 +149,56 @@ export default class FoamController {
     }
 
     const block = await IpldController.anyToDagCborBlock(note);
-    foamIdToIidMap[foamId] = iid;
     const cid = block.cid.toString();
+    Referencer.iidToCidMap[iid] = cid;
 
     //If it contains a type we create and instance to verify properties
     if (isType) {
       console.log("creating type for", foamId, iid);
-      const typeProps = m.data[PROP_TYPE_FOAMID];
+      const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
 
-      if (!typeProps[TYPE_PROP_DEFAULT_NAME])
-        console.log(TYPE_PROP_DEFAULT_NAME + " for Type does not exist");
+      if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
+        console.log(Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist");
 
-      if (!typeProps[TYPE_PROP_REPRESENTS])
-        console.log(TYPE_PROP_REPRESENTS + " for Type does not exist");
+      if (!typeProps[Referencer.TYPE_PROP_REPRESENTS])
+        console.log(Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist");
 
-      if (!typeProps[TYPE_PROP_CONSTRAINS])
-        console.log(TYPE_PROP_CONSTRAINS + " for Type does not exist");
+      if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
+        console.log(Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
 
-      if (!typeProps[TYPE_PROP_CONSTRAINS])
-        console.log(TYPE_PROP_CONSTRAINS + " for Type does not exist");
+      if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
+        console.log(Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
 
       const ipmmType = new IpmmType(
-        typeProps[TYPE_PROP_DEFAULT_NAME],
-        typeProps[TYPE_PROP_REPRESENTS],
-        typeProps[TYPE_PROP_CONSTRAINS],
-        typeProps[TYPE_PROP_IPLD_SCHEMA]
+        typeProps[Referencer.TYPE_PROP_DEFAULT_NAME],
+        typeProps[Referencer.TYPE_PROP_REPRESENTS],
+        typeProps[Referencer.TYPE_PROP_CONSTRAINS],
+        typeProps[Referencer.TYPE_PROP_IPLD_SCHEMA]
       );
-      iidToTypeMap[iid] = ipmmType;
-      foamIdToTypeCid[foamId] = cid;
+      Referencer.iidToTypeMap[iid] = ipmmType;
+      //foamIdToTypeCid[foamId] = cid;
     }
     //console.log(iid, block.cid.toString, filePath)
-    console.log("\n")
+    console.log("\n");
     console.log(note);
     return note;
   };
 
-  static makeIntentIdentifier = async (foamId: string): Promise<string> => {
-    //TODO: Define how IID should be generated.
-    const iid = await IpldController.geIidForFoamId(foamId);
-    return iid;
-  };
-
-  static getIidFromFoamId(foamId: string): string {
-    const iid = foamIdToIidMap[foamId];
-    //console.log("iid of",filename, iid)
-    return iid;
-  }
+  
 
   static processProperty = async (
     key: string,
     value: any
   ): Promise<{ key: string; value: string }> => {
     //get property cid
-    const keyIid = await IpldController.geIidForFoamId(key);
+    const keyIid = await IpldController.makeIIdFromFoamIdOrFileName(key);
     //const typeCid= foamIdToTypeCid[key]
 
     //check if this property type is known
-    if (!iidToTypeMap[keyIid]) {
+    if (!Referencer.iidToTypeMap[keyIid]) {
       console.log("No type exists for", key, keyIid);
       await FoamController.makeNote(key.toLowerCase() + ".md", true);
-      if (!iidToTypeMap[keyIid])
+      if (!Referencer.iidToTypeMap[keyIid])
         throw (
           "The type for" +
           keyIid +
@@ -224,7 +207,7 @@ export default class FoamController {
     }
 
     //Verify value agains type ipld-schema
-    iidToTypeMap[keyIid].isDataValid(value);
+    Referencer.iidToTypeMap[keyIid].isDataValid(value);
 
     return { key: keyIid, value: value };
   };
@@ -233,7 +216,7 @@ export default class FoamController {
     key: string,
     value: any
   ): Promise<{ key: string; value: string }> => {
-    const keyCid = await IpldController.geIidForFoamId(key);
+    const keyCid = await IpldController.makeIIdFromFoamIdOrFileName(key);
     return { key: keyCid, value: value };
   };
 
