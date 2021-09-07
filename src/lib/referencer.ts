@@ -1,4 +1,6 @@
+import IpldController from "./ipldController";
 import IpmmType from "./ipmmType";
+import Utils from "./utils";
 
 export default class Referencer {
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
@@ -15,6 +17,12 @@ export default class Referencer {
   static addIId(iid: string, cid: string): void {
     Referencer.iidToCidMap[iid] = cid;
   }
+
+  static makeIId = async (foamIdOrFileName: string): Promise<any> => {
+    const foamId = Utils.removeFileExtension(foamIdOrFileName).toLocaleLowerCase()
+    const block = await IpldController.anyToDagCborBlock(foamId)
+    return block.cid.toString().slice(-8);
+  };
 
   static iidExists(iid: string): boolean {
     if (Referencer.iidToCidMap[iid]) return true;

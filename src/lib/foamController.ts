@@ -9,7 +9,6 @@ import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
 
-
 let foamRepo: string;
 let ipmmRepo: string;
 //const foamIdToIidMap: { [foamId: string]: string } = {};
@@ -59,7 +58,7 @@ export default class FoamController {
   ): Promise<NoteType> => {
     console.log("\nImporting " + foamRepo + "/" + fileName);
     const foamId = Utils.removeFileExtension(fileName).toLowerCase();
-    const iid = await IpldController.makeIIdFromFoamIdOrFileName(foamId);
+    const iid = await Referencer.makeIId(foamId);
     const filePath = path.join(foamRepo, fileName);
 
     //read file
@@ -115,7 +114,10 @@ export default class FoamController {
     console.log("Is Type", isType, "- Should be a type", shouldBeAType);
     if (shouldBeAType && !isType) {
       throw (
-        foamId + " should be a type but " + Referencer.PROP_TYPE_FOAMID + " was not found."
+        foamId +
+        " should be a type but " +
+        Referencer.PROP_TYPE_FOAMID +
+        " was not found."
       );
     }
 
@@ -158,16 +160,24 @@ export default class FoamController {
       const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
 
       if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
-        console.log(Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist");
+        console.log(
+          Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist"
+        );
 
       if (!typeProps[Referencer.TYPE_PROP_REPRESENTS])
-        console.log(Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist");
+        console.log(
+          Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist"
+        );
 
       if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-        console.log(Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
+        console.log(
+          Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
+        );
 
       if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-        console.log(Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
+        console.log(
+          Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
+        );
 
       const ipmmType = new IpmmType(
         typeProps[Referencer.TYPE_PROP_DEFAULT_NAME],
@@ -184,14 +194,12 @@ export default class FoamController {
     return note;
   };
 
-  
-
   static processProperty = async (
     key: string,
     value: any
   ): Promise<{ key: string; value: string }> => {
     //get property cid
-    const keyIid = await IpldController.makeIIdFromFoamIdOrFileName(key);
+    const keyIid = await Referencer.makeIId(key);
     //const typeCid= foamIdToTypeCid[key]
 
     //check if this property type is known
@@ -216,7 +224,7 @@ export default class FoamController {
     key: string,
     value: any
   ): Promise<{ key: string; value: string }> => {
-    const keyCid = await IpldController.makeIIdFromFoamIdOrFileName(key);
+    const keyCid = await Referencer.makeIId(key);
     return { key: keyCid, value: value };
   };
 

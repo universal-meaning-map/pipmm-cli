@@ -1,5 +1,6 @@
 import FoamController from "./foamController";
 import IpldController from "./ipldController";
+import Referencer from "./referencer";
 
 export default class Tokenizer {
   static wikilinksToTransclusions(text: string): string {
@@ -19,9 +20,11 @@ export default class Tokenizer {
   }
 
   static wikilinkToItentReference(wikilink: string): string {
-    const fileName = wikilink.slice(2, -2);//removes square brackets
-    const iid = IpldController.makeIIdFromFoamIdOrFileName(fileName);
-    const propTitleIid = FoamController.PROP_TITLE_FOAMID
+    const fileName = wikilink.slice(2, -2); //removes square brackets
+    const iid = Referencer.makeIId(fileName);
+    const propTitleIid = Referencer.makeIId(
+      Referencer.PROP_TITLE_FOAMID
+    );
     // console.log(iid);
     const ir = iid + "/prop-Title-1612697362";
     return ir;

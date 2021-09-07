@@ -21,25 +21,5 @@ export default class IpldController {
     return block;
   };  
 
-  static makeIIdFromFoamIdOrFileName = async (foamId: string): Promise<any> => {
-    foamId = Utils.removeFileExtension(foamId)
-    const block = await IpldController.anyToDagCborBlock(foamId.toLowerCase())
-    return block.cid.toString().slice(-8);
-  };
 
-  static dataMatchesType = async (
-    data: any,
-    typeName: string,
-    schema: string
-  ): Promise<any> => {
-    const parsedSchema = parser(schema);
-    const validate = validator(parsedSchema);
-    try {
-      validate(data, typeName);
-      return true;
-    } catch (e) {
-      console.log(e);
-      return false;
-    }
-  };
 }
