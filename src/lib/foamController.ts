@@ -102,16 +102,18 @@ export default class FoamController {
     let isType = false;
     if (m.data[Referencer.PROP_TYPE_FOAMID]) {
       isType = true;
-
+      
       //¿prevent the note to have other property types not related to the typ
       if (m.content || Object.keys(m.data).length > 1)
         throw (
           foamId +
           " is a type but it has other properties as well, which is not allowed"
         );
+
     }
+
     //because we can create notes recursively when looking for a type, we need to be able to warn
-    console.log("Is Type", isType, "- Should be a type", shouldBeAType);
+    //console.log("Is Type", isType, "- Should be a type", shouldBeAType);
     if (shouldBeAType && !isType) {
       throw (
         foamId +
@@ -124,15 +126,18 @@ export default class FoamController {
     let note: NoteType = {};
 
     //process property types into cids and validate its content
+    //view property is the content of the .md
     if (m.content) {
-      const view = await Tokenizer.wikilinksToTransclusions(m.content);
+      const removedFoodNotes = m.content.split('\n[//begin]:')[0]
+      const view = await Tokenizer.wikilinksToTransclusions(removedFoodNotes);
       //console.log("view1", view);
-     // console.log("   ",m.content)
+      // console.log("   ",m.content)
       const viewProp = await FoamController.processProperty(
         Referencer.PROP_VIEW_FOAMID,
         view
       );
       note[viewProp.key] = viewProp.value;
+      console.log(note)
     }
 
     //convert property keys into iids
@@ -144,11 +149,13 @@ export default class FoamController {
           m.data[Referencer.PROP_TYPE_FOAMID][key]
         );
         note[prop.key] = prop.value;
+        
       }
     } else {
       for (let key in m.data) {
         const prop = await FoamController.processProperty(key, m.data[key]);
         note[prop.key] = prop.value;
+        console.log(prop.key)
       }
     }
 
@@ -158,18 +165,18 @@ export default class FoamController {
 
     //If it contains a type we create and instance to verify properties
     if (isType) {
-      console.log("creating type for", foamId, iid);
+      //console.log("creating type for", foamId, iid);
       const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
       const ipmmType = FoamController.makeType(typeProps);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
     //console.log(iid, block.cid.toString, filePath)
     console.log("\n");
-    console.log(note);
+   // console.log(note);
     return note;
   };
 
-  static makeType(typeProps: any):IpmmType {
+  static makeType(typeProps: any): IpmmType {
     if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
       console.log(
         Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist"
@@ -190,7 +197,7 @@ export default class FoamController {
       typeProps[Referencer.TYPE_PROP_CONSTRAINS],
       typeProps[Referencer.TYPE_PROP_IPLD_SCHEMA]
     );
-    return ipmmType
+    return ipmmType;
   }
 
   static processProperty = async (
@@ -215,7 +222,6 @@ export default class FoamController {
 
     //Verify value agains type ipld-schema
     Referencer.iidToTypeMap[keyIid].isDataValid(value);
-
     return { key: keyIid, value: value };
   };
 
