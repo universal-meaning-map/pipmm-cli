@@ -1,27 +1,7 @@
 import Referencer from "./referencer";
 
 export default class Tokenizer {
-  /*static wikilinksToTransclusions = async (text: string): Promise<string> => {
-    const wikilinkWithTokens = /\[{2}(.*?)\]{2}/g;
-    //let wikilinkWithoutTokens = /[^[\]]+(?=]])/g;
-    const promise = new Promise<string>((resolve, reject) => {
-      let doneCallback = (
-        match: string,
-        wikilink: string,
-        offset: string,
-        original: string
-      ) => {
-        console.log("DONE", wikilink);
-
-        Tokenizer.wikilinkToTransclusionExp(wikilink).then((value) => {
-          resolve(value);
-        });
-      };
-      Tokenizer.replaceAsync(text, wikilinkWithTokens, doneCallback);
-    });
-    return promise;
-  };
-  */
+  
   static wikilinksToTransclusions = async (text: string): Promise<string> => {
     const wikilinkWithTokens = /\[{2}(.*?)\]{2}/g;
     //let wikilinkWithoutTokens = /[^[\]]+(?=]])/g;

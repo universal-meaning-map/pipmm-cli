@@ -26,11 +26,7 @@ export default class FoamController {
 
     files = Utils.filterByExtensions(files, [".md"]);
 
-    console.log(
-      "Importing FOAM repository from ",
-      path.resolve(process.cwd(), foamRepo),
-      "..."
-    );
+    //console.log("Importing FOAM repository from ",path.resolve(process.cwd(), foamRepo), "...");
 
     const notes: NoteType[] = [];
 
@@ -45,18 +41,18 @@ export default class FoamController {
     _ipmmRepo: string,
     _foamRepo: string,
     _fileName: string
-  ): Promise<void> => {
+  ): Promise<NoteType> => {
     foamRepo = _foamRepo;
     ipmmRepo = _ipmmRepo;
 
-    FoamController.makeNote(_fileName);
+    return await FoamController.makeNote(_fileName);
   };
 
   static makeNote = async (
     fileName: string,
     shouldBeAType: boolean = false
   ): Promise<NoteType> => {
-    console.log("\nImporting " + foamRepo + "/" + fileName);
+    //console.log("\nImporting " + foamRepo + "/" + fileName);
     const foamId = Utils.removeFileExtension(fileName).toLowerCase();
     const iid = await Referencer.makeIId(foamId);
     const filePath = path.join(foamRepo, fileName);
@@ -125,37 +121,37 @@ export default class FoamController {
 
     let note: NoteType = {};
 
-    //process property types into cids and validate its content
-    //view property is the content of the .md
-    if (m.content) {
-      const removedFoodNotes = m.content.split('\n[//begin]:')[0]
-      const view = await Tokenizer.wikilinksToTransclusions(removedFoodNotes);
-      //console.log("view1", view);
-      // console.log("   ",m.content)
-      const viewProp = await FoamController.processProperty(
-        Referencer.PROP_VIEW_FOAMID,
-        view
-      );
-      note[viewProp.key] = viewProp.value;
-      console.log(note)
-    }
-
+    
+    
     //convert property keys into iids
-
+    
     if (isType) {
       for (let key in m.data[Referencer.PROP_TYPE_FOAMID]) {
         const prop = await FoamController.processTypeProperty(
           key,
           m.data[Referencer.PROP_TYPE_FOAMID][key]
-        );
-        note[prop.key] = prop.value;
-        
-      }
+          );
+          note[prop.key] = prop.value;
+          
+        }
     } else {
+      //process property types into cids and validate its content
+      //The content of the .md (view property)
+      if (m.content) {
+        const removedFoodNotes = m.content.split('[//begin]:')[0]
+        const trimmed = removedFoodNotes.trim()
+        const view = await Tokenizer.wikilinksToTransclusions(trimmed);
+
+        const viewProp = await FoamController.processProperty(
+          Referencer.PROP_VIEW_FOAMID,
+          view
+        );
+        note[viewProp.key] = viewProp.value;
+      }
+      //The rest of the properties
       for (let key in m.data) {
         const prop = await FoamController.processProperty(key, m.data[key]);
         note[prop.key] = prop.value;
-        console.log(prop.key)
       }
     }
 
@@ -170,9 +166,6 @@ export default class FoamController {
       const ipmmType = FoamController.makeType(typeProps);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
-    //console.log(iid, block.cid.toString, filePath)
-    console.log("\n");
-   // console.log(note);
     return note;
   };
 
@@ -210,7 +203,7 @@ export default class FoamController {
 
     //check if this property type is known
     if (!Referencer.iidToTypeMap[keyIid]) {
-      console.log("No type exists for", key, keyIid);
+      //console.log("No type exists for", key, keyIid);
       await FoamController.makeNote(key.toLowerCase() + ".md", true);
       if (!Referencer.iidToTypeMap[keyIid])
         throw (

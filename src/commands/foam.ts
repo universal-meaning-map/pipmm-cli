@@ -63,6 +63,8 @@ export default class FoamCommand extends Command {
           foamRepo,
           args.fileName
         );
+
+        console.log(note)
       }
 
       //import everything
