@@ -1,5 +1,5 @@
 // @ts-ignore
-import * as validatorFunction from "@ipld/schema-validation";
+import validatorFunction from "@ipld/schema-validation";
 // @ts-ignore
 import { parse as parser } from "ipld-schema";
 
@@ -16,14 +16,11 @@ export default class IpmmType {
     constrains: string,
     ipldSchema: string
   ) {
-    
-   
+    this.defaultName = defaultName;
+    this.represents = represents;
+    this.constrains = constrains;
+    this.ipldSchema = ipldSchema;
 
-      this.defaultName = defaultName;
-      this.represents = represents;
-      this.constrains = constrains;
-      this.ipldSchema = ipldSchema;
-   
     const parsedSchema = parser(this.ipldSchema);
     this.validate = validatorFunction(parsedSchema);
   }
@@ -33,9 +30,9 @@ export default class IpmmType {
       this.validate(data, "root");
       return true;
     } catch (e) {
-      console.log("Fail to validate "+this.defaultName)
+      console.log("Fail to validate " + this.defaultName);
       console.log(e);
-      console.log(data)
+      console.log(data);
       return false;
     }
   }

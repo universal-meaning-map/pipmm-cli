@@ -1,6 +1,6 @@
 import ErrorController from "./errorController";
 import Utils from "./utils";
-import * as matter from "gray-matter";
+import matter from "gray-matter";
 import * as path from "path";
 import { promises as fs } from "fs";
 import { NoteType } from "../lib/ipmm";
@@ -125,7 +125,9 @@ export default class FoamController {
 
     //process property types into cids and validate its content
     if (m.content) {
-      const view = Tokenizer.wikilinksToTransclusions(m.content);
+      const view = await Tokenizer.wikilinksToTransclusions(m.content);
+      //console.log("view1", view);
+     // console.log("   ",m.content)
       const viewProp = await FoamController.processProperty(
         Referencer.PROP_VIEW_FOAMID,
         view
@@ -158,41 +160,38 @@ export default class FoamController {
     if (isType) {
       console.log("creating type for", foamId, iid);
       const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
-
-      if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
-        console.log(
-          Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist"
-        );
-
-      if (!typeProps[Referencer.TYPE_PROP_REPRESENTS])
-        console.log(
-          Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist"
-        );
-
-      if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-        console.log(
-          Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
-        );
-
-      if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-        console.log(
-          Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
-        );
-
-      const ipmmType = new IpmmType(
-        typeProps[Referencer.TYPE_PROP_DEFAULT_NAME],
-        typeProps[Referencer.TYPE_PROP_REPRESENTS],
-        typeProps[Referencer.TYPE_PROP_CONSTRAINS],
-        typeProps[Referencer.TYPE_PROP_IPLD_SCHEMA]
-      );
+      const ipmmType = FoamController.makeType(typeProps);
       Referencer.iidToTypeMap[iid] = ipmmType;
-      //foamIdToTypeCid[foamId] = cid;
     }
     //console.log(iid, block.cid.toString, filePath)
     console.log("\n");
     console.log(note);
     return note;
   };
+
+  static makeType(typeProps: any):IpmmType {
+    if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
+      console.log(
+        Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist"
+      );
+
+    if (!typeProps[Referencer.TYPE_PROP_REPRESENTS])
+      console.log(Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist");
+
+    if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
+      console.log(Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
+
+    if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
+      console.log(Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
+
+    const ipmmType = new IpmmType(
+      typeProps[Referencer.TYPE_PROP_DEFAULT_NAME],
+      typeProps[Referencer.TYPE_PROP_REPRESENTS],
+      typeProps[Referencer.TYPE_PROP_CONSTRAINS],
+      typeProps[Referencer.TYPE_PROP_IPLD_SCHEMA]
+    );
+    return ipmmType
+  }
 
   static processProperty = async (
     key: string,
