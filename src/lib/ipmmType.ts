@@ -25,14 +25,13 @@ export default class IpmmType {
     this.validate = validatorFunction(parsedSchema);
   }
 
-  isDataValid(data: any): boolean {
+  isDataValid(data: any, errorCallabck: (error:string) => void): boolean {
     try {
       this.validate(data, "root");
       return true;
     } catch (e) {
-      console.log("Fail to validate " + this.defaultName);
-      console.log(e);
-      console.log(data);
+      if(errorCallabck)
+        errorCallabck("Fail to validate " + this.defaultName+ " - "+ e)
       return false;
     }
   }

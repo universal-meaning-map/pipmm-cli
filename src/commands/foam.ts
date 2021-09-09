@@ -64,7 +64,7 @@ export default class FoamCommand extends Command {
           args.fileName
         );
 
-        console.log(note)
+        console.log(note);
       }
 
       //import everything
@@ -74,22 +74,12 @@ export default class FoamCommand extends Command {
       }
     } else if (args.subcommand == "export") {
       await this.foamExport(ipmmRepo, foamRepo);
-    } 
+    }
 
     ErrorController.saveLogs("foam", args.subcommand);
+
+    LogsController.displayLogsNotice();
   }
 
   foamExport = (ipmmRepo: String, foamRepo: string) => void {};
 }
-
-/*
-const progressBar = cli.progress({
-      format: "{bar} {value}/{total} Notes",
-      barCompleteChar: "\u2588",
-      barIncompleteChar: "\u2591",
-    });
-
-    progressBar.start(files.length, 0);
-    progressBar.update(i);
-    progressBar.stop();
-*/

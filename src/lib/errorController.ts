@@ -1,7 +1,7 @@
 import LogsController from "./logsController";
 
 export default class ErrorController {
-  private static processErrors: ProcessError[] = [];
+   static processErrors: ProcessError[] = [];
 
   static recordProcessError = (
     filePath: string,
@@ -9,19 +9,19 @@ export default class ErrorController {
     error: string
   ): void => {
     ErrorController.processErrors.push(
-      new ProcessError(filePath, "reading file", error)
+      new ProcessError(filePath, processName, error)
     );
   };
 
   static saveLogs(command: string, subcommand: string) {
     LogsController.saveErrorLogs(
-      command,
-      subcommand,
       ErrorController.processErrors
     );
   }
 
   static logProcessErrors = (): void => {
+    if(ErrorController.processErrors.length==0)
+      console.log("No errors where produced")
     for (let e of ErrorController.processErrors)
       console.log("Error " + e.processName + " for " + e.filePath);
   };
