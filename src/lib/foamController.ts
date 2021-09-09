@@ -63,8 +63,9 @@ export default class FoamController {
       data = await fs.readFile(filePath, "utf8");
     } catch (e) {
       ErrorController.recordProcessError(filePath, "reading file", e);
+      return {};
     }
-    
+
     //process frontmatter
     let m: any;
     try {
@@ -75,6 +76,7 @@ export default class FoamController {
         "parsing Front Matter file",
         error
       );
+      return {};
     }
 
     //make type if exists
@@ -97,48 +99,72 @@ export default class FoamController {
     let isType = false;
     if (m.data[Referencer.PROP_TYPE_FOAMID]) {
       isType = true;
-      
+
       //prevent the note to have other property types not related to the type
-      if (m.content || Object.keys(m.data).length > 1){
-        const e = "A Note with a type can't include other properties. Verify the note only contains "+Referencer.PROP_TYPE_FOAMID+ " data and has no content."
+      if (m.content || Object.keys(m.data).length > 1) {
+        const e =
+          "A Note with a type can't include other properties. Verify the note only contains " +
+          Referencer.PROP_TYPE_FOAMID +
+          " data and has no content.";
         ErrorController.recordProcessError(filePath, "checking type", e);
-        //throw to prevent infinit loop
-        throw(e)
+        return {};
       }
     }
 
     //because we can create notes recursively when looking for a type, we need to be able to warn
     //console.log("Is Type", isType, "- Should be a type", shouldBeAType);
     if (shouldBeAType && !isType) {
-      const e = foamId +" should is used as a type but " +Referencer.PROP_TYPE_FOAMID +" was not found."
+      const e =
+        foamId +
+        " is used as a type but " +
+        Referencer.PROP_TYPE_FOAMID +
+        " was not found.";
       ErrorController.recordProcessError(filePath, "checking type", e);
     }
 
     let note: NoteType = {};
 
-    
-    
     //convert property keys into iids
-    
+
+    const errorCallback = (error: string) => {
+      ErrorController.recordProcessError(
+        filePath,
+        "checking if type exists",
+        error
+      );
+    };
     if (isType) {
       for (let key in m.data[Referencer.PROP_TYPE_FOAMID]) {
-        const prop = await FoamController.processTypeProperty(key,m.data[Referencer.PROP_TYPE_FOAMID][key]);
+        const prop = await FoamController.processTypeProperty(
+          key,
+          m.data[Referencer.PROP_TYPE_FOAMID][key]
+        );
         note[prop.key] = prop.value;
       }
     } else {
       //process property types into cids and validate its content
       //The content of the .md (view property)
       if (m.content) {
-        const removedFoodNotes = m.content.split('[//begin]:')[0]
-        const trimmed = removedFoodNotes.trim()
+        const removedFoodNotes = m.content.split("[//begin]:")[0];
+        const trimmed = removedFoodNotes.trim();
         const view = await Tokenizer.wikilinksToTransclusions(trimmed);
 
-        const viewProp = await FoamController.processProperty(Referencer.PROP_VIEW_FOAMID,view,filePath);
+        const viewProp = await FoamController.processProperty(
+          Referencer.PROP_VIEW_FOAMID,
+          view,
+          filePath,
+          errorCallback
+        );
         note[viewProp.key] = viewProp.value;
       }
       //The rest of the properties
       for (let key in m.data) {
-        const prop = await FoamController.processProperty(key, m.data[key],filePath);
+        const prop = await FoamController.processProperty(
+          key,
+          m.data[key],
+          filePath,
+          errorCallback
+        );
         note[prop.key] = prop.value;
       }
     }
@@ -151,25 +177,40 @@ export default class FoamController {
     if (isType) {
       //console.log("creating type for", foamId, iid);
       const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
-      const ipmmType = FoamController.makeType(typeProps,filePath);
+      const ipmmType = FoamController.makeType(typeProps, filePath);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
     return note;
   };
 
-  static makeType(typeProps: any, filePath:string): IpmmType {
+  static makeType(typeProps: any, filePath: string): IpmmType {
     if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
-    
-    ErrorController.recordProcessError(filePath, "creating type", Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist");
-     
+      ErrorController.recordProcessError(
+        filePath,
+        "creating type",
+        Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist"
+      );
+
     if (!typeProps[Referencer.TYPE_PROP_REPRESENTS])
-       ErrorController.recordProcessError(filePath, "creating type",Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist");
+      ErrorController.recordProcessError(
+        filePath,
+        "creating type",
+        Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist"
+      );
 
     if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-       ErrorController.recordProcessError(filePath, "creating type",Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
+      ErrorController.recordProcessError(
+        filePath,
+        "creating type",
+        Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
+      );
 
     if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-       ErrorController.recordProcessError(filePath, "creating type",Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist");
+      ErrorController.recordProcessError(
+        filePath,
+        "creating type",
+        Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
+      );
 
     const ipmmType = new IpmmType(
       typeProps[Referencer.TYPE_PROP_DEFAULT_NAME],
@@ -183,7 +224,8 @@ export default class FoamController {
   static processProperty = async (
     key: string,
     value: any,
-    filePath:string
+    filePath: string,
+    errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
     //get property cid
     const keyIid = await Referencer.makeIId(key);
@@ -193,18 +235,31 @@ export default class FoamController {
     if (!Referencer.iidToTypeMap[keyIid]) {
       //console.log("No type exists for", key, keyIid);
       await FoamController.makeNote(key.toLowerCase() + ".md", true);
-      if (!Referencer.iidToTypeMap[keyIid])
-        throw (
-          "The type for" +
-          keyIid +
-          "was not found after attempting its creation"
+      if (!Referencer.iidToTypeMap[keyIid]) {
+        errorCallabck(
+          "The type for "  +
+            key +
+            " was not found after attempting its creation"
         );
+      }
     }
 
     //Verify value agains type ipld-schema
-    const dataMatchesSchema = Referencer.iidToTypeMap[keyIid].isDataValid(value,(error)=>{
-      ErrorController.recordProcessError(filePath, "validating data with schema", error);
-    });
+    if (Referencer.typeExists(keyIid))
+      Referencer.iidToTypeMap[keyIid].isDataValid(value, (error) => {
+        ErrorController.recordProcessError(
+          filePath,
+          "checking if matches ipld-schema",
+          error
+        );
+      });
+      else{
+        ErrorController.recordProcessError(
+          filePath,
+          "checking if type exists",
+          "The type for "+key+ " does not exist yet"
+        );
+      }
 
     return { key: keyIid, value: value };
   };

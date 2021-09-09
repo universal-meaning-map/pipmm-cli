@@ -34,7 +34,7 @@ export default class LogsController {
   static logNumberedList = (logs: ProcessError[]) => {
     let i = 0;
     for (let l of logs) {
-      console.log(i + ". Error " + l.processName + ": " + l.filePath);
+      console.log("  "+i + ". Error " + l.processName + ": " + l.filePath);
       i++;
     }
   };

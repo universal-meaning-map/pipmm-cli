@@ -29,6 +29,11 @@ export default class Referencer {
     return false;
   }
 
+  static typeExists(iid: string): boolean {
+    if (Referencer.iidToTypeMap[iid]) return true;
+    return false;
+  }
+
   static getCid(iid: string): string {
     if (this.iidExists(iid)) return Referencer.iidToCidMap[iid];
     else return "";

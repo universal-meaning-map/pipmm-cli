@@ -13,7 +13,7 @@ export default class ErrorController {
     );
   };
 
-  static saveLogs(command: string, subcommand: string) {
+  static saveLogs() {
     LogsController.saveErrorLogs(
       ErrorController.processErrors
     );
