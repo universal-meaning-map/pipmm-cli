@@ -10,6 +10,7 @@ export default class Referencer {
   static readonly TYPE_PROP_REPRESENTS = "$represents";
   static readonly TYPE_PROP_CONSTRAINS = "$constrains";
   static readonly TYPE_PROP_IPLD_SCHEMA = "$ipld-schema";
+  static readonly TYPE_PROP_TYPE_DEPENDENCIES = "$type-dependencies";
 
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};

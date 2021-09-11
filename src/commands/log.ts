@@ -14,7 +14,7 @@ export default class LogsCommand extends Command {
   static args = [
     {
       name: "errorIndex",
-      required: true,
+      required: false,
       description: "Index of the error to display",
       hidden: false,
     },
@@ -25,7 +25,10 @@ export default class LogsCommand extends Command {
 
     let logs = LogsController.loadErrorLogs();
 
+    if(args.errorIndex)
     LogsController.logErrorIndex(logs, args.errorIndex);
+    else
+    LogsController.logAllErrors(logs)
     this.exit(0);
 
     //LogsController.logNumberedList(logs);

@@ -126,7 +126,7 @@ export default class FoamController {
 
     //convert property keys into iids
 
-    const errorCallback = (error: string) => {
+    const typeExistserrorCallback = (error: string) => {
       ErrorController.recordProcessError(
         filePath,
         "checking if type exists",
@@ -153,7 +153,7 @@ export default class FoamController {
           Referencer.PROP_VIEW_FOAMID,
           view,
           filePath,
-          errorCallback
+          typeExistserrorCallback
         );
         note[viewProp.key] = viewProp.value;
       }
@@ -163,7 +163,7 @@ export default class FoamController {
           key,
           m.data[key],
           filePath,
-          errorCallback
+          typeExistserrorCallback
         );
         note[prop.key] = prop.value;
       }
@@ -183,6 +183,21 @@ export default class FoamController {
     return note;
   };
 
+  static makeType(typeProps: any, filePath: string): IpmmType {
+    {
+      const typeCreateErrorCallback = (error: string) => {
+        ErrorController.recordProcessError(
+          filePath,
+          "creating new type",
+          error
+        );
+      };
+      const ipmmType = new IpmmType(typeProps, typeCreateErrorCallback);
+      return ipmmType;
+    }
+  }
+
+  /*
   static makeType(typeProps: any, filePath: string): IpmmType {
     if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
       ErrorController.recordProcessError(
@@ -212,14 +227,26 @@ export default class FoamController {
         Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
       );
 
+    if (!typeProps[Referencer.TYPE_PROP_TYPE_DEPENDENCIES])
+      ErrorController.recordProcessError(
+        filePath,
+        "creating type",
+        Referencer.TYPE_PROP_TYPE_DEPENDENCIES + " for Type does not exist"
+      );
+
+    const typeCreateErrorCallback = (error: string) => {
+      ErrorController.recordProcessError(filePath, "creating new type", error);
+    };
     const ipmmType = new IpmmType(
       typeProps[Referencer.TYPE_PROP_DEFAULT_NAME],
       typeProps[Referencer.TYPE_PROP_REPRESENTS],
       typeProps[Referencer.TYPE_PROP_CONSTRAINS],
-      typeProps[Referencer.TYPE_PROP_IPLD_SCHEMA]
+      typeProps[Referencer.TYPE_PROP_IPLD_SCHEMA],
+      typeCreateErrorCallback
     );
     return ipmmType;
   }
+  */
 
   static processProperty = async (
     key: string,
@@ -237,9 +264,7 @@ export default class FoamController {
       await FoamController.makeNote(key.toLowerCase() + ".md", true);
       if (!Referencer.iidToTypeMap[keyIid]) {
         errorCallabck(
-          "The type for "  +
-            key +
-            " was not found after attempting its creation"
+          "The type for " + key + " was not found after attempting its creation"
         );
       }
     }
@@ -249,17 +274,17 @@ export default class FoamController {
       Referencer.iidToTypeMap[keyIid].isDataValid(value, (error) => {
         ErrorController.recordProcessError(
           filePath,
-          "checking if matches ipld-schema",
+          "validating the value of " + key + " against schema",
           error
         );
       });
-      else{
-        ErrorController.recordProcessError(
-          filePath,
-          "checking if type exists",
-          "The type for "+key+ " does not exist yet"
-        );
-      }
+    else {
+      ErrorController.recordProcessError(
+        filePath,
+        "checking if type exists",
+        "The type for " + key + " does not exist yet"
+      );
+    }
 
     return { key: keyIid, value: value };
   };

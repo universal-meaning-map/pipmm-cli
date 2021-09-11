@@ -5,12 +5,6 @@ import * as dagCbor from "@ipld/dag-cbor";
 //import * as dagJSON from "@ipld/dag-json"  //doesn't exist yet?
 import { sha256 as hasher } from "multiformats/hashes/sha2";
 
-// @ts-ignore
-import * as validator from "@ipld/schema-validation";
-// @ts-ignore
-import { parse as parser } from "ipld-schema";
-import Utils from "./utils";
-
 export default class IpldController {
   static ipld: any;
 
@@ -23,3 +17,4 @@ export default class IpldController {
 
 
 }
+ 
