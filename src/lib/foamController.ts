@@ -8,6 +8,7 @@ import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
+import { type } from "os";
 
 let foamRepo: string;
 let ipmmRepo: string;
@@ -55,7 +56,10 @@ export default class FoamController {
     shouldBeAType: boolean = false
   ): Promise<NoteType> => {
     //console.log("\nImporting " + foamRepo + "/" + fileName);
-    const iid = await Referencer.makeIId(foamId);
+    let iid = "";
+    if (shouldBeAType) iid = await Referencer.makeTypeIid(foamId);
+    else iid = await Referencer.makeIid(foamId);
+
     const filePath = path.join(foamRepo, foamId + ".md");
 
     //read file
@@ -63,7 +67,11 @@ export default class FoamController {
     try {
       data = await fs.readFile(filePath, "utf8");
     } catch (e) {
-      ErrorController.recordProcessError(filePath, "reading file","Make sure all files are in lowercase"+ e);
+      ErrorController.recordProcessError(
+        filePath,
+        "reading file",
+        "Make sure all files are in lowercase" + e
+      );
       return {};
     }
 
@@ -181,6 +189,7 @@ export default class FoamController {
       const ipmmType = await FoamController.makeType(typeProps, filePath);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
+    console.log("finished note", foamId, iid)
     return note;
   };
 
@@ -196,6 +205,7 @@ export default class FoamController {
           error
         );
       };
+      console.log("\nCreating type for",filePath,typeProps)
       const ipmmType = await IpmmType.create(
         typeProps,
         typeCreateErrorCallback
@@ -262,15 +272,15 @@ export default class FoamController {
     errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
     //get property cid
-    const keyIid = await Referencer.makeIId(key);
+    const typeIId = await Referencer.makeTypeIid(key);
     //const typeCid= foamIdToTypeCid[key]
 
     //check if this property type is known
-    if (!Referencer.iidToTypeMap[keyIid]) {
+    if (!Referencer.iidToTypeMap[typeIId]) {
       //console.log("No type exists for", key, keyIid);
       const foamId = key.toLowerCase();
       await FoamController.makeNote(foamId, true);
-      if (!Referencer.iidToTypeMap[keyIid]) {
+      if (!Referencer.iidToTypeMap[typeIId]) {
         errorCallabck(
           "The type for " + key + " was not found after attempting its creation"
         );
@@ -278,8 +288,8 @@ export default class FoamController {
     }
 
     //Verify value agains type ipld-schema
-    if (Referencer.typeExists(keyIid))
-      Referencer.iidToTypeMap[keyIid].isDataValid(value, (error) => {
+    if (Referencer.typeExists(typeIId))
+      Referencer.iidToTypeMap[typeIId].isDataValid(value, (error) => {
         ErrorController.recordProcessError(
           filePath,
           "validating the value of " + key + " against schema",
@@ -294,15 +304,15 @@ export default class FoamController {
       );
     }
 
-    return { key: keyIid, value: value };
+    return { key: typeIId, value: value };
   };
 
   static processTypeProperty = async (
     key: string,
     value: any
   ): Promise<{ key: string; value: string }> => {
-    const keyCid = await Referencer.makeIId(key);
-    return { key: keyCid, value: value };
+    //const keyCid = await Referencer.makeIid(key);
+    return { key: key, value: value };
   };
 
   /*

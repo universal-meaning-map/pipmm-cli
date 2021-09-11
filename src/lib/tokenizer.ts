@@ -26,8 +26,8 @@ export default class Tokenizer {
 
   static wikilinkToItentRef = async (wikilink: string): Promise<string> => {
     const fileName = wikilink.slice(2, -2); //removes square brackets
-    const iid = await Referencer.makeIId(fileName);
-    const propTitleIid = await Referencer.makeIId(Referencer.PROP_TITLE_FOAMID);
+    const iid = await Referencer.makeIid(fileName);
+    const propTitleIid = await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID);
     const intentRef = iid + "/" + propTitleIid;
     return intentRef;
   };

@@ -12,6 +12,7 @@ export default class IpmmType {
   typeDependencies: string[] = [];
   ipldSchema: string = "";
   validate: any;
+
   static typeDefinitionSchema = `type TypeDefinition struct {
       defaultName defaultName
       represents represents
@@ -37,19 +38,32 @@ export default class IpmmType {
         type.represents = typeObj.represents;
         type.constrains = typeObj.constrains;
         type.typeDependencies = typeObj.typeDependencies;
-        type.ipldSchema = typeObj.ipldSchema;
+        type.ipldSchema = typeObj.ipldSchema;// await IpmmType.replaceFoamIdForTypeIid(typeObj.ipldSchema, type.typeDependencies)
       }
+      
       if (type.typeDependencies && type.typeDependencies.length > 0)
-        type.ipldSchema = await type.makeCompiledSchema();
+      {
+        try{ 
+
+          type.ipldSchema = await type.makeCompiledSchema();
+        }
+        catch(e){
+          console.log(e)
+        }
+
+      }
+
+        console.log("making", type.defaultName)
+        console.log("schema", type.ipldSchema)
       const parsedSchema = parser(type.ipldSchema);
       type.validate = validatorFunction(parsedSchema);
     } catch (e) {
       errorCallback(
         "Fail to parse schema for " +
           type.defaultName +
-          ". Schema: " +
+          "\nSchema: " +
           type.ipldSchema +
-          " Error: " +
+          "\nError: " +
           e
       );
     }
@@ -73,17 +87,19 @@ export default class IpmmType {
 
   makeCompiledSchema = async (): Promise<string> => {
     let compiledSchema = this.ipldSchema;
+
     for (const foamId of this.typeDependencies) {
-      const typeIid = await Referencer.makeIId(foamId);
+      const typeIid = await Referencer.makeTypeIid(foamId);
       if (!Referencer.typeExists(typeIid))
         await FoamController.makeNote(foamId, true);
       if (!Referencer.typeExists(typeIid))
-        throw "Type for " + foamId + " should exist already";
+        throw "Type for " + foamId + " "+typeIid+" should exist already";
       const type = Referencer.getType(typeIid);
       compiledSchema += "\n" + type.ipldSchema;
     }
-    console.log("COMPILED");
-    console.log(compiledSchema);
+    compiledSchema = await IpmmType.replaceFoamIdForTypeIid(compiledSchema,this.typeDependencies);
+
+
     return compiledSchema;
   };
 
@@ -92,12 +108,26 @@ export default class IpmmType {
       this.validate(data, this.defaultName);
       return true;
     } catch (e) {
-      console.log("PRoblema", this.defaultName);
-      console.log(this.ipldSchema);
-      console.log(data);
+
       if (errorCallabck)
         errorCallabck("Fail to validate " + this.defaultName  +" - " + e);
       return false; 
     }
   }
+
+  static replaceFoamIdForTypeIid = async(schema:string, typeDependencies:string[]):Promise<string> =>{
+    let foamIdToIdMap: { [iid: string]: string } = {};
+    for (const foamId of typeDependencies) {
+      const typeIid= await Referencer.makeTypeIid(foamId)
+      foamIdToIdMap[foamId] =typeIid //necessary to prevent ids starting with number
+     }
+     for (const foamId of typeDependencies) {
+     schema = schema.split(foamId).join(foamIdToIdMap[foamId])
+     }
+     console.log(schema)
+     return schema
+  }
+
+  
+  
 }

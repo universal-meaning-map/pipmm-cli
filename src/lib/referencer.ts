@@ -19,12 +19,17 @@ export default class Referencer {
     Referencer.iidToCidMap[iid] = cid;
   }
 
-  static makeIId = async (foamIdOrFileName: string): Promise<any> => {
+  static makeIid = async (foamIdOrFileName: string): Promise<any> => {
     const foamId =
       Utils.removeFileExtension(foamIdOrFileName).toLocaleLowerCase();
     const block = await IpldController.anyToDagCborBlock(foamId);
     return block.cid.toString().slice(-8);
   };
+
+  static makeTypeIid =async(foamId:string):Promise<string> =>{
+    const iid = await Referencer.makeIid(foamId)
+    return "TYPE"+iid
+  }
 
   static iidExists(iid: string): boolean {
     if (Referencer.iidToCidMap[iid]) return true;
