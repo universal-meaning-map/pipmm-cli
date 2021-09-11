@@ -20,8 +20,9 @@ export default class Referencer {
   }
 
   static makeIId = async (foamIdOrFileName: string): Promise<any> => {
-    const foamId = Utils.removeFileExtension(foamIdOrFileName).toLocaleLowerCase()
-    const block = await IpldController.anyToDagCborBlock(foamId)
+    const foamId =
+      Utils.removeFileExtension(foamIdOrFileName).toLocaleLowerCase();
+    const block = await IpldController.anyToDagCborBlock(foamId);
     return block.cid.toString().slice(-8);
   };
 
@@ -30,13 +31,16 @@ export default class Referencer {
     return false;
   }
 
+  static getCid(iid: string): string {
+    return Referencer.iidToCidMap[iid];
+  }
+
   static typeExists(iid: string): boolean {
     if (Referencer.iidToTypeMap[iid]) return true;
     return false;
   }
 
-  static getCid(iid: string): string {
-    if (this.iidExists(iid)) return Referencer.iidToCidMap[iid];
-    else return "";
+  static getType(iid: string): IpmmType {
+    return Referencer.iidToTypeMap[iid];
   }
 }

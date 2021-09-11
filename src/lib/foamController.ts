@@ -31,7 +31,8 @@ export default class FoamController {
     const notes: NoteType[] = [];
 
     for (let fileName of files) {
-      const note: NoteType = await FoamController.makeNote(fileName);
+      const foamId = Utils.removeFileExtension(fileName).toLowerCase();
+      const note: NoteType = await FoamController.makeNote(foamId);
       notes.push(note);
     }
     //console.log(Referencer.iidToCidMap);
@@ -45,24 +46,24 @@ export default class FoamController {
     foamRepo = _foamRepo;
     ipmmRepo = _ipmmRepo;
 
-    return await FoamController.makeNote(_fileName);
+    const foamId = Utils.removeFileExtension(_fileName).toLowerCase();
+    return await FoamController.makeNote(foamId);
   };
 
   static makeNote = async (
-    fileName: string,
+    foamId: string,
     shouldBeAType: boolean = false
   ): Promise<NoteType> => {
     //console.log("\nImporting " + foamRepo + "/" + fileName);
-    const foamId = Utils.removeFileExtension(fileName).toLowerCase();
     const iid = await Referencer.makeIId(foamId);
-    const filePath = path.join(foamRepo, fileName);
+    const filePath = path.join(foamRepo, foamId + ".md");
 
     //read file
     let data: string = "";
     try {
       data = await fs.readFile(filePath, "utf8");
     } catch (e) {
-      ErrorController.recordProcessError(filePath, "reading file", e);
+      ErrorController.recordProcessError(filePath, "reading file","Make sure all files are in lowercase"+ e);
       return {};
     }
 
@@ -177,13 +178,16 @@ export default class FoamController {
     if (isType) {
       //console.log("creating type for", foamId, iid);
       const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
-      const ipmmType = FoamController.makeType(typeProps, filePath);
+      const ipmmType = await FoamController.makeType(typeProps, filePath);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
     return note;
   };
 
-  static makeType(typeProps: any, filePath: string): IpmmType {
+  static makeType = async (
+    typeProps: any,
+    filePath: string
+  ): Promise<IpmmType> => {
     {
       const typeCreateErrorCallback = (error: string) => {
         ErrorController.recordProcessError(
@@ -192,10 +196,13 @@ export default class FoamController {
           error
         );
       };
-      const ipmmType = new IpmmType(typeProps, typeCreateErrorCallback);
+      const ipmmType = await IpmmType.create(
+        typeProps,
+        typeCreateErrorCallback
+      );
       return ipmmType;
     }
-  }
+  };
 
   /*
   static makeType(typeProps: any, filePath: string): IpmmType {
@@ -261,7 +268,8 @@ export default class FoamController {
     //check if this property type is known
     if (!Referencer.iidToTypeMap[keyIid]) {
       //console.log("No type exists for", key, keyIid);
-      await FoamController.makeNote(key.toLowerCase() + ".md", true);
+      const foamId = key.toLowerCase();
+      await FoamController.makeNote(foamId, true);
       if (!Referencer.iidToTypeMap[keyIid]) {
         errorCallabck(
           "The type for " + key + " was not found after attempting its creation"
