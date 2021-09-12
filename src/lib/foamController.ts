@@ -32,7 +32,7 @@ export default class FoamController {
     const notes: NoteType[] = [];
 
     for (let fileName of files) {
-      const foamId = Utils.removeFileExtension(fileName)
+      const foamId = Utils.removeFileExtension(fileName);
       const note: NoteType = await FoamController.makeNote(foamId);
       notes.push(note);
     }
@@ -47,7 +47,7 @@ export default class FoamController {
     foamRepo = _foamRepo;
     ipmmRepo = _ipmmRepo;
 
-    const foamId = Utils.removeFileExtension(_fileName)
+    const foamId = Utils.removeFileExtension(_fileName);
     return await FoamController.makeNote(foamId);
   };
 
@@ -275,7 +275,7 @@ export default class FoamController {
     //Create a Type for the propertyId if it doesn't exists yet
     if (!Referencer.iidToTypeMap[typeIId]) {
       //console.log("No type exists for", key, keyIid);
-     
+
       await FoamController.makeNote(typeFoamId, true);
       if (!Referencer.iidToTypeMap[typeIId]) {
         errorCallabck(
@@ -287,22 +287,26 @@ export default class FoamController {
     }
 
     let newValue: any = {};
-    //recursivelly process sub-properties
-    if(typeof propertyValue === "object" && propertyValue !== null){
 
+    //Frontmatter transformed string to a Date but DAG-CBOR seralization does not support Date
+    if (propertyValue instanceof Date) {
+      newValue = propertyValue.toString();
+    }
+
+    //recursivelly process sub-properties
+    if (typeof propertyValue === "object" && propertyValue !== null) {
       for (let subTypeFoamId in propertyValue) {
         const prop = await FoamController.processProperty(
           subTypeFoamId,
           propertyValue[subTypeFoamId],
           filePath,
           errorCallabck
-          );
-          newValue[prop.key] = prop.value;
-        }
+        );
+        newValue[prop.key] = prop.value;
       }
-      else{
-        newValue = propertyValue
-      }
+    } else {
+      newValue = propertyValue;
+    }
 
     //Verify value agains type ipld-schema
     if (Referencer.typeExists(typeIId))
