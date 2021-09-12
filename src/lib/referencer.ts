@@ -21,7 +21,7 @@ export default class Referencer {
 
   static makeIid = async (foamIdOrFileName: string): Promise<any> => {
     const foamId =
-      Utils.removeFileExtension(foamIdOrFileName).toLocaleLowerCase();
+      Utils.removeFileExtension(foamIdOrFileName);
     const block = await IpldController.anyToDagCborBlock(foamId);
     return block.cid.toString().slice(-8);
   };

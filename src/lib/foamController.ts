@@ -32,7 +32,7 @@ export default class FoamController {
     const notes: NoteType[] = [];
 
     for (let fileName of files) {
-      const foamId = Utils.removeFileExtension(fileName).toLowerCase();
+      const foamId = Utils.removeFileExtension(fileName)
       const note: NoteType = await FoamController.makeNote(foamId);
       notes.push(note);
     }
@@ -47,7 +47,7 @@ export default class FoamController {
     foamRepo = _foamRepo;
     ipmmRepo = _ipmmRepo;
 
-    const foamId = Utils.removeFileExtension(_fileName).toLowerCase();
+    const foamId = Utils.removeFileExtension(_fileName)
     return await FoamController.makeNote(foamId);
   };
 
@@ -275,8 +275,8 @@ export default class FoamController {
     //Create a Type for the propertyId if it doesn't exists yet
     if (!Referencer.iidToTypeMap[typeIId]) {
       //console.log("No type exists for", key, keyIid);
-      const foamId = typeFoamId.toLowerCase();
-      await FoamController.makeNote(foamId, true);
+     
+      await FoamController.makeNote(typeFoamId, true);
       if (!Referencer.iidToTypeMap[typeIId]) {
         errorCallabck(
           "The type for " +
