@@ -25,10 +25,8 @@ export default class LogsCommand extends Command {
 
     let logs = LogsController.loadErrorLogs();
 
-    if(args.errorIndex)
-    LogsController.logErrorIndex(logs, args.errorIndex);
-    else
-    LogsController.logAllErrors(logs)
+    if (args.errorIndex) LogsController.logErrorIndex(logs, args.errorIndex);
+    else LogsController.logAllErrors(logs);
     this.exit(0);
 
     //LogsController.logNumberedList(logs);

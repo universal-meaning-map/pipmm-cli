@@ -53,8 +53,8 @@ export default class IpmmType {
 
       }
 
-        console.log("making", type.defaultName)
-        console.log("schema", type.ipldSchema)
+        //console.log("making", type.defaultName)
+        //console.log("schema", type.ipldSchema)
       const parsedSchema = parser(type.ipldSchema);
       type.validate = validatorFunction(parsedSchema);
     } catch (e) {
@@ -95,7 +95,11 @@ export default class IpmmType {
       if (!Referencer.typeExists(typeIid))
         throw "Type for " + foamId + " "+typeIid+" should exist already";
       const type = Referencer.getType(typeIid);
-      compiledSchema += "\n" + type.ipldSchema;
+      //We replace the "root" for its IId
+      const schemaWithRootChanged = type.ipldSchema.replace("root",typeIid)
+
+      compiledSchema += "\n" +schemaWithRootChanged;
+      
     }
     compiledSchema = await IpmmType.replaceFoamIdForTypeIid(compiledSchema,this.typeDependencies);
 
@@ -105,12 +109,12 @@ export default class IpmmType {
 
   isDataValid(data: any, errorCallabck: (error: string) => void): boolean {
     try {
-      this.validate(data, this.defaultName);
+      this.validate(data, "root");
       return true;
     } catch (e) {
 
       if (errorCallabck)
-        errorCallabck("Fail to validate " + this.defaultName  +" - " + e);
+        errorCallabck("Data don't match the `" + this.defaultName  +"` schema - \nData:"+JSON.stringify(data)+"\nException:"+e);
       return false; 
     }
   }
@@ -124,7 +128,6 @@ export default class IpmmType {
      for (const foamId of typeDependencies) {
      schema = schema.split(foamId).join(foamIdToIdMap[foamId])
      }
-     console.log(schema)
      return schema
   }
 

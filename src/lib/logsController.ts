@@ -46,25 +46,22 @@ export default class LogsController {
         "Error index out of range. Largest index is " + (logs.length - 1)
       );
     }
-    console.log(i + ".Error " + logs[i].processName + ": " + logs[i].filePath);
-    console.log("\t" + logs[i].error);
-  };
+    console.log(i + ". " + logs[i].filePath);
+    console.log("   Error " + logs[i].processName);
+    console.log("   " + logs[i].error + "\n");
+  }; 
 
   static logAllErrors = (logs: ProcessError[]) => {
     for (let i = 0; i < logs.length; i++) {
-      console.log(
-        i + ".Error " + logs[i].processName + ": " + logs[i].filePath
-      );
-      console.log("\t" + logs[i].error+"\n");
+      console.log(i + ". " + logs[i].filePath);
+      console.log("   Error " + logs[i].processName);
+      console.log("   " + logs[i].error + "\n");
     }
   };
 
   static displayLogsNotice() {
     if (ErrorController.processErrors.length == 0) return;
-    console.log(ErrorController.processErrors.length + " errors where found:");
-    LogsController.logNumberedList(ErrorController.processErrors);
-    console.log(
-      "\nUse the `log` command with the flag `-e=<error-index>` to view error details\n"
+    console.log(ErrorController.processErrors.length + " errors where found. Use the `log` command to view them. Includes the flag `-e=<error-index>` to view error details\n"
     );
   }
 }

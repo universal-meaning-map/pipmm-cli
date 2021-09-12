@@ -189,7 +189,6 @@ export default class FoamController {
       const ipmmType = await FoamController.makeType(typeProps, filePath);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
-    console.log("finished note", foamId, iid)
     return note;
   };
 
@@ -205,7 +204,7 @@ export default class FoamController {
           error
         );
       };
-      console.log("\nCreating type for",filePath,typeProps)
+      //console.log("\nCreating type for",filePath,typeProps)
       const ipmmType = await IpmmType.create(
         typeProps,
         typeCreateErrorCallback
@@ -266,33 +265,51 @@ export default class FoamController {
   */
 
   static processProperty = async (
-    key: string,
-    value: any,
+    typeFoamId: string,
+    propertyValue: any,
     filePath: string,
     errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
-    //get property cid
-    const typeIId = await Referencer.makeTypeIid(key);
-    //const typeCid= foamIdToTypeCid[key]
+    const typeIId = await Referencer.makeTypeIid(typeFoamId);
 
-    //check if this property type is known
+    //Create a Type for the propertyId if it doesn't exists yet
     if (!Referencer.iidToTypeMap[typeIId]) {
       //console.log("No type exists for", key, keyIid);
-      const foamId = key.toLowerCase();
+      const foamId = typeFoamId.toLowerCase();
       await FoamController.makeNote(foamId, true);
       if (!Referencer.iidToTypeMap[typeIId]) {
         errorCallabck(
-          "The type for " + key + " was not found after attempting its creation"
+          "The type for " +
+            typeFoamId +
+            " was not found after attempting its creation"
         );
       }
     }
 
+    let newValue: any = {};
+    //recursivelly process sub-properties
+    if(typeof propertyValue === "object" && propertyValue !== null){
+
+      for (let subTypeFoamId in propertyValue) {
+        const prop = await FoamController.processProperty(
+          subTypeFoamId,
+          propertyValue[subTypeFoamId],
+          filePath,
+          errorCallabck
+          );
+          newValue[prop.key] = prop.value;
+        }
+      }
+      else{
+        newValue = propertyValue
+      }
+
     //Verify value agains type ipld-schema
     if (Referencer.typeExists(typeIId))
-      Referencer.iidToTypeMap[typeIId].isDataValid(value, (error) => {
+      Referencer.iidToTypeMap[typeIId].isDataValid(newValue, (error) => {
         ErrorController.recordProcessError(
           filePath,
-          "validating the value of " + key + " against schema",
+          "validating the value for property " + typeFoamId + " against schema",
           error
         );
       });
@@ -300,11 +317,11 @@ export default class FoamController {
       ErrorController.recordProcessError(
         filePath,
         "checking if type exists",
-        "The type for " + key + " does not exist yet"
+        "The type for " + typeFoamId + " does not exist yet"
       );
     }
 
-    return { key: typeIId, value: value };
+    return { key: typeIId, value: newValue };
   };
 
   static processTypeProperty = async (
