@@ -85,14 +85,13 @@ export class Res {
   static sync<T>(
     func: () => T,
     errorMessage: string,
-    handleError: (error: ErrorContext) => void,
-    context?: any
+    handleError: (error: ErrorContext) => void
   ): Res {
     let res = new Res();
     try {
       res.value = func();
     } catch (e) {
-      res.context = new ErrorContext(errorMessage, context);
+      res.context = new ErrorContext(errorMessage, e);
       handleError(res.context);
       return res;
     }

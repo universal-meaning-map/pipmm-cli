@@ -52,7 +52,8 @@ export default class FoamController {
 
   static makeNote = async (
     foamId: string,
-    shouldBeAType: boolean = false
+    shouldBeAType: boolean = false,
+    requesterFoamId?: string
   ): Promise<Res> => {
     let iid = "";
     if (shouldBeAType) iid = await Referencer.makeTypeIid(foamId);
@@ -67,7 +68,7 @@ export default class FoamController {
 
     const fileData = await Res.async(
       fs.readFile(filePath, "utf8"),
-      "Unable to read file: " + filePath,
+      "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
       Res.saveError
     );
 
@@ -107,7 +108,7 @@ export default class FoamController {
       () => {
         return matter(fileData.value);
       },
-      "Unable to parse front-matter",
+      "Unable to parse front-matter for: " + foamId,
       Res.saveError
     );
 
@@ -188,7 +189,7 @@ export default class FoamController {
         const viewProp = await FoamController.processProperty(
           Referencer.PROP_VIEW_FOAMID,
           view,
-          filePath
+          foamId
         );
         note[viewProp.key] = viewProp.value;
       }
@@ -198,7 +199,7 @@ export default class FoamController {
         const prop = await FoamController.processProperty(
           key,
           frontMatter.data[key],
-          filePath
+          foamId
         );
         note[prop.key] = prop.value;
       }
@@ -214,7 +215,7 @@ export default class FoamController {
     if (isType) {
       //console.log("creating type for", foamId, iid);
       const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
-      const ipmmType = await FoamController.makeType(typeProps, filePath);
+      const ipmmType = await FoamController.makeType(typeProps, foamId);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
     return Res.success(note);
@@ -222,11 +223,11 @@ export default class FoamController {
 
   static makeType = async (
     typeProps: any,
-    filePath: string
+    foamId: string
   ): Promise<IpmmType> => {
     {
       const typeCreateErrorCallback = (error: string) => {
-        Res.error("Creating new type. Filpath: "+filePath, Res.saveError, error)
+        Res.error("Creating new type for : " + foamId, Res.saveError, error);
       };
       //console.log("\nCreating type for",filePath,typeProps)
       const ipmmType = await IpmmType.create(
@@ -240,7 +241,7 @@ export default class FoamController {
   static processProperty = async (
     typeFoamId: string,
     propertyValue: any,
-    filePath: string
+    requesterFoamId: string
     // errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
     const typeIId = await Referencer.makeTypeIid(typeFoamId);
@@ -249,12 +250,13 @@ export default class FoamController {
     if (!Referencer.iidToTypeMap[typeIId]) {
       //console.log("No type exists for", key, keyIid);
 
-      await FoamController.makeNote(typeFoamId, true);
+      await FoamController.makeNote(typeFoamId, true, requesterFoamId);
       if (!Referencer.iidToTypeMap[typeIId]) {
         Res.error(
-          "The type for " +
+          "The type for `" +
             typeFoamId +
-            " was not found after attempting its creation",
+            "` was not found after attempting its creation. \tRequester: " +
+            requesterFoamId,
           Res.saveError
         );
       }
@@ -273,7 +275,7 @@ export default class FoamController {
         const prop = await FoamController.processProperty(
           subTypeFoamId,
           propertyValue[subTypeFoamId],
-          filePath
+          requesterFoamId
         );
         newValue[prop.key] = prop.value;
       }
@@ -285,19 +287,21 @@ export default class FoamController {
     if (Referencer.typeExists(typeIId))
       Referencer.iidToTypeMap[typeIId].isDataValid(newValue, (error) => {
         Res.error(
-          "validating the value for property " +
+          "Failed data validation, " +
             typeFoamId +
-            " against schema: " +
-            filePath,
-          Res.saveError
+            " value does not match schema. \tRequester:" +
+            requesterFoamId,
+
+          Res.saveError,
+          error
         );
       });
     else {
       Res.error(
         "The type for " +
           typeFoamId +
-          " does not exist yet, filePath:" +
-          filePath,
+          " does not exist yet, \tRequester:" +
+          requesterFoamId,
         Res.saveError
       );
     }

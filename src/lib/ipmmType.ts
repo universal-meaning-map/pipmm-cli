@@ -106,20 +106,21 @@ export default class IpmmType {
     return compiledSchema;
   };
 
-  
   isDataValid(data: any, errorCallabck: (error: string) => void): boolean {
     try {
       this.validate(data, "root");
       return true;
-    } catch (e) { 
+    } catch (e) {
       if (errorCallabck)
         errorCallabck(
           "Data don't match the `" +
             this.defaultName +
-            "` schema - \nData:" +
+            "` schema.\nData:" +
             JSON.stringify(data) +
+            "\nSchema:" +
+            this.ipldSchema +
             "\nException:" +
-            e
+            e 
         );
       return false;
     }
@@ -129,14 +130,23 @@ export default class IpmmType {
     schema: string,
     typeDependencies: string[]
   ): Promise<string> => {
+    let foamIdToIdMap: { [iid: string]: string } =
+      await IpmmType.foamIdToTypeIid(typeDependencies);
+
+    for (const foamId of typeDependencies) {
+      schema = schema.split(foamId).join(foamIdToIdMap[foamId]);
+    }
+    return schema;
+  };
+
+  static foamIdToTypeIid = async (
+    typeDependencies: string[]
+  ): Promise<{ [iid: string]: string }> => {
     let foamIdToIdMap: { [iid: string]: string } = {};
     for (const foamId of typeDependencies) {
       const typeIid = await Referencer.makeTypeIid(foamId);
       foamIdToIdMap[foamId] = typeIid; //necessary to prevent ids starting with number
     }
-    for (const foamId of typeDependencies) {
-      schema = schema.split(foamId).join(foamIdToIdMap[foamId]);
-    }
-    return schema;
+    return foamIdToIdMap;
   };
 }
