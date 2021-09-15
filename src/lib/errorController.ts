@@ -25,44 +25,72 @@ export default class ErrorController {
       console.log("Error " + e.processName + " for " + e.filePath);
       */
   };
-
-  
 }
 
 interface ErrorContext {
-  process?: string;
+  msg?: string;
   target?: string;
-  error?: string;
+  prevContext?: ErrorContext;
 }
 
 export class Res {
   value: any;
   errContext!: ErrorContext;
 
-  ok<T>(value: T) {
-    this.value = value;
+  static success<T>(value: T) {
+    let res = new Res();
+    res.value = value;
+    return res;
   }
 
-  err(error: ErrorContext, handleError: (error: ErrorContext) => {}) {
-    this.errContext = error;
-    handleError(this.errContext);
+  static error(
+    errorContext: ErrorContext,
+    handleError: (error: ErrorContext) => void
+  ): Res {
+    let res = new Res();
+    res.errContext = errorContext;
+    handleError(res.errContext);
+    return res;
   }
 
   isOk() {
     return this.value ? true : false;
   }
+  isError() {
+    return this.errContext ? true : false;
+  }
 
-  static make = async <T>(promise: Promise<T>, errorContext:ErrorContext, handleError: (error: ErrorContext)=>void ): Promise<Res> => {
+  static async = async <T>(
+    promise: Promise<T>,
+    errorContext: ErrorContext,
+    handleError: (error: ErrorContext) => void
+  ): Promise<Res> => {
     let res = new Res();
     try {
       res.value = await promise;
     } catch (e) {
       res.errContext = errorContext;
-      res.errContext.error=e
-      handleError(res.errContext)
+      res.errContext.msg = e;
+      handleError(res.errContext);
     }
     return res;
   };
+
+  static sync<T>(
+    func: () => T,
+    errorContext: ErrorContext,
+    handleError: (error: ErrorContext) => void
+  ): Res {
+    let res = new Res();
+    try {
+      res.value = func();
+    } catch (e) {
+      res.errContext = errorContext;
+      res.errContext.msg = e;
+      handleError(res.errContext);
+    }
+    return res;
+  }
 
   static saveError = (e: ErrorContext): void => {
     ErrorController.catchedErrors.push(e);

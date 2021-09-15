@@ -53,7 +53,7 @@ export default class FoamController {
   static makeNote = async (
     foamId: string,
     shouldBeAType: boolean = false
-  ): Promise<NoteType> => {
+  ): Promise<Res> => {
     let iid = "";
     if (shouldBeAType) iid = await Referencer.makeTypeIid(foamId);
     else iid = await Referencer.makeIid(foamId);
@@ -65,14 +65,15 @@ export default class FoamController {
 
     //let data = await fs.readFile(filePath, "utf8");
 
-    const d = await Res.make(fs.readFile(filePath, "utf8"),{process:"Reading file",target:filePath }, Res.saveError);
+    const fileData = await Res.async(
+      fs.readFile(filePath, "utf8"),
+      { msg: "Unable to read file", target: filePath },
+      Res.saveError
+    );
 
-
-    if(!d.isOk)
-   
+    if (fileData.isError()) return fileData;
 
     /*
-
     try {
       data = await fs.readFile(filePath, "utf8");
     } catch (e) {
@@ -86,9 +87,11 @@ export default class FoamController {
     */
 
     //process frontmatter
-    let m: any;
+
+    /*
+      let m: any;
     try {
-      m = matter(data);
+      m = matter(fileData.value);
     } catch (error) {
       ErrorController.recordProcessError(
         filePath,
@@ -98,20 +101,46 @@ export default class FoamController {
       return {};
     }
 
+    */
+
+    const frontMatterRes = Res.sync(
+      () => {
+        matter(fileData.value);
+      },
+      { msg: "Unable to parse front-matter" },
+      Res.saveError
+    );
+
+    if (frontMatterRes.isError()) return frontMatterRes;
+
+    const frontMatter = frontMatterRes.value;
+
     //check if the note is a type definition
     let isType = false;
-    if (m.data[Referencer.PROP_TYPE_FOAMID]) {
+
+    if (frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
       isType = true;
 
       //prevent the note to have other property types not related to the type
-      if (m.content || Object.keys(m.data).length > 1) {
+      /*if (frontMatter.content || Object.keys(frontMatter.data).length > 1) {
         const e =
           "A Note with a type can't include other properties. Verify the note only contains " +
           Referencer.PROP_TYPE_FOAMID +
           " data and has no content.";
         ErrorController.recordProcessError(filePath, "checking type", e);
         return {};
-      }
+      }*/
+
+      if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
+        return Res.error(
+          {
+            msg:
+              "A Note with a type can't include other properties. Verify the note only contains " +
+              Referencer.PROP_TYPE_FOAMID +
+              " data and has no content.",
+          },
+          Res.saveError
+        );
     }
 
     //because we can create notes recursively when looking for a type, we need to be able to warn
@@ -141,10 +170,10 @@ export default class FoamController {
     //TYPE properies
     //if the note represents a data Type is processed differently and rest of properties are ignored
     if (isType) {
-      for (let key in m.data[Referencer.PROP_TYPE_FOAMID]) {
+      for (let key in frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
         const prop = await FoamController.processTypeProperty(
           key,
-          m.data[Referencer.PROP_TYPE_FOAMID][key]
+          frontMatter.data[Referencer.PROP_TYPE_FOAMID][key]
         );
         note[prop.key] = prop.value;
       }
@@ -152,8 +181,8 @@ export default class FoamController {
     // VIEW property
     else {
       //Process the content of the .md file and convert it into the "view" type
-      if (m.content) {
-        const removedFoodNotes = m.content.split("[//begin]:")[0];
+      if (frontMatter.content) {
+        const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
         const trimmed = removedFoodNotes.trim();
         const view = await Tokenizer.wikilinksToTransclusions(trimmed);
 
@@ -167,10 +196,10 @@ export default class FoamController {
       }
       //ALL other properties
       //The rest of the properties
-      for (let key in m.data) {
+      for (let key in frontMatter.data) {
         const prop = await FoamController.processProperty(
           key,
-          m.data[key],
+          frontMatter.data[key],
           filePath,
           typeExistserrorCallback
         );
@@ -187,11 +216,11 @@ export default class FoamController {
     //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
     if (isType) {
       //console.log("creating type for", foamId, iid);
-      const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
+      const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
       const ipmmType = await FoamController.makeType(typeProps, filePath);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
-    return note;
+    return Res.success(note);
   };
 
   static makeType = async (
