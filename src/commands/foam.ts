@@ -58,17 +58,13 @@ export default class FoamCommand extends Command {
     if (args.subcommand == "import") {
       //import a single file
       if (args.fileName) {
-        try {
-          let note = await FoamController.importFile(
-            ipmmRepo,
-            foamRepo,
-            args.fileName
-          );
+        const note = await FoamController.importFile(
+          ipmmRepo,
+          foamRepo,
+          args.fileName
+        );
 
-          console.log(note);
-        } catch (e) {
-          console.log(e);
-        }
+        if (note.isOk()) console.log(note.value);
       }
 
       //import everything
@@ -81,8 +77,6 @@ export default class FoamCommand extends Command {
     }
 
     ErrorController.saveLogs();
-    LogsController.displayLogsNotice();
-   
   }
 
   foamExport = (ipmmRepo: String, foamRepo: string) => void {};

@@ -1,9 +1,8 @@
 import LogsController from "./logsController";
 
 export default class ErrorController {
-  static processErrors: Res[] = [];
-  static catchedErrors: ErrorContext[] = [];
-
+  static savedErrors: ErrorContext[] = [];
+  /*
   static recordProcessError = (
     filePath: string,
     processName: string,
@@ -13,8 +12,10 @@ export default class ErrorController {
     // ErrorController.processErrors.push( new ProcessError(filePath, processName, error));
   };
 
+  */
+
   static saveLogs() {
-    LogsController.saveErrorLogs(ErrorController.processErrors);
+    LogsController.saveErrorLogs(ErrorController.savedErrors);
   }
 
   static logProcessErrors = (): void => {
@@ -27,15 +28,18 @@ export default class ErrorController {
   };
 }
 
-interface ErrorContext {
-  msg?: string;
-  target?: string;
-  prevContext?: ErrorContext;
+export class ErrorContext {
+  message: string;
+  context?: any;
+  constructor(msg: string, childContext?: any) {
+    this.message = msg;
+    this.context = childContext;
+  }
 }
 
 export class Res {
   value: any;
-  errContext!: ErrorContext;
+  context?: ErrorContext;
 
   static success<T>(value: T) {
     let res = new Res();
@@ -44,12 +48,13 @@ export class Res {
   }
 
   static error(
-    errorContext: ErrorContext,
-    handleError: (error: ErrorContext) => void
+    errorMessage: string,
+    handleError: (error: ErrorContext) => void,
+    context?: any
   ): Res {
     let res = new Res();
-    res.errContext = errorContext;
-    handleError(res.errContext);
+    res.context = new ErrorContext(errorMessage, context);
+    handleError(res.context);
     return res;
   }
 
@@ -57,54 +62,44 @@ export class Res {
     return this.value ? true : false;
   }
   isError() {
-    return this.errContext ? true : false;
+    return this.context ? true : false;
   }
 
   static async = async <T>(
     promise: Promise<T>,
-    errorContext: ErrorContext,
-    handleError: (error: ErrorContext) => void
+    errorMessage: string,
+    handleError: (error: ErrorContext) => void,
+    context?: any
   ): Promise<Res> => {
     let res = new Res();
     try {
       res.value = await promise;
     } catch (e) {
-      res.errContext = errorContext;
-      res.errContext.msg = e;
-      handleError(res.errContext);
+      res.context = new ErrorContext(errorMessage, context);
+      handleError(res.context);
+      return res;
     }
     return res;
   };
 
   static sync<T>(
     func: () => T,
-    errorContext: ErrorContext,
-    handleError: (error: ErrorContext) => void
+    errorMessage: string,
+    handleError: (error: ErrorContext) => void,
+    context?: any
   ): Res {
     let res = new Res();
     try {
       res.value = func();
     } catch (e) {
-      res.errContext = errorContext;
-      res.errContext.msg = e;
-      handleError(res.errContext);
+      res.context = new ErrorContext(errorMessage, context);
+      handleError(res.context);
+      return res;
     }
     return res;
   }
 
   static saveError = (e: ErrorContext): void => {
-    ErrorController.catchedErrors.push(e);
+    ErrorController.savedErrors.push(e);
   };
 }
-
-/*
- promise.then(
-      (value) => {
-        this.value = value;
-        console.log("Resolved");
-      },
-      (err) => {
-        this.err = err;
-        console.log("Error ", err);
-      }
-    );*/

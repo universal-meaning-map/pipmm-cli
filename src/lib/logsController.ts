@@ -1,7 +1,6 @@
 import * as fs from "fs";
-import * as path from "path";
 import Utils from "./utils";
-import ErrorController, { Res } from "./errorController";
+import ErrorController, { Res, ErrorContext } from "./errorController";
 
 export default class LogsController {
   private static logsPath = "~/.ipmm/logs.json";
@@ -14,12 +13,13 @@ export default class LogsController {
     else return commandName + "." + subcommandName;
   }
 
-  static loadErrorLogs = (): Res[] => {
+  static loadErrorLogs = (): ErrorContext[] => {
     if (fs.existsSync(LogsController.logsPath)) {
       let data = JSON.parse(fs.readFileSync(LogsController.logsPath, "utf8"));
-      let logsFile: Res[] = [];
+      let logsFile: ErrorContext[] = [];
       for (let d of data) {
-        logsFile.push(new Res(d.filePath, d.processName, d.error));
+        logsFile.push(new ErrorContext(d.message, d.context));
+        // new Res(d.filePath, d.processName, d.error));
       }
 
       return logsFile;
@@ -27,41 +27,43 @@ export default class LogsController {
     throw new Error("No logs file for " + LogsController.logsPath + " exists");
   };
 
-  static saveErrorLogs(errorLogs: Res[]) {
+  static saveErrorLogs(errorLogs: ErrorContext[]) {
     Utils.saveFile(JSON.stringify(errorLogs), LogsController.logsPath);
   }
 
-  static logNumberedList = (logs: Res[]) => {
+  static logNumberedList = (logs: ErrorContext[]) => {
     let i = 0;
-    for (let l of logs) {
-      console.log("  " + i + ". Error " + l.processName + ": " + l.filePath);
+    for (let e of logs) {
+      console.log(
+        "  " +
+          i +
+          ". Error " +
+          e.message +
+          ": " +
+          JSON.stringify(e.context)
+      );
       i++;
     }
   };
 
-  static logErrorIndex = (logs: Res[], errorIndex: number) => {
+  static logErrorIndex = (logs: ErrorContext[], errorIndex: number) => {
     let i = errorIndex; //Number.parseInt(errorIndex);
     if (i > logs.length - 1) {
       console.error(
         "Error index out of range. Largest index is " + (logs.length - 1)
       );
     }
-    console.log(i + ". " + logs[i].filePath);
-    console.log("   Error " + logs[i].processName);
-    console.log("   " + logs[i].errContext + "\n");
-  }; 
+    console.log(i + ". " + logs[i].message);
+    if (logs[i].context)
+      console.log("   " + JSON.stringify(logs[i].context) + "\n");
+  };
 
-  static logAllErrors = (logs: Res[]) => {
+  static logAllErrors = (logs: ErrorContext[]) => {
     for (let i = 0; i < logs.length; i++) {
-      console.log(i + ". " + logs[i].filePath);
-      console.log("   Error " + logs[i].processName);
-      console.log("   " + logs[i].errContext + "\n");
+      console.log(i + ". " + logs[i].message);
+      if (logs[i].context)
+        console.log("   " + JSON.stringify(logs[i].context) + "\n");
     }
   };
 
-  static displayLogsNotice() {
-    if (ErrorController.processErrors.length == 0) return;
-    console.log(ErrorController.processErrors.length + " errors where found. Use the `log` command to view them. Includes the flag `-e=<error-index>` to view error details\n"
-    );
-  }
 }
