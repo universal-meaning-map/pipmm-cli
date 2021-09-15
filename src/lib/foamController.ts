@@ -1,14 +1,13 @@
-import ErrorController from "./errorController";
+import ErrorController, { Res } from "./errorController";
 import Utils from "./utils";
 import matter from "gray-matter";
 import * as path from "path";
-import { promises as fs } from "fs";
+import { promises as fs, readFile } from "fs";
 import { NoteType } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
-import { type } from "os";
 
 let foamRepo: string;
 let ipmmRepo: string;
@@ -55,7 +54,6 @@ export default class FoamController {
     foamId: string,
     shouldBeAType: boolean = false
   ): Promise<NoteType> => {
-    //console.log("\nImporting " + foamRepo + "/" + fileName);
     let iid = "";
     if (shouldBeAType) iid = await Referencer.makeTypeIid(foamId);
     else iid = await Referencer.makeIid(foamId);
@@ -63,7 +61,18 @@ export default class FoamController {
     const filePath = path.join(foamRepo, foamId + ".md");
 
     //read file
-    let data: string = "";
+    //let data: string = "";
+
+    //let data = await fs.readFile(filePath, "utf8");
+
+    const d = await Res.make(fs.readFile(filePath, "utf8"),{process:"Reading file",target:filePath }, Res.saveError);
+
+
+    if(!d.isOk)
+   
+
+    /*
+
     try {
       data = await fs.readFile(filePath, "utf8");
     } catch (e) {
@@ -74,6 +83,7 @@ export default class FoamController {
       );
       return {};
     }
+    */
 
     //process frontmatter
     let m: any;
@@ -88,23 +98,7 @@ export default class FoamController {
       return {};
     }
 
-    //make type if exists
-
-    //Dates to strings
-    /*
-    for (let key in m.data) {
-        const property = FoamController.processProperty(key, m.data[key]);
-        
-        if (m.data[key] instanceof Date) {
-          //DAG-CBOR seralization does not support Date
-          note[key] = m.data[key].toString();
-        } else {
-          note[key] = m.data[key];
-        }
-      }
-      */
-
-    //chekc if the note is a type definition
+    //check if the note is a type definition
     let isType = false;
     if (m.data[Referencer.PROP_TYPE_FOAMID]) {
       isType = true;
@@ -121,7 +115,6 @@ export default class FoamController {
     }
 
     //because we can create notes recursively when looking for a type, we need to be able to warn
-    //console.log("Is Type", isType, "- Should be a type", shouldBeAType);
     if (shouldBeAType && !isType) {
       const e =
         foamId +
@@ -131,10 +124,9 @@ export default class FoamController {
       ErrorController.recordProcessError(filePath, "checking type", e);
     }
 
+    /////////////////////////////////
+    //create and empty note
     let note: NoteType = {};
-
-    //convert property keys into iids
-
     const typeExistserrorCallback = (error: string) => {
       ErrorController.recordProcessError(
         filePath,
@@ -142,6 +134,12 @@ export default class FoamController {
         error
       );
     };
+
+    //Iterate trhough all the note properties.
+    //If a given note property key has not beeen processed yet it will process it before continuing
+
+    //TYPE properies
+    //if the note represents a data Type is processed differently and rest of properties are ignored
     if (isType) {
       for (let key in m.data[Referencer.PROP_TYPE_FOAMID]) {
         const prop = await FoamController.processTypeProperty(
@@ -150,9 +148,10 @@ export default class FoamController {
         );
         note[prop.key] = prop.value;
       }
-    } else {
-      //process property types into cids and validate its content
-      //The content of the .md (view property)
+    }
+    // VIEW property
+    else {
+      //Process the content of the .md file and convert it into the "view" type
       if (m.content) {
         const removedFoodNotes = m.content.split("[//begin]:")[0];
         const trimmed = removedFoodNotes.trim();
@@ -166,6 +165,7 @@ export default class FoamController {
         );
         note[viewProp.key] = viewProp.value;
       }
+      //ALL other properties
       //The rest of the properties
       for (let key in m.data) {
         const prop = await FoamController.processProperty(
@@ -178,11 +178,13 @@ export default class FoamController {
       }
     }
 
+    //Get the final CID of the note
     const block = await IpldController.anyToDagCborBlock(note);
     const cid = block.cid.toString();
     Referencer.iidToCidMap[iid] = cid;
 
-    //If it contains a type we create and instance to verify properties
+    //MAKE TYPE
+    //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
     if (isType) {
       //console.log("creating type for", foamId, iid);
       const typeProps = m.data[Referencer.PROP_TYPE_FOAMID];
@@ -212,57 +214,6 @@ export default class FoamController {
       return ipmmType;
     }
   };
-
-  /*
-  static makeType(typeProps: any, filePath: string): IpmmType {
-    if (!typeProps[Referencer.TYPE_PROP_DEFAULT_NAME])
-      ErrorController.recordProcessError(
-        filePath,
-        "creating type",
-        Referencer.TYPE_PROP_DEFAULT_NAME + " for Type does not exist"
-      );
-
-    if (!typeProps[Referencer.TYPE_PROP_REPRESENTS])
-      ErrorController.recordProcessError(
-        filePath,
-        "creating type",
-        Referencer.TYPE_PROP_REPRESENTS + " for Type does not exist"
-      );
-
-    if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-      ErrorController.recordProcessError(
-        filePath,
-        "creating type",
-        Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
-      );
-
-    if (!typeProps[Referencer.TYPE_PROP_CONSTRAINS])
-      ErrorController.recordProcessError(
-        filePath,
-        "creating type",
-        Referencer.TYPE_PROP_CONSTRAINS + " for Type does not exist"
-      );
-
-    if (!typeProps[Referencer.TYPE_PROP_TYPE_DEPENDENCIES])
-      ErrorController.recordProcessError(
-        filePath,
-        "creating type",
-        Referencer.TYPE_PROP_TYPE_DEPENDENCIES + " for Type does not exist"
-      );
-
-    const typeCreateErrorCallback = (error: string) => {
-      ErrorController.recordProcessError(filePath, "creating new type", error);
-    };
-    const ipmmType = new IpmmType(
-      typeProps[Referencer.TYPE_PROP_DEFAULT_NAME],
-      typeProps[Referencer.TYPE_PROP_REPRESENTS],
-      typeProps[Referencer.TYPE_PROP_CONSTRAINS],
-      typeProps[Referencer.TYPE_PROP_IPLD_SCHEMA],
-      typeCreateErrorCallback
-    );
-    return ipmmType;
-  }
-  */
 
   static processProperty = async (
     typeFoamId: string,
@@ -335,60 +286,4 @@ export default class FoamController {
     //const keyCid = await Referencer.makeIid(key);
     return { key: key, value: value };
   };
-
-  /*
-  static makeNote = async (fileName: string): Promise<NoteType> => {
-
-    const filePath = path.join(foamRepo, fileName);
-    const foamId = Utils.removeFileExtension(fileName).toLowerCase();
-    //console.log("Making..."+filePath)
-    let note: NoteType = {};
-    let data: string = "";
-    try {
-      data = await fs.readFile(filePath, "utf8");
-    } catch (e) {
-      ErrorController.recordProcessError(filePath, "reading file", e);
-    }
-
-    try {
-      let m = matter(data);
-
-      if (m.data["prop-ipfoam-type-1630602741"]) {
-        const typeProps = m.data["prop-ipfoam-type-1630602741"];
-        const ipmmType = new IpmmType(
-          typeProps["$default-name"],
-          typeProps["$represents"],
-          typeProps["$constrains"],
-          typeProps["$ipld-schema"]
-        );
-        foamIdToTypeMap[foamId]=ipmmType
-      }
-
-      //Wikilinks to transclusion
-      //Todo: On all types
-      note.content = Tokenizer.wikilinksToTransclusions(m.content);
-
-      //Dates to strings
-      for (let key in m.data) {
-        const property = FoamController.processProperty(key, m.data[key]);
-
-        if (m.data[key] instanceof Date) {
-          //DAG-CBOR seralization does not support Date
-          note[key] = m.data[key].toString();
-        } else {
-          note[key] = m.data[key];
-        }
-      }
-
-      return note;
-    } catch (error) {
-      ErrorController.recordProcessError(
-        filePath,
-        "parsing Front Matter file",
-        error
-      );
-    }
-
-    return note;
-  };*/
 }

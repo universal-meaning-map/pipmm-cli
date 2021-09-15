@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import Utils from "./utils";
-import ErrorController, { ProcessError } from "./errorController";
+import ErrorController, { Res } from "./errorController";
 
 export default class LogsController {
   private static logsPath = "~/.ipmm/logs.json";
@@ -14,12 +14,12 @@ export default class LogsController {
     else return commandName + "." + subcommandName;
   }
 
-  static loadErrorLogs = (): ProcessError[] => {
+  static loadErrorLogs = (): Res[] => {
     if (fs.existsSync(LogsController.logsPath)) {
       let data = JSON.parse(fs.readFileSync(LogsController.logsPath, "utf8"));
-      let logsFile: ProcessError[] = [];
+      let logsFile: Res[] = [];
       for (let d of data) {
-        logsFile.push(new ProcessError(d.filePath, d.processName, d.error));
+        logsFile.push(new Res(d.filePath, d.processName, d.error));
       }
 
       return logsFile;
@@ -27,11 +27,11 @@ export default class LogsController {
     throw new Error("No logs file for " + LogsController.logsPath + " exists");
   };
 
-  static saveErrorLogs(errorLogs: ProcessError[]) {
+  static saveErrorLogs(errorLogs: Res[]) {
     Utils.saveFile(JSON.stringify(errorLogs), LogsController.logsPath);
   }
 
-  static logNumberedList = (logs: ProcessError[]) => {
+  static logNumberedList = (logs: Res[]) => {
     let i = 0;
     for (let l of logs) {
       console.log("  " + i + ". Error " + l.processName + ": " + l.filePath);
@@ -39,7 +39,7 @@ export default class LogsController {
     }
   };
 
-  static logErrorIndex = (logs: ProcessError[], errorIndex: number) => {
+  static logErrorIndex = (logs: Res[], errorIndex: number) => {
     let i = errorIndex; //Number.parseInt(errorIndex);
     if (i > logs.length - 1) {
       console.error(
@@ -48,14 +48,14 @@ export default class LogsController {
     }
     console.log(i + ". " + logs[i].filePath);
     console.log("   Error " + logs[i].processName);
-    console.log("   " + logs[i].error + "\n");
+    console.log("   " + logs[i].errContext + "\n");
   }; 
 
-  static logAllErrors = (logs: ProcessError[]) => {
+  static logAllErrors = (logs: Res[]) => {
     for (let i = 0; i < logs.length; i++) {
       console.log(i + ". " + logs[i].filePath);
       console.log("   Error " + logs[i].processName);
-      console.log("   " + logs[i].error + "\n");
+      console.log("   " + logs[i].errContext + "\n");
     }
   };
 

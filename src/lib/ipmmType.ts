@@ -81,6 +81,8 @@ export default class IpmmType {
     }
   }
 
+  //Fetches the type dependencies. Processess its types. Gets their schema.
+  //Compiles all the schemas into one. Replaces all the property keys for their intent ids
   makeCompiledSchema = async (): Promise<string> => {
     let compiledSchema = this.ipldSchema;
 
@@ -104,6 +106,7 @@ export default class IpmmType {
     return compiledSchema;
   };
 
+  
   isDataValid(data: any, errorCallabck: (error: string) => void): boolean {
     try {
       this.validate(data, "root");

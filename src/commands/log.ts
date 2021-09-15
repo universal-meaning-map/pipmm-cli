@@ -6,7 +6,7 @@ import * as matter from "gray-matter";
 import { Console } from "console";
 import ConfigController from "../lib/configController";
 import LogsController from "../lib/logsController";
-import { ProcessError } from "../lib/errorController";
+import { Res } from "../lib/errorController";
 
 export default class LogsCommand extends Command {
   static description = "Use flags to config variables";
