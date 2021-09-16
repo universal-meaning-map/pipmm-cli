@@ -47,6 +47,12 @@ export default class Tokenizer {
         foamId + " contains wikilink without timestamp :" + wikilink,
         Res.saveError
       );
+    //No uper case allowed
+    if (wikilink!=wikilink.toLowerCase())
+      Res.error(
+        foamId + " contains wikilink without upercase :" + wikilink,
+        Res.saveError
+      );
   };
 
   static wikilinkToItentRef = async (wikilink: string): Promise<string> => {
