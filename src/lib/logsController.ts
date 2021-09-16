@@ -17,8 +17,9 @@ export default class LogsController {
     if (fs.existsSync(LogsController.logsPath)) {
       let data = JSON.parse(fs.readFileSync(LogsController.logsPath, "utf8"));
       let logsFile: ErrorContext[] = [];
-      for (let d of data) {
-        logsFile.push(new ErrorContext(d.message, d.context));
+      let d: ErrorContext;
+      for (d of data) {
+        logsFile.push(new ErrorContext(d.message, d.info));
         // new Res(d.filePath, d.processName, d.error));
       }
 

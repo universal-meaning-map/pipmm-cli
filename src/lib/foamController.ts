@@ -270,8 +270,12 @@ export default class FoamController {
       newValue = propertyValue.toString();
     }
 
+    if (Array.isArray(propertyValue)) {
+      //We don't want array indexes converted to iids
+      newValue = propertyValue;
+    }
     //recursivelly process sub-properties
-    if (typeof propertyValue === "object" && propertyValue !== null) {
+    else if (typeof propertyValue === "object" && propertyValue !== null) {
       for (let subTypeFoamId in propertyValue) {
         const prop = await FoamController.processProperty(
           subTypeFoamId,
@@ -290,9 +294,9 @@ export default class FoamController {
         newValue,
         (errorMessage, errorContext) => {
           Res.error(
-            "Failed data validation, " +
+            "Data don't match schema for property'" +
               typeFoamId +
-              " value does not match schema. \tRequester:" +
+              "' for note: " +
               requesterFoamId,
 
             Res.saveError,
