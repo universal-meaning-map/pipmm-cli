@@ -3,11 +3,11 @@ import * as fs from "fs";
 import * as path from "path";
 import Utils from "./utils";
 
-
 export default class ConfigController {
   private static _configPath = "~/.ipmm/config.json";
   private static _defaultIpfsPath = "~/.ipmm/ipfsRepo";
   private static _defaultIpmmPath = "~/.ipmm/ipmmRepo";
+  private static _logsPath = "~/.ipmm/logs.json";
 
   private static _configFile: ConfigFile;
 
@@ -70,7 +70,11 @@ export default class ConfigController {
   static get ipfsRepoPath(): string {
     return this.config.ipfsRepo;
   }
-  
+
+  static get logsPath(): string {
+    return ConfigController._logsPath;
+  }
+
   private static save() {
     Utils.saveFile(JSON.stringify(this.config), ConfigController.configPath);
   }

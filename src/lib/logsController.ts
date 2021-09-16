@@ -1,10 +1,9 @@
 import * as fs from "fs";
 import Utils from "./utils";
 import ErrorController, { Res, ErrorContext } from "./errorController";
+import ConfigController from "./configController";
 
 export default class LogsController {
-  private static logsPath = "~/.ipmm/logs.json";
-
   static getComposedCommandName(
     commandName: string,
     subcommandName?: string
@@ -14,8 +13,9 @@ export default class LogsController {
   }
 
   static loadErrorLogs = (): ErrorContext[] => {
-    if (fs.existsSync(LogsController.logsPath)) {
-      let data = JSON.parse(fs.readFileSync(LogsController.logsPath, "utf8"));
+    const path = Utils.resolveHome(ConfigController.logsPath);
+    if (fs.existsSync(path)) {
+      let data = JSON.parse(fs.readFileSync(path, "utf8"));
       let logsFile: ErrorContext[] = [];
       let d: ErrorContext;
       for (d of data) {
@@ -25,11 +25,14 @@ export default class LogsController {
 
       return logsFile;
     }
-    throw new Error("No logs file for " + LogsController.logsPath + " exists");
+    throw new Error("No logs file for " + path + " exists");
   };
 
   static saveErrorLogs(errorLogs: ErrorContext[]) {
-    Utils.saveFile(JSON.stringify(errorLogs), LogsController.logsPath);
+    Utils.saveFile(
+      JSON.stringify(errorLogs),
+      Utils.resolveHome(ConfigController.logsPath)
+    );
   }
 
   static logNumberedList = (logs: ErrorContext[]) => {
