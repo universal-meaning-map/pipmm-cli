@@ -11,7 +11,7 @@ import Referencer from "./referencer";
 
 let foamRepo: string;
 let ipmmRepo: string;
-//const foamIdToIidMap: { [foamId: string]: string } = {};
+
 const foamIdToTypeCid: { [foamId: string]: string } = {};
 
 export default class FoamController {
@@ -23,19 +23,12 @@ export default class FoamController {
     ipmmRepo = _ipmmRepo;
 
     let files = await fs.readdir(foamRepo);
-
     files = Utils.filterByExtensions(files, [".md"]);
-
-    //console.log("Importing FOAM repository from ",path.resolve(process.cwd(), foamRepo), "...");
-
-    const notes: NoteType[] = [];
 
     for (let fileName of files) {
       const foamId = Utils.removeFileExtension(fileName);
       const note: NoteType = await FoamController.makeNote(foamId);
-      notes.push(note);
     }
-    //console.log(Referencer.iidToCidMap);
   };
 
   static importFile = async (
@@ -55,17 +48,9 @@ export default class FoamController {
     shouldBeAType: boolean = false,
     requesterFoamId?: string
   ): Promise<Res> => {
-    let iid = "";
-    if (shouldBeAType) iid = await Referencer.makeTypeIid(foamId);
-    else iid = await Referencer.makeIid(foamId);
+    //read file
 
     const filePath = path.join(foamRepo, foamId + ".md");
-
-    //read file
-    //let data: string = "";
-
-    //let data = await fs.readFile(filePath, "utf8");
-
     const fileData = await Res.async(
       fs.readFile(filePath, "utf8"),
       "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
@@ -73,36 +58,6 @@ export default class FoamController {
     );
 
     if (fileData.isError()) return fileData;
-
-    /*
-    try {
-      data = await fs.readFile(filePath, "utf8");
-    } catch (e) {
-      ErrorController.recordProcessError(
-        filePath,
-        "reading file",
-        "Make sure all files are in lowercase" + e
-      );
-      return {};
-    }
-    */
-
-    //process frontmatter
-
-    /*
-      let m: any;
-    try {
-      m = matter(fileData.value);
-    } catch (error) {
-      ErrorController.recordProcessError(
-        filePath,
-        "parsing Front Matter file",
-        error
-      );
-      return {};
-    }
-
-    */
 
     const frontMatterRes = Res.sync(
       () => {
@@ -122,16 +77,6 @@ export default class FoamController {
 
     if (frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
       isType = true;
-
-      //prevent the note to have other property types not related to the type
-      /*if (frontMatter.content || Object.keys(frontMatter.data).length > 1) {
-        const e =
-          "A Note with a type can't include other properties. Verify the note only contains " +
-          Referencer.PROP_TYPE_FOAMID +
-          " data and has no content.";
-        ErrorController.recordProcessError(filePath, "checking type", e);
-        return {};
-      }*/
 
       if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
         return Res.error(
@@ -155,15 +100,15 @@ export default class FoamController {
     }
 
     /////////////////////////////////
+    //Type notes have a different iid, prefixed with text in order to be used by Ipldschema
+    let iid = "";
+    if (isType) iid = await Referencer.makeTypeIid(foamId);
+    else iid = await Referencer.makeIid(foamId);
+
+    if (Referencer.iidExists(iid)) return Res.success(Referencer.getNote(iid));
+
     //create and empty note
     let note: NoteType = {};
-    /*const typeExistserrorCallback = (error: string) => {
-      ErrorController.recordProcessError(
-        filePath,
-        "checking if type exists",
-        error
-      );
-    };*/
 
     //Iterate trhough all the note properties.
     //If a given note property key has not beeen processed yet it will process it before continuing
@@ -219,6 +164,7 @@ export default class FoamController {
       const ipmmType = await FoamController.makeType(typeProps, foamId);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
+    Referencer.iidToNote[iid] = note;
     return Res.success(note);
   };
 

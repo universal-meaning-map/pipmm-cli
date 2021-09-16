@@ -1,4 +1,5 @@
 import IpldController from "./ipldController";
+import { NoteType } from "./ipmm";
 import IpmmType from "./ipmmType";
 import Utils from "./utils";
 
@@ -14,22 +15,22 @@ export default class Referencer {
 
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
+  static iidToNote: { [iid: string]: NoteType } = {};
 
   static addIId(iid: string, cid: string): void {
     Referencer.iidToCidMap[iid] = cid;
   }
 
   static makeIid = async (foamIdOrFileName: string): Promise<any> => {
-    const foamId =
-      Utils.removeFileExtension(foamIdOrFileName);
+    const foamId = Utils.removeFileExtension(foamIdOrFileName);
     const block = await IpldController.anyToDagCborBlock(foamId);
     return block.cid.toString().slice(-8);
   };
 
-  static makeTypeIid =async(foamId:string):Promise<string> =>{
-    const iid = await Referencer.makeIid(foamId)
-    return "TYPE"+iid
-  }
+  static makeTypeIid = async (foamId: string): Promise<string> => {
+    const iid = await Referencer.makeIid(foamId);
+    return "TYPE" + iid;
+  };
 
   static iidExists(iid: string): boolean {
     if (Referencer.iidToCidMap[iid]) return true;
@@ -47,5 +48,9 @@ export default class Referencer {
 
   static getType(iid: string): IpmmType {
     return Referencer.iidToTypeMap[iid];
+  }
+
+  static getNote(iid: string): NoteType {
+    return Referencer.iidToNote[iid];
   }
 }
