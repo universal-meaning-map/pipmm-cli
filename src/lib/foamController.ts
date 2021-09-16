@@ -130,7 +130,7 @@ export default class FoamController {
       if (frontMatter.content) {
         const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
         const trimmed = removedFoodNotes.trim();
-        const view = await Tokenizer.wikilinksToTransclusions(trimmed);
+        const view = await Tokenizer.wikilinksToTransclusions(trimmed, foamId);
 
         const viewProp = await FoamController.processProperty(
           Referencer.PROP_VIEW_FOAMID,

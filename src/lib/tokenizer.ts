@@ -1,8 +1,11 @@
+import { Res } from "./errorController";
 import Referencer from "./referencer";
 
 export default class Tokenizer {
-  
-  static wikilinksToTransclusions = async (text: string): Promise<string> => {
+  static wikilinksToTransclusions = async (
+    text: string,
+    foamId: string
+  ): Promise<string> => {
     const wikilinkWithTokens = /\[{2}(.*?)\]{2}/g;
     //let wikilinkWithoutTokens = /[^[\]]+(?=]])/g;
 
@@ -11,7 +14,10 @@ export default class Tokenizer {
       wikilink: string,
       offset: string,
       ori: string
-    ) => await Tokenizer.wikilinkToTransclusionExp(wikilink);
+    ) => {
+      await Tokenizer.checkWikilink(wikilink, foamId);
+      await Tokenizer.wikilinkToTransclusionExp(wikilink);
+    };
 
     return await Tokenizer.replaceAsync(text, wikilinkWithTokens, doneCallback);
   };
@@ -22,6 +28,25 @@ export default class Tokenizer {
     const intentRef = await Tokenizer.wikilinkToItentRef(wikilink);
     const transclusionExp = Tokenizer.makeTransclusionExp(intentRef);
     return transclusionExp;
+  };
+
+  static checkWikilink = async (
+    wikilink: string,
+    foamId: string
+  ): Promise<void> => {
+    //wikilinks should not include extension
+    if (wikilink.indexOf(".md") != -1)
+      Res.error(
+        foamId + " contains wikilink with .md extension :" + wikilink,
+        Res.saveError
+      );
+    //new wikilinks should be formated with timestmap in the back.
+    //Super crappy check that will last 5 years
+    if (wikilink.indexOf("-16") == -1 && wikilink.indexOf("-17") == -1)
+      Res.error(
+        foamId + " contains wikilink without timestamp :" + wikilink,
+        Res.saveError
+      );
   };
 
   static wikilinkToItentRef = async (wikilink: string): Promise<string> => {

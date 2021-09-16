@@ -2,6 +2,7 @@ import * as fs from "fs";
 import Utils from "./utils";
 import ErrorController, { Res, ErrorContext } from "./errorController";
 import ConfigController from "./configController";
+import Referencer from "./referencer";
 
 export default class LogsController {
   static getComposedCommandName(
@@ -62,5 +63,7 @@ export default class LogsController {
       if (verbose && logs[i].info)
         console.log("   " + JSON.stringify(logs[i].info) + "\n");
     }
+    if (logs.length == 0) console.log("\nSuccess! No errors were found");
+    else console.log("\nUse 'ipmm log <errorIndex>' to see more details");
   };
 }
