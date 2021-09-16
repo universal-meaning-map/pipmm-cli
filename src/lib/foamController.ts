@@ -109,7 +109,8 @@ export default class FoamController {
         return matter(fileData.value);
       },
       "Unable to parse front-matter for: " + foamId,
-      Res.saveError
+      Res.saveError,
+      { data: fileData.value }
     );
 
     if (frontMatterRes.isError()) return frontMatterRes;
@@ -285,17 +286,20 @@ export default class FoamController {
 
     //Verify value agains type ipld-schema
     if (Referencer.typeExists(typeIId))
-      Referencer.iidToTypeMap[typeIId].isDataValid(newValue, (error) => {
-        Res.error(
-          "Failed data validation, " +
-            typeFoamId +
-            " value does not match schema. \tRequester:" +
-            requesterFoamId,
+      Referencer.iidToTypeMap[typeIId].isDataValid(
+        newValue,
+        (errorMessage, errorContext) => {
+          Res.error(
+            "Failed data validation, " +
+              typeFoamId +
+              " value does not match schema. \tRequester:" +
+              requesterFoamId,
 
-          Res.saveError,
-          error
-        );
-      });
+            Res.saveError,
+            { ...{ errorMessage: errorMessage }, ...errorContext }
+          );
+        }
+      );
     else {
       Res.error(
         "The type for " +

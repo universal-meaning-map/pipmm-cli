@@ -30,10 +30,10 @@ export default class ErrorController {
 
 export class ErrorContext {
   message: string;
-  context?: any;
-  constructor(msg: string, childContext?: any) {
+  info?: any;
+  constructor(msg: string, info?: any) {
     this.message = msg;
-    this.context = childContext;
+    this.info = info;
   }
 }
 
@@ -50,10 +50,10 @@ export class Res {
   static error(
     errorMessage: string,
     handleError: (error: ErrorContext) => void,
-    context?: any
+    errorInfo?: any
   ): Res {
     let res = new Res();
-    res.context = new ErrorContext(errorMessage, context);
+    res.context = new ErrorContext(errorMessage, errorInfo);
     handleError(res.context);
     return res;
   }
@@ -69,13 +69,13 @@ export class Res {
     promise: Promise<T>,
     errorMessage: string,
     handleError: (error: ErrorContext) => void,
-    context?: any
+    errorInfo?: any
   ): Promise<Res> => {
     let res = new Res();
     try {
       res.value = await promise;
     } catch (e) {
-      res.context = new ErrorContext(errorMessage, context);
+      res.context = new ErrorContext(errorMessage, errorInfo);
       handleError(res.context);
       return res;
     }
@@ -85,13 +85,14 @@ export class Res {
   static sync<T>(
     func: () => T,
     errorMessage: string,
-    handleError: (error: ErrorContext) => void
+    handleError: (error: ErrorContext) => void,
+    errorInfo?: any
   ): Res {
     let res = new Res();
     try {
       res.value = func();
     } catch (e) {
-      res.context = new ErrorContext(errorMessage, e);
+      res.context = new ErrorContext(errorMessage, errorInfo);
       handleError(res.context);
       return res;
     }

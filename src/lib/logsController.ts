@@ -35,7 +35,7 @@ export default class LogsController {
     let i = 0;
     for (let e of logs) {
       console.log(
-        "  " + i + ". Error " + e.message + ": " + JSON.stringify(e.context)
+        "  " + i + ". Error " + e.message + ": " + JSON.stringify(e.info)
       );
       i++;
     }
@@ -49,15 +49,14 @@ export default class LogsController {
       );
     }
     console.log(i + ". " + logs[i].message);
-    if (logs[i].context)
-      console.log("   " + JSON.stringify(logs[i].context) + "\n");
+    if (logs[i].info) console.dir(logs[i].info);
   };
 
   static logAllErrors = (logs: ErrorContext[], verbose: boolean = false) => {
     for (let i = 0; i < logs.length; i++) {
       console.log(i + ". " + logs[i].message);
-      if (verbose && logs[i].context)
-        console.log("   " + JSON.stringify(logs[i].context) + "\n");
+      if (verbose && logs[i].info)
+        console.log("   " + JSON.stringify(logs[i].info) + "\n");
     }
   };
 }

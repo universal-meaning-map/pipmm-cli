@@ -13,6 +13,8 @@ export default class IpmmType {
   ipldSchema: string = "";
   validate: any;
 
+  static foamIdToIdMap: { [iid: string]: string } = {};
+
   static typeDefinitionSchema = `type TypeDefinition struct {
       defaultName defaultName
       represents represents
@@ -106,22 +108,20 @@ export default class IpmmType {
     return compiledSchema;
   };
 
-  isDataValid(data: any, errorCallabck: (error: string) => void): boolean {
+  isDataValid(
+    data: any,
+    errorCallabck: (errorMessage: string, errorContext?: any) => void
+  ): boolean {
     try {
       this.validate(data, "root");
       return true;
     } catch (e) {
       if (errorCallabck)
-        errorCallabck(
-          "Data don't match the `" +
-            this.defaultName +
-            "` schema.\nData:" +
-            JSON.stringify(data) +
-            "\nSchema:" +
-            this.ipldSchema +
-            "\nException:" +
-            e 
-        );
+        errorCallabck("Data don't match the schema`" + this.defaultName, {
+          data: data,
+          schema: this.ipldSchema,
+          typesMap: IpmmType.foamIdToIdMap,
+        });
       return false;
     }
   }
@@ -131,7 +131,7 @@ export default class IpmmType {
     typeDependencies: string[]
   ): Promise<string> => {
     let foamIdToIdMap: { [iid: string]: string } =
-      await IpmmType.foamIdToTypeIid(typeDependencies);
+      await IpmmType.updateFoamIdToTypeIid(typeDependencies);
 
     for (const foamId of typeDependencies) {
       schema = schema.split(foamId).join(foamIdToIdMap[foamId]);
@@ -139,14 +139,16 @@ export default class IpmmType {
     return schema;
   };
 
-  static foamIdToTypeIid = async (
+  static updateFoamIdToTypeIid = async (
     typeDependencies: string[]
   ): Promise<{ [iid: string]: string }> => {
-    let foamIdToIdMap: { [iid: string]: string } = {};
     for (const foamId of typeDependencies) {
-      const typeIid = await Referencer.makeTypeIid(foamId);
-      foamIdToIdMap[foamId] = typeIid; //necessary to prevent ids starting with number
+      let typeIid = IpmmType.foamIdToIdMap[foamId];
+      if (!IpmmType.foamIdToIdMap[foamId]) {
+        typeIid = await Referencer.makeTypeIid(foamId);
+        IpmmType.foamIdToIdMap[foamId] = typeIid;
+      }
     }
-    return foamIdToIdMap;
+    return IpmmType.foamIdToIdMap;
   };
 }
