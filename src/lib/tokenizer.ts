@@ -15,7 +15,7 @@ export default class Tokenizer {
       offset: string,
       ori: string
     ) => {
-      await Tokenizer.checkWikilink(wikilink, foamId);
+      await Tokenizer.checkFoamId(wikilink, foamId);
       await Tokenizer.wikilinkToTransclusionExp(wikilink);
     };
 
@@ -28,31 +28,6 @@ export default class Tokenizer {
     const intentRef = await Tokenizer.wikilinkToItentRef(wikilink);
     const transclusionExp = Tokenizer.makeTransclusionExp(intentRef);
     return transclusionExp;
-  };
-
-  static checkWikilink = async (
-    wikilink: string,
-    foamId: string
-  ): Promise<void> => {
-    //wikilinks should not include extension
-    if (wikilink.indexOf(".md") != -1)
-      Res.error(
-        foamId + " contains wikilink with .md extension :" + wikilink,
-        Res.saveError
-      );
-    //new wikilinks should be formated with timestmap in the back.
-    //Super crappy check that will last 5 years
-    if (wikilink.indexOf("-16") == -1 && wikilink.indexOf("-17") == -1)
-      Res.error(
-        foamId + " contains wikilink without timestamp :" + wikilink,
-        Res.saveError
-      );
-    //No uper case allowed
-    if (wikilink!=wikilink.toLowerCase())
-      Res.error(
-        foamId + " contains wikilink without upercase :" + wikilink,
-        Res.saveError
-      );
   };
 
   static wikilinkToItentRef = async (wikilink: string): Promise<string> => {
@@ -99,4 +74,64 @@ export default class Tokenizer {
       return strings.join("");
     });
   };
+
+  static checkFoamId = async (
+    wikilink: string,
+    requesterFoamId: string
+  ): Promise<void> => {
+    //wikilinks should not include extension
+    if (Tokenizer.containsMdExtension(wikilink))
+      Res.error(
+        "Note " +
+          requesterFoamId +
+          " contains wikilink with .md extension. Wikilink: " +
+          wikilink,
+        Res.saveError
+      );
+
+    if (Tokenizer.containsSpaces(wikilink))
+      Res.error(
+        "Note " + requesterFoamId + " contains spaces:" + wikilink,
+        Res.saveError
+      );
+    //new wikilinks should be formated with timestmap in the back.
+    //Super crappy check that will last 5 years
+    if (Tokenizer.containsUpperCase(wikilink))
+      Res.error(
+        "Note " +
+          requesterFoamId +
+          " contains wikilink with upercase. Wikilink" +
+          wikilink,
+        Res.saveError
+      );
+    //No upper case allowed
+    if (Tokenizer.foamIdDoesNotContainTimestamp(wikilink))
+      Res.error(
+        "Note " +
+          requesterFoamId +
+          " contains wikilink without timestamp. Wikilink: " +
+          wikilink,
+        Res.saveError
+      );
+  };
+
+  static containsMdExtension(str: string): boolean {
+    if (str.indexOf(".md") == -1) return false;
+    return true;
+  }
+
+  static containsSpaces(str: string): boolean {
+    if (str.indexOf(" ") == -1) return false;
+    return true;
+  }
+
+  static containsUpperCase(str: string): boolean {
+    if (str == str.toLowerCase()) return false;
+    return true;
+  }
+
+  static foamIdDoesNotContainTimestamp(str: string): boolean {
+    if (str.indexOf("-16") == -1 || str.indexOf("-17") == -1) return false;
+    return true;
+  }
 }

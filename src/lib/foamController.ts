@@ -51,6 +51,8 @@ export default class FoamController {
     //read file
 
     const filePath = path.join(foamRepo, foamId + ".md");
+    FoamController.checkFileName(foamId, filePath);
+
     const fileData = await Res.async(
       fs.readFile(filePath, "utf8"),
       "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
@@ -269,5 +271,39 @@ export default class FoamController {
   ): Promise<{ key: string; value: string }> => {
     //const keyCid = await Referencer.makeIid(key);
     return { key: key, value: value };
+  };
+
+  static checkFileName = async (
+    foamId: string,
+    filePath: string
+  ): Promise<void> => {
+    //new wikilinks should be formated with timestmap in the back.
+    //Super crappy check that will last 5 years
+    if (Tokenizer.containsUpperCase(foamId))
+      Res.error(
+        "File '" +
+          foamId +
+          "' contains uppercase in its filename. Should be only lowercase characters, numbers and '.'",
+        Res.saveError,
+        { filepath: filePath }
+      );
+
+    if (Tokenizer.containsSpaces(foamId))
+      Res.error(
+        "File '" +
+          foamId +
+          "' contains spaces in its filename. Should be only lowercase characters, numbers and '.'",
+        Res.saveError,
+        { filepath: filePath }
+      );
+    //No uper case allowed
+    if (Tokenizer.foamIdDoesNotContainTimestamp(foamId))
+      Res.error(
+        "File '" +
+          foamId +
+          "' does not contain a timestamp in its filename. Is likley an old version",
+        Res.saveError,
+        { filepath: filePath }
+      );
   };
 }
