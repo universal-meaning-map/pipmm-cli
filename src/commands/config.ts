@@ -24,7 +24,7 @@ export default class ConfigCommand extends Command {
     },
     {
       name: "value",
-      required: true,
+      required: false,
       description: "value",
     },
   ];
@@ -45,7 +45,7 @@ export default class ConfigCommand extends Command {
 */
   async run() {
     const { args, flags } = this.parse(ConfigCommand);
-    console.log(args, flags);
+    //console.log(args, flags);
 
     if (!args.subcommand) {
       this.error("No config command specified");
@@ -54,6 +54,7 @@ export default class ConfigCommand extends Command {
     if (args.subcommand == "get") {
       console.log(ConfigController.config);
     } else if (args.subcommand == "set") {
+      if (!args.value) console.log("You need to specify the path");
       if (args.property == "ipmmRepo")
         ConfigController.ipmmRepoPath = args.value;
       else if (args.property == "foamRepo")
@@ -61,7 +62,7 @@ export default class ConfigCommand extends Command {
       else if (args.property == "ipfsRepo")
         ConfigController.ipfsRepoPath = args.value;
       else {
-        this.error("Property " + args.property +  "does not exist");
+        this.error("Property " + args.property + "does not exist");
       }
     } else {
       this.error("Config command " + args.subcommand + " does not exist");
