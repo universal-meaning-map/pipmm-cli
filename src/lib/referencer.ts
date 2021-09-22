@@ -1,5 +1,5 @@
 import IpldController from "./ipldController";
-import { NoteType } from "./ipmm";
+import { NoteBlock, NoteWrap } from "./ipmm";
 import IpmmType from "./ipmmType";
 import Utils from "./utils";
 
@@ -15,7 +15,7 @@ export default class Referencer {
 
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
-  static iidToNote: { [iid: string]: NoteType } = {};
+  static iidToNoteWrap: { [iid: string]: NoteWrap } = {};
 
   static addIId(iid: string, cid: string): void {
     Referencer.iidToCidMap[iid] = cid;
@@ -23,7 +23,7 @@ export default class Referencer {
 
   static makeIid = async (foamIdOrFileName: string): Promise<any> => {
     const foamId = Utils.removeFileExtension(foamIdOrFileName);
-    const block = await IpldController.anyToDagCborBlock(foamId);
+    const block = await IpldController.anyToDagJsonBlock(foamId);
     return block.cid.toString().slice(-8);
   };
 
@@ -50,7 +50,7 @@ export default class Referencer {
     return Referencer.iidToTypeMap[iid];
   }
 
-  static getNote(iid: string): NoteType {
-    return Referencer.iidToNote[iid];
+  static getNote(iid: string): NoteBlock {
+    return Referencer.iidToNoteWrap[iid];
   }
 }

@@ -3,11 +3,12 @@ import Utils from "./utils";
 import matter from "gray-matter";
 import * as path from "path";
 import { promises as fs, readFile } from "fs";
-import { NoteType } from "../lib/ipmm";
+import { NoteBlock, NoteWrap } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
+import ConfigController from "./configController";
 
 let foamRepo: string;
 let ipmmRepo: string;
@@ -27,8 +28,12 @@ export default class FoamController {
 
     for (let fileName of files) {
       const foamId = Utils.removeFileExtension(fileName);
-      const note: NoteType = await FoamController.makeNote(foamId);
+      await FoamController.makeNote(foamId);
     }
+    await fs.writeFile(
+      ConfigController.ipmmRepoPath + "/repo.json",
+      JSON.stringify(Referencer.iidToNoteWrap, null, 4)
+    );
   };
 
   static importFile = async (
@@ -110,7 +115,7 @@ export default class FoamController {
     if (Referencer.iidExists(iid)) return Res.success(Referencer.getNote(iid));
 
     //create and empty note
-    let note: NoteType = {};
+    let noteBlock: NoteBlock = {};
 
     //Iterate trhough all the note properties.
     //If a given note property key has not beeen processed yet it will process it before continuing
@@ -123,7 +128,7 @@ export default class FoamController {
           key,
           frontMatter.data[Referencer.PROP_TYPE_FOAMID][key]
         );
-        note[prop.key] = prop.value;
+        noteBlock[prop.key] = prop.value;
       }
     }
     // VIEW property
@@ -139,7 +144,7 @@ export default class FoamController {
           view,
           foamId
         );
-        note[viewProp.key] = viewProp.value;
+        noteBlock[viewProp.key] = viewProp.value;
       }
       //ALL other properties
       //The rest of the properties
@@ -149,12 +154,12 @@ export default class FoamController {
           frontMatter.data[key],
           foamId
         );
-        note[prop.key] = prop.value;
+        noteBlock[prop.key] = prop.value;
       }
     }
 
     //Get the final CID of the note
-    const block = await IpldController.anyToDagCborBlock(note);
+    const block = await IpldController.anyToDagJsonBlock(noteBlock);
     const cid = block.cid.toString();
     Referencer.iidToCidMap[iid] = cid;
 
@@ -166,8 +171,9 @@ export default class FoamController {
       const ipmmType = await FoamController.makeType(typeProps, foamId);
       Referencer.iidToTypeMap[iid] = ipmmType;
     }
-    Referencer.iidToNote[iid] = note;
-    return Res.success(note);
+    const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
+    Referencer.iidToNoteWrap[iid] = noteWrap;
+    return Res.success(block.value);
   };
 
   static makeType = async (
