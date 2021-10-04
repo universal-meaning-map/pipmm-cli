@@ -2,6 +2,19 @@ import { Res } from "./errorController";
 import Referencer from "./referencer";
 
 export default class Tokenizer {
+  static splitToken = "<split>";
+
+  static wikilinksToInterplanetaryText = async (
+    text: string,
+    foamId: string
+  ): Promise<string[]> => {
+    const splitReplaced = await Tokenizer.wikilinksToTransclusions(
+      text,
+      foamId
+    );
+    return splitReplaced.split(Tokenizer.splitToken);
+  };
+
   static wikilinksToTransclusions = async (
     text: string,
     foamId: string
@@ -13,10 +26,13 @@ export default class Tokenizer {
       match: string,
       wikilink: string,
       offset: string,
-      ori: string
+      original: string
     ) => {
       await Tokenizer.checkFoamId(wikilink, foamId);
-      await Tokenizer.wikilinkToTransclusionExp(wikilink);
+      const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
+        wikilink
+      );
+      return Tokenizer.addSplitTokens(transclusionExp);
     };
 
     return await Tokenizer.replaceAsync(text, wikilinkWithTokens, doneCallback);
@@ -29,6 +45,10 @@ export default class Tokenizer {
     const transclusionExp = Tokenizer.makeTransclusionExp(intentRef);
     return transclusionExp;
   };
+
+  static addSplitTokens(transclusionExp: string) {
+    return Tokenizer.splitToken + transclusionExp + Tokenizer.splitToken;
+  }
 
   static wikilinkToItentRef = async (wikilink: string): Promise<string> => {
     const fileName = wikilink.slice(2, -2); //removes square brackets
