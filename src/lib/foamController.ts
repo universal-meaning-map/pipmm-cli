@@ -143,7 +143,6 @@ export default class FoamController {
             trimmed,
             foamId
           );
-          console.log(view);
 
           const viewProp = await FoamController.processProperty(
             Referencer.PROP_VIEW_FOAMID,
@@ -252,7 +251,6 @@ export default class FoamController {
     }
 
     if (Referencer.typeExists(typeIId)) {
-      console.log(Referencer.iidToTypeMap[typeIId]);
       //Verify value agains "constrains" (only interplanetary text for now)
       if (
         Referencer.iidToTypeMap[typeIId].constrains &&
