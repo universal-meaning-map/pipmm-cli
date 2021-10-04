@@ -1,8 +1,7 @@
 import * as fs from "fs";
 import Utils from "./utils";
-import ErrorController, { Res, ErrorContext } from "./errorController";
+import { ErrorContext } from "./errorController";
 import ConfigController from "./configController";
-import Referencer from "./referencer";
 
 export default class LogsController {
   static getComposedCommandName(
@@ -30,10 +29,8 @@ export default class LogsController {
   };
 
   static saveErrorLogs(errorLogs: ErrorContext[]) {
-    Utils.saveFile(
-      JSON.stringify(errorLogs),
-      Utils.resolveHome(ConfigController.logsPath)
-    );
+    const json = JSON.stringify(errorLogs);
+    Utils.saveFile(json, Utils.resolveHome(ConfigController.logsPath));
   }
 
   static logNumberedList = (logs: ErrorContext[]) => {

@@ -55,129 +55,134 @@ export default class FoamController {
   ): Promise<Res> => {
     //read file
 
-    const filePath = path.join(foamRepo, foamId + ".md");
-    FoamController.checkFileName(foamId, filePath);
+    try {
+      const filePath = path.join(foamRepo, foamId + ".md");
+      FoamController.checkFileName(foamId, filePath);
 
-    const fileData = await Res.async(
-      fs.readFile(filePath, "utf8"),
-      "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
-      Res.saveError
-    );
-
-    if (fileData.isError()) return fileData;
-
-    const frontMatterRes = Res.sync(
-      () => {
-        return matter(fileData.value);
-      },
-      "Unable to parse front-matter for: " + foamId,
-      Res.saveError,
-      { data: fileData.value }
-    );
-
-    if (frontMatterRes.isError()) return frontMatterRes;
-
-    const frontMatter = frontMatterRes.value;
-
-    //check if the note is a type definition
-    let isType = false;
-
-    if (frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
-      isType = true;
-
-      if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
-        return Res.error(
-          "A Note with a type can't include other properties. Verify the note only contains " +
-            Referencer.PROP_TYPE_FOAMID +
-            " data and has no content.",
-          Res.saveError
-        );
-    }
-
-    //because we can create notes recursively when looking for a type, we need to be able to warn
-    if (shouldBeAType && !isType) {
-      Res.error(
-        "Note " +
-          foamId +
-          " is used as a type but " +
-          Referencer.PROP_TYPE_FOAMID +
-          " was not found.",
+      const fileData = await Res.async(
+        fs.readFile(filePath, "utf8"),
+        "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
         Res.saveError
       );
-    }
 
-    /////////////////////////////////
-    //Type notes have a different iid, prefixed with text in order to be used by Ipldschema
-    let iid = "";
-    if (isType) iid = await Referencer.makeTypeIid(foamId);
-    else iid = await Referencer.makeIid(foamId);
+      if (fileData.isError()) return fileData;
 
-    if (Referencer.iidExists(iid)) return Res.success(Referencer.getNote(iid));
+      const frontMatterRes = Res.sync(
+        () => {
+          return matter(fileData.value);
+        },
+        "Unable to parse front-matter for: " + foamId,
+        Res.saveError,
+        { data: fileData.value }
+      );
 
-    //create and empty note
-    let noteBlock: NoteBlock = {};
+      if (frontMatterRes.isError()) return frontMatterRes;
 
-    //Iterate trhough all the note properties.
-    //If a given note property key has not beeen processed yet it will process it before continuing
+      const frontMatter = frontMatterRes.value;
 
-    //TYPE properies
-    //if the note represents a data Type is processed differently and rest of properties are ignored
-    if (isType) {
-      for (let key in frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
-        const prop = await FoamController.processTypeProperty(
-          key,
-          frontMatter.data[Referencer.PROP_TYPE_FOAMID][key]
-        );
-        noteBlock[prop.key] = prop.value;
+      //check if the note is a type definition
+      let isType = false;
+
+      if (frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
+        isType = true;
+
+        if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
+          return Res.error(
+            "A Note with a type can't include other properties. Verify the note only contains " +
+              Referencer.PROP_TYPE_FOAMID +
+              " data and has no content.",
+            Res.saveError
+          );
       }
-    }
-    // VIEW property
-    else {
-      //Process the content of the .md file and convert it into the "view" type
-      if (frontMatter.content) {
-        const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
-        const trimmed = removedFoodNotes.trim();
-        const view = await Tokenizer.wikilinksToInterplanetaryText(
-          trimmed,
-          foamId
-        );
-        console.log(view);
 
-        const viewProp = await FoamController.processProperty(
-          Referencer.PROP_VIEW_FOAMID,
-          view,
-          foamId
+      //because we can create notes recursively when looking for a type, we need to be able to warn
+      if (shouldBeAType && !isType) {
+        Res.error(
+          "Note " +
+            foamId +
+            " is used as a type but " +
+            Referencer.PROP_TYPE_FOAMID +
+            " was not found.",
+          Res.saveError
         );
-        noteBlock[viewProp.key] = viewProp.value;
       }
-      //ALL other properties
-      //The rest of the properties
-      for (let key in frontMatter.data) {
-        const prop = await FoamController.processProperty(
-          key,
-          frontMatter.data[key],
-          foamId
-        );
-        noteBlock[prop.key] = prop.value;
+
+      /////////////////////////////////
+      //Type notes have a different iid, prefixed with text in order to be used by Ipldschema
+      let iid = "";
+      if (isType) iid = await Referencer.makeTypeIid(foamId);
+      else iid = await Referencer.makeIid(foamId);
+
+      if (Referencer.iidExists(iid))
+        return Res.success(Referencer.getNote(iid));
+
+      //create and empty note
+      let noteBlock: NoteBlock = {};
+
+      //Iterate trhough all the note properties.
+      //If a given note property key has not beeen processed yet it will process it before continuing
+
+      //TYPE properies
+      //if the note represents a data Type is processed differently and rest of properties are ignored
+      if (isType) {
+        for (let key in frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
+          const prop = await FoamController.processTypeProperty(
+            key,
+            frontMatter.data[Referencer.PROP_TYPE_FOAMID][key]
+          );
+          noteBlock[prop.key] = prop.value;
+        }
       }
-    }
+      // VIEW property
+      else {
+        //Process the content of the .md file and convert it into the "view" type
+        if (frontMatter.content) {
+          const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
+          const trimmed = removedFoodNotes.trim();
+          const view = await Tokenizer.wikilinksToInterplanetaryText(
+            trimmed,
+            foamId
+          );
+          console.log(view);
 
-    //Get the final CID of the note
-    const block = await IpldController.anyToDagJsonBlock(noteBlock);
-    const cid = block.cid.toString();
-    Referencer.iidToCidMap[iid] = cid;
+          const viewProp = await FoamController.processProperty(
+            Referencer.PROP_VIEW_FOAMID,
+            view,
+            foamId
+          );
+          noteBlock[viewProp.key] = viewProp.value;
+        }
+        //ALL other properties
+        //The rest of the properties
+        for (let key in frontMatter.data) {
+          const prop = await FoamController.processProperty(
+            key,
+            frontMatter.data[key],
+            foamId
+          );
+          noteBlock[prop.key] = prop.value;
+        }
+      }
 
-    //MAKE TYPE
-    //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
-    if (isType) {
-      //console.log("creating type for", foamId, iid);
-      const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
-      const ipmmType = await FoamController.makeType(typeProps, foamId);
-      Referencer.iidToTypeMap[iid] = ipmmType;
+      //Get the final CID of the note
+      const block = await IpldController.anyToDagJsonBlock(noteBlock);
+      const cid = block.cid.toString();
+      Referencer.iidToCidMap[iid] = cid;
+
+      //MAKE TYPE
+      //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
+      if (isType) {
+        //console.log("creating type for", foamId, iid);
+        const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
+        const ipmmType = await FoamController.makeType(typeProps, foamId);
+        Referencer.iidToTypeMap[iid] = ipmmType;
+      }
+      const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
+      Referencer.iidToNoteWrap[iid] = noteWrap;
+      return Res.success(block.value);
+    } catch (e) {
+      return Res.error("Exception creating note", Res.saveError, e.toString());
     }
-    const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
-    Referencer.iidToNoteWrap[iid] = noteWrap;
-    return Res.success(block.value);
   };
 
   static makeType = async (
@@ -246,8 +251,22 @@ export default class FoamController {
       newValue = propertyValue;
     }
 
-    //Verify value agains type ipld-schema
-    if (Referencer.typeExists(typeIId))
+    if (Referencer.typeExists(typeIId)) {
+      console.log(Referencer.iidToTypeMap[typeIId]);
+      //Verify value agains "constrains" (only interplanetary text for now)
+      if (
+        Referencer.iidToTypeMap[typeIId].constrains &&
+        Referencer.iidToTypeMap[typeIId].constrains.indexOf(
+          "interplanetary-text"
+        ) != -1
+      ) {
+        newValue = await Tokenizer.wikilinksToInterplanetaryText(
+          newValue,
+          requesterFoamId
+        );
+      }
+
+      //Verify value agains type ipld-schema
       Referencer.iidToTypeMap[typeIId].isDataValid(
         newValue,
         (errorMessage, errorContext) => {
@@ -262,7 +281,7 @@ export default class FoamController {
           );
         }
       );
-    else {
+    } else {
       Res.error(
         "The type for " +
           typeFoamId +
