@@ -23,7 +23,9 @@ export default class Referencer {
 
   static makeIid = async (foamIdOrFileName: string): Promise<any> => {
     const foamId = Utils.removeFileExtension(foamIdOrFileName);
-    const block = await IpldController.anyToDagJsonBlock(foamId);
+    const onlyTheTimestamp = foamId.slice(-10); //This is to prevent an IID change if the foamId changes
+    const block = await IpldController.anyToDagJsonBlock(onlyTheTimestamp);
+    //console.log(onlyTheTimestamp + " - " + foamId + " - " + foamIdOrFileName);
     return block.cid.toString().slice(-8);
   };
 
