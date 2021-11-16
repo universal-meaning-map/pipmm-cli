@@ -180,7 +180,7 @@ export default class FoamController {
       Referencer.iidToNoteWrap[iid] = noteWrap;
       return Res.success(block.value);
     } catch (e) {
-      return Res.error("Exception creating note", Res.saveError, e.toString());
+      return Res.error("Exception creating note", Res.saveError, e);
     }
   };
 
@@ -236,6 +236,7 @@ export default class FoamController {
       //We don't want array indexes converted to iids
       newValue = propertyValue;
     }
+
     //recursivelly process sub-properties
     else if (typeof propertyValue === "object" && propertyValue !== null) {
       for (let subTypeFoamId in propertyValue) {
@@ -263,7 +264,6 @@ export default class FoamController {
           requesterFoamId
         );
       }
-
       //Verify value agains type ipld-schema
       Referencer.iidToTypeMap[typeIId].isDataValid(
         newValue,
