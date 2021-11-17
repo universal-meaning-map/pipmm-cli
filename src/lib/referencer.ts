@@ -13,6 +13,16 @@ export default class Referencer {
   static readonly TYPE_PROP_IPLD_SCHEMA = "$ipld-schema";
   static readonly TYPE_PROP_TYPE_DEPENDENCIES = "$type-dependencies";
 
+  static readonly basicTypeInterplanetaryText = "interplanetary-text";
+  static readonly basicTypeString = "string";
+  static readonly basicTypeDate = "date";
+  static readonly basicTypeAbstractionReference = "abstraction-reference";
+  static readonly basicTypeAbstractionReferenceList =
+    "abstraction-reference-list";
+  static readonly basicTypeReferenceTypeEnm = "reference-type-enum";
+  static readonly basicTypeBoolean = "boolean";
+  static readonly basicTypeUrl = "url";
+
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
   static iidToNoteWrap: { [iid: string]: NoteWrap } = {};

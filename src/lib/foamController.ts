@@ -253,17 +253,37 @@ export default class FoamController {
 
     if (Referencer.typeExists(typeIId)) {
       //Verify value agains "constrains" (only interplanetary text for now)
-      if (
-        Referencer.iidToTypeMap[typeIId].constrains &&
-        Referencer.iidToTypeMap[typeIId].constrains.indexOf(
-          "interplanetary-text"
-        ) != -1
-      ) {
-        newValue = await Tokenizer.wikilinksToInterplanetaryText(
-          newValue,
-          requesterFoamId
-        );
+
+      if (Referencer.iidToTypeMap[typeIId].constrains) {
+        console.log(Referencer.iidToTypeMap[typeIId].constrains[0]);
+        if (
+          Referencer.iidToTypeMap[typeIId].constrains[0] ==
+          Referencer.basicTypeInterplanetaryText
+        ) {
+          newValue = await Tokenizer.wikilinksToInterplanetaryText(
+            newValue,
+            requesterFoamId
+          );
+        } else if (
+          Referencer.iidToTypeMap[typeIId].constrains[0] ==
+          Referencer.basicTypeAbstractionReference
+        ) {
+          newValue = await Tokenizer.wikilinkToItentRef(newValue);
+        } else if (
+          Referencer.iidToTypeMap[typeIId].constrains[0] ==
+          Referencer.basicTypeAbstractionReferenceList
+        ) {
+          if (Array.isArray(newValue)) {
+            let newArray = [];
+            for (let e of newValue) {
+              let iid = await Tokenizer.wikilinkToItentRef(e);
+              newArray.push(iid);
+            }
+            newValue = newArray;
+          }
+        }
       }
+
       //Verify value agains type ipld-schema
       Referencer.iidToTypeMap[typeIId].isDataValid(
         newValue,
