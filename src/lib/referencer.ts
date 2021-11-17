@@ -19,7 +19,6 @@ export default class Referencer {
   static readonly basicTypeAbstractionReference = "abstraction-reference";
   static readonly basicTypeAbstractionReferenceList =
     "abstraction-reference-list";
-  static readonly basicTypeReferenceTypeEnm = "reference-type-enum";
   static readonly basicTypeBoolean = "boolean";
   static readonly basicTypeUrl = "url";
 

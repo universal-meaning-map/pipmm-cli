@@ -39,6 +39,7 @@ export default class UploadCommand extends Command {
       "https://ipfoam-server-dc89h.ondigitalocean.app/uploadMindRepo/x",
       data
     );
-    console.log(res);
+    if (res.data) console.log(res.data);
+    else console.log(res);
   }
 }
