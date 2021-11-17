@@ -6,7 +6,7 @@ import Utils from "./utils";
 export default class ConfigController {
   private static _configPath = "~/.ipmm/config.json";
   private static _defaultIpfsPath = "~/.ipmm/ipfsRepo";
-  private static _defaultIpmmPath = "~/.ipmm/ipmmRepo";
+  private static _defaultIpmmPath = "~/.ipmm/ipmmRepo/repo.json";
   private static _logsPath = "~/.ipmm/logs.json";
 
   private static _configFile: ConfigFile;

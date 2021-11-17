@@ -63,6 +63,7 @@
     "@oclif/command": "^1.8.0",
     "@oclif/config": "^1.17.0",
     "@oclif/plugin-help": "^3.2.2",
+    "axios": "^0.24.0",
     "cli-ux": "^5.5.1",
     "gray-matter": "^4.0.2",
     "ipfs-core": "^0.10.4",

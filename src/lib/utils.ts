@@ -36,4 +36,14 @@ export default class Utils {
     }
     fs.writeFileSync(filePath, fileData);
   };
+
+  static getFile = (filePath: string): string => {
+    const path = Utils.resolveHome(filePath);
+    if (fs.existsSync(path)) {
+      let data = fs.readFileSync(path, "utf8");
+      return data;
+    } else {
+      throw new Error(" Unable to open " + path);
+    }
+  };
 }

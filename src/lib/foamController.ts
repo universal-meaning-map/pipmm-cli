@@ -31,7 +31,7 @@ export default class FoamController {
       await FoamController.makeNote(foamId);
     }
     await fs.writeFile(
-      ConfigController.ipmmRepoPath + "/repo.json",
+      ConfigController.ipmmRepoPath,
       JSON.stringify(Referencer.iidToNoteWrap, null, 4)
     );
   };
