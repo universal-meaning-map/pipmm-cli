@@ -255,7 +255,6 @@ export default class FoamController {
       //Verify value agains "constrains" (only interplanetary text for now)
 
       if (Referencer.iidToTypeMap[typeIId].constrains) {
-        console.log(Referencer.iidToTypeMap[typeIId].constrains[0]);
         if (
           Referencer.iidToTypeMap[typeIId].constrains[0] ==
           Referencer.basicTypeInterplanetaryText
