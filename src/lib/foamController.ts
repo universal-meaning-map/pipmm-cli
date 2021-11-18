@@ -124,14 +124,15 @@ export default class FoamController {
 
       //TYPE properies
       //if the note represents a data Type is processed differently and rest of properties are ignored
+
+      //MAKE TYPE
+      //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
       if (isType) {
-        for (let key in frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
-          const prop = await FoamController.processTypeProperty(
-            key,
-            frontMatter.data[Referencer.PROP_TYPE_FOAMID][key]
-          );
-          noteBlock[prop.key] = prop.value;
-        }
+        //console.log("creating type for", foamId, iid);
+        const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
+        const ipmmType = await FoamController.makeType(typeProps, foamId);
+        Referencer.iidToTypeMap[iid] = ipmmType;
+        noteBlock = ipmmType.getBlock();
       }
       // VIEW property
       else {
@@ -168,19 +169,19 @@ export default class FoamController {
       const cid = block.cid.toString();
       Referencer.iidToCidMap[iid] = cid;
 
-      //MAKE TYPE
-      //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
-      if (isType) {
-        //console.log("creating type for", foamId, iid);
-        const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
-        const ipmmType = await FoamController.makeType(typeProps, foamId);
-        Referencer.iidToTypeMap[iid] = ipmmType;
-      }
       const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
       Referencer.iidToNoteWrap[iid] = noteWrap;
+
       return Res.success(block.value);
     } catch (e) {
-      return Res.error("Exception creating note", Res.saveError, e);
+      return Res.error(
+        "Exception creating note " +
+          foamId +
+          " requested by " +
+          requesterFoamId,
+        Res.saveError,
+        e
+      );
     }
   };
 
@@ -197,6 +198,7 @@ export default class FoamController {
         typeProps,
         typeCreateErrorCallback
       );
+
       return ipmmType;
     }
   };

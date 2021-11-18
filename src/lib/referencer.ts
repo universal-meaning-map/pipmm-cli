@@ -7,11 +7,6 @@ export default class Referencer {
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
   static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
   static readonly PROP_TITLE_FOAMID = "prop-title-1612697362";
-  static readonly TYPE_PROP_DEFAULT_NAME = "$default-name";
-  static readonly TYPE_PROP_REPRESENTS = "$represents";
-  static readonly TYPE_PROP_CONSTRAINS = "$constrains";
-  static readonly TYPE_PROP_IPLD_SCHEMA = "$ipld-schema";
-  static readonly TYPE_PROP_TYPE_DEPENDENCIES = "$type-dependencies";
 
   static readonly basicTypeInterplanetaryText = "interplanetary-text";
   static readonly basicTypeString = "string";
