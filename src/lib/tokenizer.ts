@@ -41,8 +41,9 @@ export default class Tokenizer {
   static wikilinkToTransclusionExp = async (
     wikilink: string
   ): Promise<string> => {
-    const intentRef = await Tokenizer.wikilinkToItentRef(wikilink);
-    const transclusionExp = Tokenizer.makeTransclusionExp(intentRef);
+    const intentRef = await Tokenizer.wikilinkToItent(wikilink);
+    const intentRefWithTitle = await Tokenizer.addTitleTransculsion(intentRef);
+    const transclusionExp = Tokenizer.makeTransclusionExp(intentRefWithTitle);
     return transclusionExp;
   };
 
@@ -50,12 +51,15 @@ export default class Tokenizer {
     return Tokenizer.splitToken + transclusionExp + Tokenizer.splitToken;
   }
 
-  static wikilinkToItentRef = async (wikilink: string): Promise<string> => {
+  static wikilinkToItent = async (wikilink: string): Promise<string> => {
     //const fileName = wikilink.slice(2, -2); //removes square brackets
     const iid = await Referencer.makeIid(wikilink);
-    //console.log(wikilink + " - " + " - " + iid);
+    return iid;
+  };
+
+  static addTitleTransculsion = async (intentRef: string): Promise<string> => {
     const propTitleIid = await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID);
-    const intentRef = iid + "/" + propTitleIid;
+    intentRef = intentRef + "/" + propTitleIid;
     return intentRef;
   };
 

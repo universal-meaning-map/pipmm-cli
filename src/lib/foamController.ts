@@ -269,7 +269,7 @@ export default class FoamController {
           Referencer.iidToTypeMap[typeIId].constrains[0] ==
           Referencer.basicTypeAbstractionReference
         ) {
-          newValue = await Tokenizer.wikilinkToItentRef(newValue);
+          newValue = await Tokenizer.wikilinkToItent(newValue);
         } else if (
           Referencer.iidToTypeMap[typeIId].constrains[0] ==
           Referencer.basicTypeAbstractionReferenceList
@@ -277,7 +277,7 @@ export default class FoamController {
           if (Array.isArray(newValue)) {
             let newArray = [];
             for (let e of newValue) {
-              let iid = await Tokenizer.wikilinkToItentRef(e);
+              let iid = await Tokenizer.wikilinkToItent(e);
               newArray.push(iid);
             }
             newValue = newArray;

@@ -11,6 +11,7 @@ export default class IpmmType {
   represents: string = "";
   constrains: string[] = [];
   typeDependencies: string[] = [];
+  enumDependencies: string[] = [];
   ipldSchema: string = "";
   validate: any;
 
@@ -19,8 +20,9 @@ export default class IpmmType {
   static typeDefinitionSchema = `type TypeDefinition struct {
       defaultName defaultName
       represents represents
-      constrains  optional constrains
+      constrains optional constrains
       typeDependencies optional typeDependencies
+      enumDependencies optional enumDependencies
       ipldSchema  ipldSchema
     }   
 
@@ -28,6 +30,7 @@ export default class IpmmType {
     type represents string
     type constrains [string]
     type typeDependencies [string]
+    type enumDependencies [string]
     type ipldSchema string`;
 
   getBlock() {
@@ -40,6 +43,8 @@ export default class IpmmType {
       block.constrains = this.constrains;
     if (this.typeDependencies != [] && this.typeDependencies != null)
       block.typeDependencies = this.typeDependencies;
+    if (this.enumDependencies != [] && this.enumDependencies != null)
+      block.enumDependencies = this.enumDependencies;
     if (this.ipldSchema != "" && this.ipldSchema != null)
       block.ipldSchema = this.ipldSchema;
 
@@ -57,19 +62,25 @@ export default class IpmmType {
         type.represents = typeObj.represents;
         type.constrains = typeObj.constrains;
         type.typeDependencies = typeObj.typeDependencies;
+        type.enumDependencies = typeObj.enumDependencies;
         type.ipldSchema = typeObj.ipldSchema; // await IpmmType.replaceFoamIdForTypeIid(typeObj.ipldSchema, type.typeDependencies)
       }
 
       if (type.typeDependencies && type.typeDependencies.length > 0) {
         try {
-          type.ipldSchema = await type.makeCompiledSchema();
+          type.ipldSchema = await type.replaceTypes();
         } catch (e) {
-          console.log(e);
+          errorCallback(String(e));
+        }
+      }
+      if (type.enumDependencies && type.enumDependencies.length > 0) {
+        try {
+          type.ipldSchema = await type.replaceEnums();
+        } catch (e) {
+          errorCallback(String(e));
         }
       }
 
-      //console.log("making", type.defaultName)
-      //console.log("schema", type.ipldSchema)
       const parsedSchema = parser(type.ipldSchema);
       type.validate = validatorFunction(parsedSchema);
     } catch (e) {
@@ -82,8 +93,6 @@ export default class IpmmType {
           e
       );
     }
-    //console.log("compiled:" + type.ipldSchema);
-
     return type;
   };
 
@@ -104,7 +113,7 @@ export default class IpmmType {
 
   //Fetches the type dependencies. Processess its types. Gets their schema.
   //Compiles all the schemas into one. Replaces all the property keys for their intent ids
-  makeCompiledSchema = async (): Promise<string> => {
+  replaceTypes = async (): Promise<string> => {
     let compiledSchema = this.ipldSchema;
 
     for (const foamId of this.typeDependencies) {
@@ -119,13 +128,20 @@ export default class IpmmType {
 
       compiledSchema += "\n" + schemaWithRootChanged;
     }
-    //console.log("Compiled\n" + compiledSchema);
     compiledSchema = await IpmmType.replaceFoamIdForTypeIid(
       compiledSchema,
       this.typeDependencies
     );
-    //console.log("Replaced\n" + compiledSchema);
+    return compiledSchema;
+  };
 
+  replaceEnums = async (): Promise<string> => {
+    let compiledSchema = this.ipldSchema;
+
+    compiledSchema = await IpmmType.replaceFoamIdForTypeIid(
+      compiledSchema,
+      this.enumDependencies
+    );
     return compiledSchema;
   };
 

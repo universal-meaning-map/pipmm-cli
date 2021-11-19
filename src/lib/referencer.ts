@@ -30,12 +30,14 @@ export default class Referencer {
     const onlyTheTimestamp = foamId.slice(-10); //This is to prevent an IID change if the foamId changes
     const block = await IpldController.anyToDagJsonBlock(onlyTheTimestamp);
     //console.log(onlyTheTimestamp + " - " + foamId + " - " + foamIdOrFileName);
-    return block.cid.toString().slice(-8);
+    const trunkated = block.cid.toString().slice(-8);
+    return "i" + trunkated;
   };
 
   static makeTypeIid = async (foamId: string): Promise<string> => {
     const iid = await Referencer.makeIid(foamId);
-    return "TYPE" + iid;
+    return iid;
+    //return "TYPE" + iid;
   };
 
   static iidExists(iid: string): boolean {

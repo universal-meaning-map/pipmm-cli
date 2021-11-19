@@ -33,7 +33,7 @@ export class ErrorContext {
   info?: any;
   constructor(msg: string, info?: any) {
     this.message = msg;
-    this.info = info.toString();
+    this.info = info; //.toString();
   }
 }
 
