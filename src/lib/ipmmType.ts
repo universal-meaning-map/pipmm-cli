@@ -117,7 +117,7 @@ export default class IpmmType {
     let compiledSchema = this.ipldSchema;
 
     for (const foamId of this.typeDependencies) {
-      const typeIid = await Referencer.makeTypeIid(foamId);
+      const typeIid = await Referencer.makeIid(foamId);
       if (!Referencer.typeExists(typeIid))
         await FoamController.makeNote(foamId, true);
       if (!Referencer.typeExists(typeIid))
@@ -182,7 +182,7 @@ export default class IpmmType {
     for (const foamId of typeDependencies) {
       let typeIid = IpmmType.foamIdToIdMap[foamId];
       if (!IpmmType.foamIdToIdMap[foamId]) {
-        typeIid = await Referencer.makeTypeIid(foamId);
+        typeIid = await Referencer.makeIid(foamId);
         IpmmType.foamIdToIdMap[foamId] = typeIid;
       }
     }

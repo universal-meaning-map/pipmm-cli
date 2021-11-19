@@ -110,7 +110,7 @@ export default class FoamController {
       /////////////////////////////////
       //Type notes have a different iid, prefixed with text in order to be used by Ipldschema
       let iid = "";
-      if (isType) iid = await Referencer.makeTypeIid(foamId);
+      if (isType) iid = await Referencer.makeIid(foamId);
       else iid = await Referencer.makeIid(foamId);
 
       if (Referencer.iidExists(iid))
@@ -209,7 +209,7 @@ export default class FoamController {
     requesterFoamId: string
     // errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
-    const typeIId = await Referencer.makeTypeIid(typeFoamId);
+    const typeIId = await Referencer.makeIid(typeFoamId);
 
     //Create a Type for the propertyId if it doesn't exists yet
     if (!Referencer.iidToTypeMap[typeIId]) {

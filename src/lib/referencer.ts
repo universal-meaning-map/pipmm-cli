@@ -34,12 +34,6 @@ export default class Referencer {
     return "i" + trunkated;
   };
 
-  static makeTypeIid = async (foamId: string): Promise<string> => {
-    const iid = await Referencer.makeIid(foamId);
-    return iid;
-    //return "TYPE" + iid;
-  };
-
   static iidExists(iid: string): boolean {
     if (Referencer.iidToCidMap[iid]) return true;
     return false;
