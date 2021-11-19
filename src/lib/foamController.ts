@@ -140,14 +140,10 @@ export default class FoamController {
         if (frontMatter.content) {
           const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
           const trimmed = removedFoodNotes.trim();
-          const view = await Tokenizer.wikilinksToInterplanetaryText(
-            trimmed,
-            foamId
-          );
 
           const viewProp = await FoamController.processProperty(
             Referencer.PROP_VIEW_FOAMID,
-            view,
+            trimmed,
             foamId
           );
           noteBlock[viewProp.key] = viewProp.value;
