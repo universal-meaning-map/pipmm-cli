@@ -5,6 +5,8 @@ import FoamController from "../lib/foamController";
 import ErrorController from "../lib/errorController";
 import LogsController from "../lib/logsController";
 import Ipmm from "../lib/ipmm";
+import Utils from "../lib/utils";
+import Referencer from "../lib/referencer";
 
 export default class FoamCommand extends Command {
   static description =
@@ -64,7 +66,12 @@ export default class FoamCommand extends Command {
           args.fileName
         );
 
-        if (note.isOk()) console.log(note.value);
+        if (note.isOk()) {
+          let foamId = Utils.removeFileExtension(args.fileName);
+          let iid = await Referencer.makeIid(foamId);
+          console.log(iid);
+          console.log(note.value);
+        }
       }
 
       //import everything

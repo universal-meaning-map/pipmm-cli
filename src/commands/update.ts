@@ -1,27 +1,24 @@
 import { Command, flags } from "@oclif/command";
-import cli from "cli-ux";
-import * as fs from "fs";
-import * as path from "path";
-import * as matter from "gray-matter";
-import { Console } from "console";
+
 import ConfigController from "../lib/configController";
 import axios from "axios";
 import Utils from "../lib/utils";
+import Referencer from "../lib/referencer";
 
-export default class UploadCommand extends Command {
+export default class UpdateCommand extends Command {
   static description = "Uploads repo to server";
 
   static args = [
     {
-      name: "password",
-      required: false,
-      description: "Password to upolad",
+      name: "iid",
+      required: true,
+      description: "iid of the note to update",
       hidden: false,
     },
   ];
 
   async run() {
-    const { args, flags } = this.parse(UploadCommand);
+    const { args, flags } = this.parse(UpdateCommand);
 
     if (!args.NoteUid) {
       // this.error("No config NoteUID specified");
@@ -35,10 +32,19 @@ export default class UploadCommand extends Command {
     }
 
     let data = JSON.parse(repo);
-    const res = await axios.put(
+
+    //let foamId = Utils.removeFileExtension(args.fileName);
+    //let iid = await Referencer.makeIid(foamId);
+
+    console.log(args.iid);
+    let note = data[args.iid];
+    let notes: { [iid: string]: string } = {};
+    notes[args.iid] = note;
+    /*const res1 = await axios.put(
       "https://ipfoam-server-dc89h.ondigitalocean.app/uploadMindRepo/x",
       data
-    );
+    );*/
+    const res = await axios.put("http://localhost:8080/update/x", notes);
     if (res.data) console.log(res.data);
     else console.log(res);
   }
