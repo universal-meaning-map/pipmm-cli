@@ -12,11 +12,14 @@ import Utils from "./utils";
 
 export default class WatchController {
   webSocket: any;
+  ipfoamServerPort = 8080;
 
   start = async (): Promise<any> => {
+    await this.startIpfoamServer();
     await this.startWs();
     await this.startFileWatcher();
     await this.startClientServer();
+    await this.restoreIpfoamServer();
   };
 
   startClientServer = async (): Promise<any> => {
@@ -33,11 +36,20 @@ export default class WatchController {
 
   startIpfoamServer = async (): Promise<any> => {
     var child_process = require("child_process");
-    const path = "~/dev/ipfoam_server/";
+    const path = "~/dev/ipfoam-server/";
     const fullPath = Utils.resolveHome(path);
     const command = "node --prefix " + fullPath + "run dev";
     let log = child_process.execSync("echo Hello World");
     console.log(log);
+  };
+
+  restoreIpfoamServer = async (): Promise<any> => {
+    let repo = Utils.getFile(ConfigController.ipmmRepoPath);
+    let data = JSON.parse(repo);
+    const res = await axios.put(
+      "http://localhost:" + this.ipfoamServerPort + "/restore/x",
+      data
+    );
   };
 
   startWs = async (): Promise<any> => {
