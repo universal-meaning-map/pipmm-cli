@@ -168,7 +168,7 @@ export default class FoamController {
       const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
       Referencer.iidToNoteWrap[iid] = noteWrap;
 
-      return Res.success(block.value);
+      return Res.success(noteWrap);
     } catch (e) {
       return Res.error(
         "Exception creating note " +

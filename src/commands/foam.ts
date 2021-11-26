@@ -4,7 +4,7 @@ import ConfigController from "../lib/configController";
 import FoamController from "../lib/foamController";
 import ErrorController from "../lib/errorController";
 import LogsController from "../lib/logsController";
-import Ipmm from "../lib/ipmm";
+import Ipmm, { NoteWrap } from "../lib/ipmm";
 import Utils from "../lib/utils";
 import Referencer from "../lib/referencer";
 
@@ -60,17 +60,18 @@ export default class FoamCommand extends Command {
     if (args.subcommand == "import") {
       //import a single file
       if (args.fileName) {
-        const note = await FoamController.importFile(
+        const res = await FoamController.importFile(
           ipmmRepo,
           foamRepo,
           args.fileName
         );
 
-        if (note.isOk()) {
+        if (res.isOk()) {
+          let note: NoteWrap = res.value;
           let foamId = Utils.removeFileExtension(args.fileName);
-          let iid = await Referencer.makeIid(foamId);
-          console.log(iid);
-          console.log(note.value);
+          console.log(note);
+
+          //TODO: Update repo
         }
       }
 
