@@ -38,7 +38,7 @@ export default class UpdateCommand extends Command {
 
     console.log(args.iid);
     let note = data[args.iid];
-    let notes: { [iid: string]: string } = {};
+    let notes: { [iid: string]: any } = {};
     notes[args.iid] = note;
     /*const res1 = await axios.put(
       "https://ipfoam-server-dc89h.ondigitalocean.app/uploadMindRepo/x",
