@@ -12,11 +12,10 @@ export default class WatchCommand extends Command {
 
     //Watch FoamRepo
     const watcher = new WatchController();
-    watcher.startFileWatcher();
+    watcher.start();
 
     //Import foamId if changes
     //Upload note to server
     //Notifiy client of note change
-    watcher.startWs();
   }
 }

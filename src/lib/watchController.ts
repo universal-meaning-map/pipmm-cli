@@ -6,21 +6,53 @@ import FoamController from "./foamController";
 import Referencer from "./referencer";
 import axios from "axios";
 import { NoteWrap } from "./ipmm";
+import Utils from "./utils";
 
 //const WebSocket = require('isomorphic-ws')
 
 export default class WatchController {
+  webSocket: any;
+
+  start = async (): Promise<any> => {
+    await this.startWs();
+    await this.startFileWatcher();
+    await this.startClientServer();
+  };
+
+  startClientServer = async (): Promise<any> => {
+    const connect = require("connect");
+    const serveStatic = require("serve-static");
+    const port = 8082;
+    const path = "~/dev/ipfoam_client/build/web";
+    const fullPath = Utils.resolveHome(path);
+
+    connect()
+      .use(serveStatic(fullPath))
+      .listen(port, () => console.log("Serving client on: " + port));
+  };
+
+  startIpfoamServer = async (): Promise<any> => {
+    var child_process = require("child_process");
+    const path = "~/dev/ipfoam_server/";
+    const fullPath = Utils.resolveHome(path);
+    const command = "node --prefix " + fullPath + "run dev";
+    let log = child_process.execSync("echo Hello World");
+    console.log(log);
+  };
+
   startWs = async (): Promise<any> => {
+    const that = this;
     const port = 1234;
     console.log("Creating WS connection on " + port);
     const wss = new WebSocket.Server({ port: port });
 
     wss.on("connection", function connection(ws: any) {
-      ws.on("message", function message(data: any) {
+      that.webSocket = ws;
+      that.webSocket.on("message", function message(data: any) {
         console.log("received: %s", data);
       });
 
-      ws.send("something");
+      that.webSocket.send("something");
     });
   };
 
@@ -46,7 +78,6 @@ export default class WatchController {
       .on("add", onFileChanged)
       .on("change", onFileChanged)
       .on("unlink", (path) => console.log(`File ${path} has been removed`));
-    console.log(watcher.getWatched());
   };
 
   importFile = async (foamId: string): Promise<NoteWrap> => {
@@ -57,8 +88,6 @@ export default class WatchController {
     );
 
     let note: NoteWrap = res.value;
-    console.log("Note");
-    console.log(note);
     if (res.isOk()) {
       // console.log(note.value);
     }
@@ -73,8 +102,13 @@ export default class WatchController {
     return true;
   };
 
+  notifyClient = async (iid: String): Promise<void> => {
+    this.webSocket.send(iid);
+  };
+
   reload = async (foamId: string): Promise<void> => {
     let note = await this.importFile(foamId);
     await this.updateServer(note);
+    await this.notifyClient(note.iid);
   };
 }
