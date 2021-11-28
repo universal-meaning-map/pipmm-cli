@@ -7,6 +7,7 @@ import Referencer from "./referencer";
 import axios from "axios";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
+import { Server as IpfoamServer } from "ipfoam-server";
 
 //const WebSocket = require('isomorphic-ws')
 
@@ -17,6 +18,9 @@ export default class WatchController {
   start = async (): Promise<any> => {
     await this.startIpfoamServer();
     await this.startWs();
+  };
+
+  startOthers = async (): Promise<any> => {
     await this.startFileWatcher();
     await this.startClientServer();
     await this.restoreIpfoamServer();
@@ -34,13 +38,18 @@ export default class WatchController {
       .listen(port, () => console.log("Serving client on: " + port));
   };
 
-  startIpfoamServer = async (): Promise<any> => {
+  /*startIpfoamServer = async (): Promise<any> => {
     var child_process = require("child_process");
     const path = "~/dev/ipfoam-server/";
     const fullPath = Utils.resolveHome(path);
     const command = "node --prefix " + fullPath + "run dev";
     let log = child_process.execSync("echo Hello World");
     console.log(log);
+  };*/
+
+  startIpfoamServer = async (): Promise<any> => {
+    let server = new IpfoamServer(3213);
+    await server.startServer();
   };
 
   restoreIpfoamServer = async (): Promise<any> => {
@@ -63,8 +72,7 @@ export default class WatchController {
       that.webSocket.on("message", function message(data: any) {
         console.log("received: %s", data);
       });
-
-      that.webSocket.send("something");
+      that.startOthers();
     });
   };
 

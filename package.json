@@ -69,6 +69,7 @@
     "cli-ux": "^5.5.1",
     "connect": "^3.7.0",
     "gray-matter": "^4.0.2",
+    "ipfoam-server": "file:../ipfoam-server",
     "ipfs-core": "^0.10.4",
     "ipld-schema": "^1.1.6",
     "multiformats": "^9.4.5",
