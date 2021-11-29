@@ -45,12 +45,13 @@ export default class FoamController {
     ipmmRepo = _ipmmRepo;
 
     const foamId = Utils.removeFileExtension(_fileName);
-    return await FoamController.makeNote(foamId);
+    return await FoamController.makeNote(foamId, false, true);
   };
 
   static makeNote = async (
     foamId: string,
     shouldBeAType: boolean = false,
+    forceUpdate: Boolean = false,
     requesterFoamId?: string
   ): Promise<Res> => {
     //read file
@@ -113,8 +114,9 @@ export default class FoamController {
       if (isType) iid = await Referencer.makeIid(foamId);
       else iid = await Referencer.makeIid(foamId);
 
-      if (Referencer.iidExists(iid))
+      if (forceUpdate == false && Referencer.iidExists(iid)) {
         return Res.success(Referencer.getNote(iid));
+      }
 
       //create and empty note
       let noteBlock: NoteBlock = {};
@@ -211,7 +213,7 @@ export default class FoamController {
     if (!Referencer.iidToTypeMap[typeIId]) {
       //console.log("No type exists for", key, keyIid);
 
-      await FoamController.makeNote(typeFoamId, true, requesterFoamId);
+      await FoamController.makeNote(typeFoamId, true, false, requesterFoamId);
       if (!Referencer.iidToTypeMap[typeIId]) {
         Res.error(
           "The type for `" +

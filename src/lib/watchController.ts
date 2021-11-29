@@ -7,35 +7,37 @@ import Referencer from "./referencer";
 import axios from "axios";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
-import { Server as IpfoamServer } from "ipfoam-server";
+import { Server as IpfoamServer } from "/home/xavings/dev/ipfoam-server";
 
 //const WebSocket = require('isomorphic-ws')
-
 export default class WatchController {
   webSocket: any;
+  bridgeConnected = false;
   ipfoamServerPort = 8080;
+  clientServerPort = 8081;
+  clientWebsocketPort = 1234;
 
   start = async (): Promise<any> => {
     await this.startIpfoamServer();
-    await this.startWs();
-  };
-
-  startOthers = async (): Promise<any> => {
-    await this.startFileWatcher();
-    await this.startClientServer();
     await this.restoreIpfoamServer();
+    await this.startClientServer();
+    await this.startFileWatcher();
+    await this.startWs();
   };
 
   startClientServer = async (): Promise<any> => {
     const connect = require("connect");
     const serveStatic = require("serve-static");
-    const port = 8082;
     const path = "~/dev/ipfoam_client/build/web";
     const fullPath = Utils.resolveHome(path);
 
     connect()
       .use(serveStatic(fullPath))
-      .listen(port, () => console.log("Serving client on: " + port));
+      .listen(this.clientServerPort, () =>
+        console.log(
+          "Serving client on: " + "http://localhost:" + this.clientServerPort
+        )
+      );
   };
 
   /*startIpfoamServer = async (): Promise<any> => {
@@ -48,7 +50,7 @@ export default class WatchController {
   };*/
 
   startIpfoamServer = async (): Promise<any> => {
-    let server = new IpfoamServer(3213);
+    let server = new IpfoamServer(this.ipfoamServerPort);
     await server.startServer();
   };
 
@@ -63,17 +65,31 @@ export default class WatchController {
 
   startWs = async (): Promise<any> => {
     const that = this;
-    const port = 1234;
-    console.log("Creating WS connection on " + port);
-    const wss = new WebSocket.Server({ port: port });
+    console.log("Attempting WS connection on " + this.clientWebsocketPort);
+    const wss = new WebSocket.Server({ port: this.clientWebsocketPort });
 
+    //return new Promise((resolve, reject) => {
     wss.on("connection", function connection(ws: any) {
+      console.log("Websocket connection to client established");
       that.webSocket = ws;
+      that.bridgeConnected = true;
       that.webSocket.on("message", function message(data: any) {
         console.log("received: %s", data);
       });
-      that.startOthers();
+      // resolve("Connected");
     });
+    //});
+  };
+
+  notifyClient = async (iid: String): Promise<void> => {
+    if (this.bridgeConnected) {
+      this.webSocket.send(iid);
+    } else {
+      console.log(
+        "Can't connecto to client. Try to reload http://localhost:" +
+          this.clientServerPort
+      );
+    }
   };
 
   startFileWatcher = async (): Promise<any> => {
@@ -111,6 +127,7 @@ export default class WatchController {
     if (res.isOk()) {
       // console.log(note.value);
     }
+
     return note;
   };
 
@@ -118,12 +135,7 @@ export default class WatchController {
     let notes: { [iid: string]: any } = {};
     notes[note.iid] = note;
     const res = await axios.put("http://localhost:8080/update/x", notes);
-    console.log(res.data);
     return true;
-  };
-
-  notifyClient = async (iid: String): Promise<void> => {
-    this.webSocket.send(iid);
   };
 
   reload = async (foamId: string): Promise<void> => {
