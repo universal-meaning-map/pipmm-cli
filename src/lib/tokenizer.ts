@@ -41,9 +41,37 @@ export default class Tokenizer {
   static wikilinkToTransclusionExp = async (
     wikilink: string
   ): Promise<string> => {
-    const intentRef = await Tokenizer.wikilinkToItent(wikilink);
-    const intentRefWithTitle = await Tokenizer.addTitleTransculsion(intentRef);
-    const transclusionExp = Tokenizer.makeTransclusionExp(intentRefWithTitle);
+    //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
+    let runs = wikilink.split("|");
+    console.log(runs);
+    let exp = "";
+    let frontRuns = runs[0].split("/");
+    if (frontRuns.length == 1) {
+      let mid = await Referencer.makeMid(Referencer.SELF_FRIEND_ID);
+      let iid = await Referencer.makeIid(frontRuns[0]);
+      exp = mid + ":" + iid; //currently overriten
+      exp = iid;
+    } else if (frontRuns.length == 2) {
+      let mid = await Referencer.makeMid(frontRuns[0]);
+      let iid = await Referencer.makeIid(frontRuns[1]);
+      exp = mid + ":" + iid;
+    }
+
+    if (runs.length == 1) {
+      exp =
+        exp + "/" + (await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID));
+    } else if (runs.length > 1) {
+      let backRuns = runs[1].split("/");
+      let tiid = await Referencer.makeIid(backRuns[0]);
+      exp = exp + "/" + tiid;
+      if (backRuns.length > 1) {
+        for (let i = 1; i < backRuns.length; i++) {
+          //We only assume the first property to be an iid, the rest is an IPLD path
+          exp = exp + "/" + backRuns[i];
+        }
+      }
+    }
+    const transclusionExp = Tokenizer.makeTransclusionExp(exp);
     return transclusionExp;
   };
 
@@ -52,15 +80,7 @@ export default class Tokenizer {
   }
 
   static wikilinkToItent = async (wikilink: string): Promise<string> => {
-    //const fileName = wikilink.slice(2, -2); //removes square brackets
-    const iid = await Referencer.makeIid(wikilink);
-    return iid;
-  };
-
-  static addTitleTransculsion = async (intentRef: string): Promise<string> => {
-    const propTitleIid = await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID);
-    intentRef = intentRef + "/" + propTitleIid;
-    return intentRef;
+    return await Referencer.makeIid(wikilink);
   };
 
   static makeTransclusionExp(intentRef: string) {

@@ -7,6 +7,7 @@ export default class Referencer {
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
   static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
   static readonly PROP_TITLE_FOAMID = "prop-title-1612697362";
+  static readonly SELF_FRIEND_ID = "x";
 
   static readonly basicTypeInterplanetaryText = "interplanetary-text";
   static readonly basicTypeString = "string";
@@ -32,6 +33,10 @@ export default class Referencer {
     //console.log(onlyTheTimestamp + " - " + foamId + " - " + foamIdOrFileName);
     const trunkated = block.cid.toString().slice(-8);
     return "i" + trunkated;
+  };
+
+  static makeMid = async (friendId: string): Promise<any> => {
+    return Referencer.makeIid(friendId);
   };
 
   static iidExists(iid: string): boolean {
