@@ -26,7 +26,7 @@ export default class Referencer {
     Referencer.iidToCidMap[iid] = cid;
   }
 
-  static makeIid = async (foamIdOrFileName: string): Promise<any> => {
+  static makeIid = async (foamIdOrFileName: string): Promise<string> => {
     const foamId = Utils.removeFileExtension(foamIdOrFileName);
     const onlyTheTimestamp = foamId.slice(-10); //This is to prevent an IID change if the foamId changes
     const block = await IpldController.anyToDagJsonBlock(onlyTheTimestamp);
@@ -36,7 +36,9 @@ export default class Referencer {
   };
 
   static makeMid = async (friendId: string): Promise<any> => {
-    return Referencer.makeIid(friendId);
+    let x = await Referencer.makeIid(friendId);
+    let mid = "m" + x.substring(1);
+    return mid;
   };
 
   static iidExists(iid: string): boolean {
