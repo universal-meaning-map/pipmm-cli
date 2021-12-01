@@ -40,8 +40,6 @@ export default class ConfigCommand extends Command {
         ConfigController.ipmmRepoPath = args.value;
       else if (args.property == "foamRepo")
         ConfigController.foamRepoPath = args.value;
-      else if (args.property == "ipfsRepo")
-        ConfigController.ipfsRepoPath = args.value;
       else {
         this.error("Property " + args.property + "does not exist");
       }
