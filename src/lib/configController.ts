@@ -5,7 +5,6 @@ import Utils from "./utils";
 
 export default class ConfigController {
   private static _configPath = "~/.ipmm/config.json";
-  //private static _defaultIpfsPath = "~/.ipmm/";
   private static _defaultIpmmPath = "~/.ipmm/repo.json";
   private static _logsPath = "~/.ipmm/logs.json";
 
@@ -19,19 +18,16 @@ export default class ConfigController {
     let configPath = ConfigController.configPath;
 
     if (fs.existsSync(configPath)) {
-      //console.log("Config already exists at " + configPath);
       let data = JSON.parse(fs.readFileSync(configPath, "utf8"));
       ConfigController._configFile = {
         ipmmRepo: data.ipmmRepo,
         foamRepo: data.foamRepo,
-        //ipfsRepo: data.ipfsRepo,
       };
     } else {
       //console.log("No config file exists at " + configPath);
       ConfigController._configFile = {
         ipmmRepo: ConfigController._defaultIpmmPath,
         foamRepo: "",
-        //ipfsRepo: ConfigController._defaultIpfsPath,
       };
     }
   };
@@ -61,16 +57,6 @@ export default class ConfigController {
     return this.config.foamRepo;
   }
 
-  static set ipfsRepoPath(ipfsRepoPath: string) {
-    ConfigController.load();
-    ConfigController._configFile.ipfsRepo = Utils.resolveHome(ipfsRepoPath);
-    ConfigController.save();
-  }
-
-  static get ipfsRepoPath(): string {
-    return this.config.ipfsRepo;
-  }
-
   static get logsPath(): string {
     return ConfigController._logsPath;
   }
@@ -83,5 +69,4 @@ export default class ConfigController {
 interface ConfigFile {
   ipmmRepo: string;
   foamRepo: string;
-  //ipfsRepo: string;
 }
