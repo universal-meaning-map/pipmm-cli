@@ -18,6 +18,7 @@ export default class WatchController {
   clientWebsocketPort = 1234;
 
   start = async (): Promise<any> => {
+    await this.compileRepo();
     await this.startIpfoamServer();
     await this.restoreIpfoamServer();
     await this.startClientServer();
@@ -25,11 +26,16 @@ export default class WatchController {
     await this.startWs();
   };
 
+  compileRepo = async (): Promise<any> => {
+    FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
+  };
+
   startClientServer = async (): Promise<any> => {
     const connect = require("connect");
     const serveStatic = require("serve-static");
-    const path = "~/dev/ipfoam_client/build/web";
+    const path = "/Users/xavi/Dev/ipfoam-client/build/web";
     const fullPath = Utils.resolveHome(path);
+    console.log(fullPath)
 
     connect()
       .use(serveStatic(fullPath))
@@ -39,15 +45,6 @@ export default class WatchController {
         )
       );
   };
-
-  /*startIpfoamServer = async (): Promise<any> => {
-    var child_process = require("child_process");
-    const path = "~/dev/ipfoam-server/";
-    const fullPath = Utils.resolveHome(path);
-    const command = "node --prefix " + fullPath + "run dev";
-    let log = child_process.execSync("echo Hello World");
-    console.log(log);
-  };*/
 
   startIpfoamServer = async (): Promise<any> => {
     let server = new IpfoamServer(this.ipfoamServerPort);
