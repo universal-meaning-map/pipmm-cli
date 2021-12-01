@@ -8,7 +8,7 @@ import Ipmm, { NoteWrap } from "../lib/ipmm";
 import Utils from "../lib/utils";
 import Referencer from "../lib/referencer";
 
-export default class FoamCommand extends Command {
+export default class CompileCommand extends Command {
   static description =
     "Parses a given Foam repo and generates an array of notes with their corresponding metadata";
 
@@ -33,12 +33,6 @@ export default class FoamCommand extends Command {
 
   static args = [
     {
-      name: "subcommand",
-      required: true,
-      description: "The subcommand to run: import",
-      hidden: false,
-    },
-    {
       name: "fileName",
       required: false,
       description: "File name to import within the Foam root directory",
@@ -47,45 +41,31 @@ export default class FoamCommand extends Command {
   ];
 
   async run() {
-    const { args, flags } = this.parse(FoamCommand);
+    const { args, flags } = this.parse(CompileCommand);
 
-    if (!args.subcommand) {
-      this.error("No Foam command specified");
-    }
     let config = ConfigController.config;
 
-    let ipmmRepo: string = flags.ipmmRepo ? flags.ipmmRepo : config.ipmmRepo;
-    let foamRepo: string = flags.foamRepo ? flags.foamRepo : config.foamRepo;
+    if(config.foamRepo==undefined)
+    console.log("You need first to specify your notes repository.")
 
-    if (args.subcommand == "import") {
       //import a single file
       if (args.fileName) {
-        const res = await FoamController.importFile(
-          ipmmRepo,
-          foamRepo,
+        const res = await FoamController.compileFile(
+          config.ipmmRepo,
+          config.foamRepo,
           args.fileName
         );
 
         if (res.isOk()) {
           let note: NoteWrap = res.value;
-          let foamId = Utils.removeFileExtension(args.fileName);
           console.log(note);
-
           //TODO: Update repo
         }
       }
-
       //import everything
       else {
-        await FoamController.importAll(ipmmRepo, foamRepo);
-        //Ipmm.save(notes, ipmmRepo);
+        await FoamController.compileAll(config.ipmmRepo, config.foamRepo);
       }
-    } else if (args.subcommand == "export") {
-      await this.foamExport(ipmmRepo, foamRepo);
-    }
-
     ErrorController.saveLogs();
   }
-
-  foamExport = (ipmmRepo: String, foamRepo: string) => void {};
 }

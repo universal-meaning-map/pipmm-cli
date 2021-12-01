@@ -7,7 +7,7 @@ import Referencer from "./referencer";
 import axios from "axios";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
-import { Server as IpfoamServer } from "/home/xavings/dev/ipfoam-server";
+import { Server as IpfoamServer } from "ipfoam-server";
 
 //const WebSocket = require('isomorphic-ws')
 export default class WatchController {
@@ -117,7 +117,7 @@ export default class WatchController {
   };
 
   importFile = async (foamId: string): Promise<NoteWrap> => {
-    const res = await FoamController.importFile(
+    const res = await FoamController.compileFile(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath,
       foamId

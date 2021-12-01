@@ -5,8 +5,8 @@ import Utils from "./utils";
 
 export default class ConfigController {
   private static _configPath = "~/.ipmm/config.json";
-  private static _defaultIpfsPath = "~/.ipmm/ipfsRepo";
-  private static _defaultIpmmPath = "~/.ipmm/ipmmRepo/repo.json";
+  //private static _defaultIpfsPath = "~/.ipmm/";
+  private static _defaultIpmmPath = "~/.ipmm/repo.json";
   private static _logsPath = "~/.ipmm/logs.json";
 
   private static _configFile: ConfigFile;
@@ -24,14 +24,14 @@ export default class ConfigController {
       ConfigController._configFile = {
         ipmmRepo: data.ipmmRepo,
         foamRepo: data.foamRepo,
-        ipfsRepo: data.ipfsRepo,
+        //ipfsRepo: data.ipfsRepo,
       };
     } else {
       //console.log("No config file exists at " + configPath);
       ConfigController._configFile = {
         ipmmRepo: ConfigController._defaultIpmmPath,
         foamRepo: "",
-        ipfsRepo: ConfigController._defaultIpfsPath,
+        //ipfsRepo: ConfigController._defaultIpfsPath,
       };
     }
   };
@@ -83,5 +83,5 @@ export default class ConfigController {
 interface ConfigFile {
   ipmmRepo: string;
   foamRepo: string;
-  ipfsRepo: string;
+  //ipfsRepo: string;
 }

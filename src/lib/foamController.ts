@@ -16,7 +16,7 @@ let ipmmRepo: string;
 const foamIdToTypeCid: { [foamId: string]: string } = {};
 
 export default class FoamController {
-  static importAll = async (
+  static compileAll = async (
     _ipmmRepo: string,
     _foamRepo: string
   ): Promise<void> => {
@@ -36,7 +36,7 @@ export default class FoamController {
     );
   };
 
-  static importFile = async (
+  static compileFile = async (
     _ipmmRepo: string,
     _foamRepo: string,
     _fileName: string

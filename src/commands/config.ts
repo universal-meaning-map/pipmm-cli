@@ -1,9 +1,4 @@
 import { Command, flags } from "@oclif/command";
-import cli from "cli-ux";
-import * as fs from "fs";
-import * as path from "path";
-import * as matter from "gray-matter";
-import { Console } from "console";
 import ConfigController from "../lib/configController";
 
 export default class ConfigCommand extends Command {
@@ -28,21 +23,7 @@ export default class ConfigCommand extends Command {
       description: "value",
     },
   ];
-  /*
-  static flags = {
-    help: flags.help({ char: "h" }),
 
-    ipmmRepo: flags.string({
-      char: "i",
-      description: "Path for IPMM repository",
-    }),
-
-    foamRepo: flags.string({
-      char: "f",
-      description: "Path for [[FOAM repository",
-    }),
-  };
-*/
   async run() {
     const { args, flags } = this.parse(ConfigCommand);
     //console.log(args, flags);
