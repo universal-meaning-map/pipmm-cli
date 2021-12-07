@@ -1,0 +1,23 @@
+{
+  "and": [
+    {
+      "or": [
+        {
+          "tiid": "view",
+          "conditon": "contains",
+          "value": "stuff"
+        },
+        {
+          "tiid": "title",
+          "conditon": "isEqual",
+          "value": "stuff"
+        }
+      ]
+    },
+    {
+        "tiid": "title",
+        "conditon": "isEqual",
+        "value": "stuff"
+      }
+  ]
+}
