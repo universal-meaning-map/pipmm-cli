@@ -46,4 +46,8 @@ export default class Utils {
       throw new Error(" Unable to open " + path);
     }
   };
+
+  static isObject = function(a:any) {
+    return (!!a) && (a.constructor === Object);
+};
 }

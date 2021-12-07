@@ -7,6 +7,7 @@ export default class ConfigController {
   private static _configPath = "~/.ipmm/config.json";
   private static _defaultIpmmPath = "~/.ipmm/repo.json";
   private static _logsPath = "~/.ipmm/logs.json";
+  private static _filterPath = "~/.ipmm/filter.json";
 
   private static _configFile: ConfigFile;
 
@@ -59,6 +60,10 @@ export default class ConfigController {
 
   static get logsPath(): string {
     return ConfigController._logsPath;
+  }
+
+  static get filterPath(): string {
+    return ConfigController._filterPath;
   }
 
   private static save() {

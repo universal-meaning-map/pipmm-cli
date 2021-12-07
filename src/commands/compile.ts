@@ -3,10 +3,7 @@ import cli, { config } from "cli-ux";
 import ConfigController from "../lib/configController";
 import FoamController from "../lib/foamController";
 import ErrorController from "../lib/errorController";
-import LogsController from "../lib/logsController";
 import Ipmm, { NoteWrap } from "../lib/ipmm";
-import Utils from "../lib/utils";
-import Referencer from "../lib/referencer";
 
 export default class CompileCommand extends Command {
   static description =
