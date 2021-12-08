@@ -8,40 +8,25 @@ import { promises as fs, readFile } from "fs";
 import Referencer from "../lib/referencer";
 
 
-export default class CompileCommand extends Command {
+export default class ExportCommand extends Command {
   static description =
-    "Parses a given Foam repo and generates an array of notes with their corresponding metadata";
+    "Compiles the entire Foam specified in the config (or a single note) into an IPMM repo and saves it as JSON object where specified in the config";
 
   static flags = {
     help: flags.help({ char: "h" }),
-
-    ipmmRepo: flags.string({
-      name: "ipmm_repo",
-      char: "i",
-      description:
-        "Path to IPMM repository. If not specified it defaults to the config one",
-      // default: getCurrentPath()
-    }),
-    foamRepo: flags.string({
-      name: "foam_repo",
-      char: "f",
-      description:
-        "Path the FOAM repository. If not specified it defaults to the config one",
-      // default: getCurrentPath()
-    }),
   };
 
   static args = [
     {
       name: "fileName",
       required: false,
-      description: "File name to import within the Foam root directory",
+      description: "File name within the Foam root directory to import ",
       hidden: false,
     },
   ];
 
   async run() {
-    const { args, flags } = this.parse(CompileCommand);
+    const { args, flags } = this.parse(ExportCommand);
 
     let config = ConfigController.config;
 
