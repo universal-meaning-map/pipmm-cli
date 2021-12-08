@@ -134,7 +134,7 @@ export default class WatchController {
     const res = await axios.put("http://localhost:8080/update/x", notes);
     return true;
   };
-
+  
   reload = async (foamId: string): Promise<void> => {
     let note = await this.importFile(foamId);
     await this.updateServer(note);

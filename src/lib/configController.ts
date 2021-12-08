@@ -7,7 +7,8 @@ export default class ConfigController {
   private static _configPath = "~/.ipmm/config.json";
   private static _defaultIpmmPath = "~/.ipmm/repo.json";
   private static _logsPath = "~/.ipmm/logs.json";
-  private static _filterPath = "~/.ipmm/filter.json";
+  private static filterRemote = "~/.ipmm/filterRemote.json";
+  private static filterLocal = "~/.ipmm/filterLocal.json";
 
   private static _configFile: ConfigFile;
 
@@ -62,8 +63,12 @@ export default class ConfigController {
     return ConfigController._logsPath;
   }
 
-  static get filterPath(): string {
-    return ConfigController._filterPath;
+  static get remoteFilterPath(): string {
+    return ConfigController.filterRemote;
+  }
+
+  static get localFilterPath(): string {
+    return ConfigController.filterLocal;
   }
 
   private static save() {

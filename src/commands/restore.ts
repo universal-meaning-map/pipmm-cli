@@ -6,11 +6,13 @@ import * as matter from "gray-matter";
 import { Console } from "console";
 import ConfigController from "../lib/configController";
 import axios from "axios";
-import Utils from "../lib/utils";
 import Referencer from "../lib/referencer";
+import FoamController from "../lib/foamController";
+import Utils from "../lib/utils";
+import Filter from "../lib/filter";
 
 export default class RestoreCommand extends Command {
-  static description = "Uploads repo to server";
+  static description = "Compiles repo and uploads to the server (local or remote, depending on the flag) applying a filter";
 
   static args = [
     {
@@ -21,28 +23,54 @@ export default class RestoreCommand extends Command {
     },
   ];
 
+  static flags = {
+    help: flags.help({ char: "h" }),
+
+    remote: flags.boolean({
+      name: "remote",
+      char: "r",
+      
+      description:
+        "Restores the IPMM repo into the remote server specified in the config file using the `remoteFilter.json`. If this flag is not use it will try to restore a local server using `localFilter.json` instead.",
+    },),
+  
+  };
+
   async run() {
     const { args, flags } = this.parse(RestoreCommand);
 
-    if (!args.foamId) {
-      // this.error("No config NoteUID specified");
+  
+    await FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
+    let repo = Referencer.iidToNoteWrap;
+
+    let remoteEndPoint = "https://ipfoam-server-dc89h.ondigitalocean.app/uploadMindRepo/x"
+    let localEndPoint = "http://localhost:8080/restore/x"
+
+    let endpoint = "";
+    let jsonFilter ="";
+
+    if(flags.remote){
+      endpoint = remoteEndPoint
+      jsonFilter = Utils.getFile(ConfigController.remoteFilterPath)
+    }
+    else{
+      endpoint = localEndPoint
+      jsonFilter = Utils.getFile(ConfigController.localFilterPath)
+    }
+    let filter = JSON.parse(jsonFilter);
+
+    let filteredRepo = await Filter.filter(repo, filter);
+    console.log(filteredRepo.length)
+
+
+
+    const res = await axios.put(endpoint, filteredRepo);
+    if (res.data){
+      console.log(res.data);
     }
 
-    let repo = "";
-    try {
-      repo = Utils.getFile(ConfigController.ipmmRepoPath);
-    } catch (e) {
-      "Failed to retrive Repo from " + ConfigController.ipmmRepoPath;
+    else{
+      console.log(res);
     }
-
-    let data = JSON.parse(repo);
-
-    /*const res1 = await axios.put(
-      "https://ipfoam-server-dc89h.ondigitalocean.app/uploadMindRepo/x",
-      data
-    );*/
-    const res = await axios.put("http://localhost:8080/restore/x", data);
-    if (res.data) console.log(res.data);
-    else console.log(res);
   }
 }

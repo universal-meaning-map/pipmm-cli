@@ -10,7 +10,7 @@ export default class Filter {
   static CONTAINS: string = "contains";
   static IS_EMPTY: string = "isEmpty";
 
-  static Filter = async (
+  static filter = async (
     notesInput: { [iid: string]: NoteWrap } = {},
     filter: any
   ): Promise<NoteWrap[]> => {
@@ -25,10 +25,12 @@ export default class Filter {
 
   static eval = async (element: any, note: NoteWrap): Promise<Boolean> => {
     try {
-      //console.log(note);
-      //FILTER
-
+      
       if (Utils.isObject(element)) {
+        //NO FILTER
+        if(Utils.objectIsEmpty(element)){
+          return true;
+        }
         //AND
         if (Filter.AND in element) {
           let ands: Boolean[] = [];
@@ -51,7 +53,8 @@ export default class Filter {
           //console.log(element.not[0])
           return res
         }
-
+        
+        //FILTER
         return await Filter.matchesCondition(element, note);
       }
     } catch (e) {

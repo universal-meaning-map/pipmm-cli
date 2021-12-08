@@ -47,7 +47,11 @@ export default class Utils {
     }
   };
 
-  static isObject = function(a:any) {
-    return (!!a) && (a.constructor === Object);
-};
+  static isObject = function (a: any) {
+    return !!a && a.constructor === Object;
+  };
+
+  static objectIsEmpty = function (a: any) {
+    return Object.keys(a).length ==0;
+  };
 }

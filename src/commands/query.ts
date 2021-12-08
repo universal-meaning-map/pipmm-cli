@@ -14,9 +14,9 @@ export default class QueryCommand extends Command {
     await FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
     let inputNotes = Referencer.iidToNoteWrap;
 
-    let filterJson = Utils.getFile(ConfigController.filterPath);
+    let filterJson = Utils.getFile(ConfigController.remoteFilterPath);
     let filter = JSON.parse(filterJson);
-    let outputNotes = await Filter.Filter(inputNotes,filter);
+    let outputNotes = await Filter.filter(inputNotes,filter);
 
     console.log(outputNotes);
   }

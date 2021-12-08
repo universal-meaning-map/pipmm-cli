@@ -3,7 +3,6 @@ import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import axios from "axios";
 import Utils from "../lib/utils";
-import Referencer from "../lib/referencer";
 
 export default class UpdateCommand extends Command {
   static description = "Uploads repo to server";
@@ -32,11 +31,6 @@ export default class UpdateCommand extends Command {
     }
 
     let data = JSON.parse(repo);
-
-    //let foamId = Utils.removeFileExtension(args.fileName);
-    //let iid = await Referencer.makeIid(foamId);
-
-    console.log(args.iid);
     let note = data[args.iid];
     let notes: { [iid: string]: any } = {};
     notes[args.iid] = note;
