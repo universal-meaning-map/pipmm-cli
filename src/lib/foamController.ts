@@ -30,10 +30,7 @@ export default class FoamController {
       const foamId = Utils.removeFileExtension(fileName);
       await FoamController.makeNote(foamId);
     }
-    await fs.writeFile(
-      ConfigController.ipmmRepoPath,
-      JSON.stringify(Referencer.iidToNoteWrap, null, 4)
-    );
+    
   };
 
   static compileFile = async (

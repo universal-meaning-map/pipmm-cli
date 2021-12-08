@@ -4,6 +4,9 @@ import ConfigController from "../lib/configController";
 import FoamController from "../lib/foamController";
 import ErrorController from "../lib/errorController";
 import Ipmm, { NoteWrap } from "../lib/ipmm";
+import { promises as fs, readFile } from "fs";
+import Referencer from "../lib/referencer";
+
 
 export default class CompileCommand extends Command {
   static description =
@@ -62,6 +65,10 @@ export default class CompileCommand extends Command {
       //import everything
       else {
         await FoamController.compileAll(config.ipmmRepo, config.foamRepo);
+        await fs.writeFile(
+          ConfigController.ipmmRepoPath,
+          JSON.stringify(Referencer.iidToNoteWrap, null, 4)
+        );
       }
     ErrorController.saveLogs();
   }
