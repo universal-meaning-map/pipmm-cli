@@ -3,39 +3,75 @@ import Referencer from "./referencer";
 
 export default class Tokenizer {
   static splitToken = "<split>";
+  static wikilinkWithTokens = /\[{2}(.*?)\]{2}/g; //matches [[ ]]
+  static dynamicTransclusion = /\({2}(.*?)\){2}/g; //matches (( ))
 
   static wikilinksToInterplanetaryText = async (
     text: string,
-    foamId: string
+    requesterFoamId: string
   ): Promise<string[]> => {
     const splitReplaced = await Tokenizer.wikilinksToTransclusions(
       text,
-      foamId
+      requesterFoamId
     );
     return splitReplaced.split(Tokenizer.splitToken);
   };
 
   static wikilinksToTransclusions = async (
     text: string,
-    foamId: string
+    requesterFoamId: string
   ): Promise<string> => {
-    const wikilinkWithTokens = /\[{2}(.*?)\]{2}/g;
-    //let wikilinkWithoutTokens = /[^[\]]+(?=]])/g;
-
-    let doneCallback = async (
-      match: string,
-      wikilink: string,
-      offset: string,
-      original: string
-    ) => {
-      await Tokenizer.checkFoamId(wikilink, foamId);
-      const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
-        wikilink
-      );
+    let wikilinkFoundCallback = async (wikilink: string) => {
+      await Tokenizer.checkFoamId(wikilink, requesterFoamId);
+      const exp = await Tokenizer.wikilinkToTransclusionExp(wikilink);
+      const transclusionExp = Tokenizer.transclusionExpToJson(exp);
       return Tokenizer.addSplitTokens(transclusionExp);
     };
 
-    return await Tokenizer.replaceAsync(text, wikilinkWithTokens, doneCallback);
+    let transformFoundCallback = async (transform: string) => {
+      const transclusionExp = await Tokenizer.transformToTransclusionExp(
+        transform
+      );
+      return transclusionExp;
+    };
+
+    let withDynamicTransclusions = await Tokenizer.replaceAsync(
+      text,
+      Tokenizer.dynamicTransclusion,
+      transformFoundCallback
+    );
+
+    let withStaticTransclusion = await Tokenizer.replaceAsync(
+      withDynamicTransclusions,
+      Tokenizer.wikilinkWithTokens,
+      wikilinkFoundCallback
+    );
+    return withStaticTransclusion;
+  };
+
+  static transformToTransclusionExp = async (
+    transform: string
+  ): Promise<string> => {
+    // ((wikilink, asdf, 1)) --> ["iid","asdf","1"]
+    let wikilinkFoundCallback = async (wikilink: string) => {
+      const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
+        wikilink
+      );
+      return transclusionExp;
+    };
+
+    transform = transform.slice(2, -2); //remove (())
+
+    let wikilinksReplaced = await Tokenizer.replaceAsync(
+      transform,
+      Tokenizer.wikilinkWithTokens,
+      wikilinkFoundCallback
+    );
+
+    let runs = wikilinksReplaced.split(",");
+
+    const transclusionExp = JSON.stringify(runs);
+    return transclusionExp;
   };
 
   static wikilinkToTransclusionExp = async (
@@ -43,7 +79,7 @@ export default class Tokenizer {
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
-    
+
     let exp = "";
     let frontRuns = runs[0].split("/");
     if (frontRuns.length == 1) {
@@ -71,8 +107,8 @@ export default class Tokenizer {
         }
       }
     }
-    const transclusionExp = Tokenizer.makeTransclusionExp(exp);
-    return transclusionExp;
+
+    return exp;
   };
 
   static addSplitTokens(transclusionExp: string) {
@@ -83,7 +119,7 @@ export default class Tokenizer {
     return await Referencer.makeIid(wikilink);
   };
 
-  static makeTransclusionExp(intentRef: string) {
+  static transclusionExpToJson(intentRef: string) {
     const t: string[] = [intentRef];
     const te = JSON.stringify(t);
     return te;
