@@ -8,6 +8,8 @@ import axios from "axios";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
 import { Server as IpfoamServer } from "ipfoam-server";
+import { promises as fs, readFile } from "fs";
+
 
 //const WebSocket = require('isomorphic-ws')
 export default class WatchController {
@@ -18,16 +20,11 @@ export default class WatchController {
   clientWebsocketPort = 1234;
 
   start = async (): Promise<any> => {
-    await this.compileRepo();
     await this.startIpfoamServer();
     await this.restoreIpfoamServer();
     await this.startClientServer();
     await this.startFileWatcher();
     await this.startWs();
-  };
-
-  compileRepo = async (): Promise<any> => {
-    FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
   };
 
   startClientServer = async (): Promise<any> => {
@@ -52,8 +49,8 @@ export default class WatchController {
   };
 
   restoreIpfoamServer = async (): Promise<any> => {
-    let repo = Utils.getFile(ConfigController.ipmmRepoPath);
-    let data = JSON.parse(repo);
+    await FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
+    let data = Referencer.iidToNoteWrap   
     const res = await axios.put(
       "http://localhost:" + this.ipfoamServerPort + "/restore/x",
       data
