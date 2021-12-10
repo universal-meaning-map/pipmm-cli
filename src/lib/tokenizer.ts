@@ -93,8 +93,6 @@ export default class Tokenizer {
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
-    console.log("runs")
-    console.log(runs)
     let exp = "";
     let frontRuns = runs[0].split("/");
     if (frontRuns.length == 1) {
