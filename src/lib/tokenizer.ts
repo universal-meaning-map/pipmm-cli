@@ -21,14 +21,21 @@ export default class Tokenizer {
     text: string,
     requesterFoamId: string
   ): Promise<string> => {
-    let wikilinkFoundCallback = async (wikilink: string) => {
+    let wikilinkFoundCallback = async (match: string,
+      wikilink: string,
+      offset: string,
+      original: string) => {
       await Tokenizer.checkFoamId(wikilink, requesterFoamId);
       const exp = await Tokenizer.wikilinkToTransclusionExp(wikilink);
       const transclusionExp = Tokenizer.transclusionExpToJson(exp);
       return Tokenizer.addSplitTokens(transclusionExp);
     };
 
-    let transformFoundCallback = async (transform: string) => {
+    let transformFoundCallback = async (match: string,
+      transform: string,
+      offset: string,
+      original: string) => {
+        
       const transclusionExp = await Tokenizer.transformToTransclusionExp(
         transform
       );
@@ -60,8 +67,6 @@ export default class Tokenizer {
       );
       return transclusionExp;
     };
-
-    transform = transform.slice(2, -2); //remove (())
 
     let wikilinksReplaced = await Tokenizer.replaceAsync(
       transform,
