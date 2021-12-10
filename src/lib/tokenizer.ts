@@ -64,7 +64,10 @@ export default class Tokenizer {
     transform: string
   ): Promise<string> => {
     // ((wikilink, asdf, 1)) --> ["iid","asdf","1"]
-    let wikilinkFoundCallback = async (wikilink: string) => {
+    let wikilinkFoundCallback = async (match: string,
+      wikilink: string,
+      offset: string,
+      original: string) => {
       const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
         wikilink,
         false
@@ -90,7 +93,8 @@ export default class Tokenizer {
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
-
+    console.log("runs")
+    console.log(runs)
     let exp = "";
     let frontRuns = runs[0].split("/");
     if (frontRuns.length == 1) {
