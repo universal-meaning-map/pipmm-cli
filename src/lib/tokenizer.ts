@@ -32,7 +32,8 @@ export default class Tokenizer {
       const transclusionExp = await Tokenizer.transformToTransclusionExp(
         transform
       );
-      return transclusionExp;
+     transclusionExp;
+      return Tokenizer.addSplitTokens(transclusionExp);
     };
 
     let withDynamicTransclusions = await Tokenizer.replaceAsync(
