@@ -21,25 +21,28 @@ export default class Tokenizer {
     text: string,
     requesterFoamId: string
   ): Promise<string> => {
-    let wikilinkFoundCallback = async (match: string,
+    let wikilinkFoundCallback = async (
+      match: string,
       wikilink: string,
       offset: string,
-      original: string) => {
+      original: string
+    ) => {
       await Tokenizer.checkFoamId(wikilink, requesterFoamId);
-      const exp = await Tokenizer.wikilinkToTransclusionExp(wikilink);
+      const exp = await Tokenizer.wikilinkToTransclusionExp(wikilink, true);
       const transclusionExp = Tokenizer.transclusionExpToJson(exp);
       return Tokenizer.addSplitTokens(transclusionExp);
     };
 
-    let transformFoundCallback = async (match: string,
+    let transformFoundCallback = async (
+      match: string,
       transform: string,
       offset: string,
-      original: string) => {
-        
+      original: string
+    ) => {
       const transclusionExp = await Tokenizer.transformToTransclusionExp(
         transform
       );
-     transclusionExp;
+      transclusionExp;
       return Tokenizer.addSplitTokens(transclusionExp);
     };
 
@@ -63,7 +66,8 @@ export default class Tokenizer {
     // ((wikilink, asdf, 1)) --> ["iid","asdf","1"]
     let wikilinkFoundCallback = async (wikilink: string) => {
       const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
-        wikilink
+        wikilink,
+        false
       );
       return transclusionExp;
     };
@@ -81,7 +85,8 @@ export default class Tokenizer {
   };
 
   static wikilinkToTransclusionExp = async (
-    wikilink: string
+    wikilink: string,
+    assumeTitleTransclusion: boolean
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
@@ -100,8 +105,10 @@ export default class Tokenizer {
     }
 
     if (runs.length == 1) {
-      exp =
-        exp + "/" + (await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID));
+      if (assumeTitleTransclusion) {
+        exp =
+          exp + "/" + (await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID));
+      }
     } else if (runs.length > 1) {
       let backRuns = runs[1].split("/");
       let tiid = await Referencer.makeIid(backRuns[0]);
