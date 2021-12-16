@@ -1,3 +1,4 @@
+import { run } from "..";
 import { Res } from "./errorController";
 import Referencer from "./referencer";
 
@@ -82,8 +83,10 @@ export default class Tokenizer {
     );
 
     let runs = wikilinksReplaced.split(",");
+    let runsTrimmed = runs.map((run:string)=> run.trim());
 
-    const transclusionExp = JSON.stringify(runs);
+
+    const transclusionExp = JSON.stringify(runsTrimmed);
     return transclusionExp;
   };
 
