@@ -96,27 +96,30 @@ export default class Tokenizer {
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
-    let exp = "";
+    let exp = await Referencer.makeMiid(runs[0]);
+    
+    /*
     let frontRuns = runs[0].split("/");
     if (frontRuns.length == 1) {
       let mid = await Referencer.makeMid(Referencer.SELF_FRIEND_ID);
-      let iid = await Referencer.makeIid(frontRuns[0]);
+      let iid = await Referencer.makeMiid(frontRuns[0]);
       exp = mid + ":" + iid; //currently overriten
-      exp = iid;
+      //exp = iid;
     } else if (frontRuns.length == 2) {
       let mid = await Referencer.makeMid(frontRuns[0]);
-      let iid = await Referencer.makeIid(frontRuns[1]);
+      let iid = await Referencer.makeMiid(frontRuns[1]);
       exp = mid + ":" + iid;
     }
+    */
 
     if (runs.length == 1) {
       if (assumeTitleTransclusion) {
         exp =
-          exp + "/" + (await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID));
+          exp + "/" + (await Referencer.makeMiid(Referencer.PROP_TITLE_FOAMID));
       }
     } else if (runs.length > 1) {
       let backRuns = runs[1].split("/");
-      let tiid = await Referencer.makeIid(backRuns[0]);
+      let tiid = await Referencer.makeMiid(backRuns[0]);
       exp = exp + "/" + tiid;
       if (backRuns.length > 1) {
         for (let i = 1; i < backRuns.length; i++) {
@@ -134,7 +137,7 @@ export default class Tokenizer {
   }
 
   static wikilinkToItent = async (wikilink: string): Promise<string> => {
-    return await Referencer.makeIid(wikilink);
+    return await Referencer.makeMiid(wikilink);
   };
 
   static transclusionExpToJson(intentRef: string) {

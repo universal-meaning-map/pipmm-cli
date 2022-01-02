@@ -21,13 +21,32 @@ export default class Referencer {
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
   static iidToNoteWrap: { [iid: string]: NoteWrap } = {};
+  
+  static miidSeparatorToken = ":";
 
   static addIId(iid: string, cid: string): void {
     Referencer.iidToCidMap[iid] = cid;
   }
 
-  static makeIid = async (foamIdOrFileName: string): Promise<string> => {
+  static makeMiid = async (foamIdOrFileName: string): Promise<string> => {
     const foamId = Utils.removeFileExtension(foamIdOrFileName);
+    let miid = "";
+
+    let runs =foamId.split("/");
+    //does not include friendId, therefore is the author
+    if (runs.length == 1) {
+      let mid = await Referencer.makeMid(Referencer.SELF_FRIEND_ID);
+      let iid = await Referencer.makeIid(runs[0]);
+      miid = mid + Referencer.miidSeparatorToken + iid; 
+    } else if (runs.length == 2) {
+      let mid = await Referencer.makeMid(runs[0]);
+      let iid = await Referencer.makeIid(runs[1]);
+      miid = mid + Referencer.miidSeparatorToken + iid; 
+    }
+    return miid;
+  };
+
+  static makeIid = async (foamId: string): Promise<string> => {
     const onlyTheTimestamp = foamId.slice(-10); //This is to prevent an IID change if the foamId changes
     const block = await IpldController.anyToDagJsonBlock(onlyTheTimestamp);
     //console.log(onlyTheTimestamp + " - " + foamId + " - " + foamIdOrFileName);
@@ -35,7 +54,10 @@ export default class Referencer {
     return "i" + trunkated;
   };
 
+ 
+
   static makeMid = async (friendId: string): Promise<any> => {
+    //We use the same IID function just swapping the intitial "i" for an "m"
     let x = await Referencer.makeIid(friendId);
     let mid = "m" + x.substring(1);
     return mid;

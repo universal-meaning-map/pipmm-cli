@@ -68,7 +68,7 @@ export default class Filter {
     note: NoteWrap
   ): Promise<Boolean> => {
     let noteValue = null;
-    let tiid = await Referencer.makeIid(fc.tiid);
+    let tiid = await Referencer.makeMiid(fc.tiid);
     if (tiid in note.block) {
       noteValue = note.block[tiid];
     }
