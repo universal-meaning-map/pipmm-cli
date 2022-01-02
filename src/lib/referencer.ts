@@ -22,7 +22,7 @@ export default class Referencer {
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
   static iidToNoteWrap: { [iid: string]: NoteWrap } = {};
   
-  static miidSeparatorToken = ":";
+  static miidSeparatorToken = "";
 
   static addIId(iid: string, cid: string): void {
     Referencer.iidToCidMap[iid] = cid;
