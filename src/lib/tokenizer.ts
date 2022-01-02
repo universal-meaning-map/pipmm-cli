@@ -193,7 +193,7 @@ export default class Tokenizer {
 
     if (Tokenizer.containsSpaces(wikilink))
       Res.error(
-        "Note " + requesterFoamId + " contains spaces: " + wikilink,
+        "Note " + requesterFoamId + " contains a reference with spaces: " + wikilink,
         Res.saveError
       );
     //new wikilinks should be formated with timestmap in the back.
