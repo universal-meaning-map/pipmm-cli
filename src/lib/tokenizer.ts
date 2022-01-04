@@ -96,7 +96,7 @@ export default class Tokenizer {
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
-    let exp = await Referencer.makeMiid(runs[0]);
+    let exp = await Referencer.makeIid(runs[0]);
     
     /*
     let frontRuns = runs[0].split("/");
@@ -115,11 +115,11 @@ export default class Tokenizer {
     if (runs.length == 1) {
       if (assumeTitleTransclusion) {
         exp =
-          exp + "/" + (await Referencer.makeMiid(Referencer.PROP_TITLE_FOAMID));
+          exp + "/" + (await Referencer.makeIid(Referencer.PROP_TITLE_FOAMID));
       }
     } else if (runs.length > 1) {
       let backRuns = runs[1].split("/");
-      let tiid = await Referencer.makeMiid(backRuns[0]);
+      let tiid = await Referencer.makeIid(backRuns[0]);
       exp = exp + "/" + tiid;
       if (backRuns.length > 1) {
         for (let i = 1; i < backRuns.length; i++) {
@@ -137,7 +137,7 @@ export default class Tokenizer {
   }
 
   static wikilinkToItent = async (wikilink: string): Promise<string> => {
-    return await Referencer.makeMiid(wikilink);
+    return await Referencer.makeIid(wikilink);
   };
 
   static transclusionExpToJson(intentRef: string) {

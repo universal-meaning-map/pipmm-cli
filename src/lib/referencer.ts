@@ -28,39 +28,37 @@ export default class Referencer {
     Referencer.iidToCidMap[iid] = cid;
   }
 
-  static makeMiid = async (foamIdOrFileName: string): Promise<string> => {
+  static makeIid = async (foamIdOrFileName: string): Promise<string> => {
     const foamId = Utils.removeFileExtension(foamIdOrFileName);
-    let miid = "";
+    let iid = "";
 
     let runs =foamId.split("/");
     //does not include friendId, therefore is the author
     if (runs.length == 1) {
       let mid = await Referencer.makeMid(Referencer.SELF_FRIEND_ID);
-      let iid = await Referencer.makeIid(runs[0]);
-      miid = mid + Referencer.miidSeparatorToken + iid; 
+      let liid = await Referencer.makeLocalIid(runs[0]);
+      iid = mid + Referencer.miidSeparatorToken + liid; 
     } else if (runs.length == 2) {
       let mid = await Referencer.makeMid(runs[0]);
-      let iid = await Referencer.makeIid(runs[1]);
-      miid = mid + Referencer.miidSeparatorToken + iid; 
+      let liid = await Referencer.makeLocalIid(runs[1]);
+      iid = mid + Referencer.miidSeparatorToken + liid; 
     }
-    return miid;
+    return iid;
   };
 
-  static makeIid = async (foamId: string): Promise<string> => {
+  static makeLocalIid = async (foamId: string): Promise<string> => {
     const onlyTheTimestamp = foamId.slice(-10); //This is to prevent an IID change if the foamId changes
     const block = await IpldController.anyToDagJsonBlock(onlyTheTimestamp);
     //console.log(onlyTheTimestamp + " - " + foamId + " - " + foamIdOrFileName);
     const trunkated = block.cid.toString().slice(-8);
-    return "i" + trunkated;
+    //return "i" + trunkated;
+    return trunkated;
   };
 
  
 
   static makeMid = async (friendId: string): Promise<any> => {
-    //We use the same IID function just swapping the intitial "i" for an "m"
-    let x = await Referencer.makeIid(friendId);
-    let mid = "m" + x.substring(1);
-    return mid;
+    return  "i"+ await Referencer.makeLocalIid(friendId);
   };
 
   static iidExists(iid: string): boolean {
