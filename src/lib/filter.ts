@@ -71,7 +71,7 @@ export default class Filter {
   ): Promise<Boolean> => {
     let noteValue = null;
     let tiid = await Referencer.makeIid(fc.tiid);
-    if (tiid in note.block) {
+    if (note.block.has(tiid)) {
       noteValue = note.block.get(tiid);
     }
     let filterValue = fc.value;
@@ -95,6 +95,7 @@ export default class Filter {
   ): Boolean {
     //GENERICS
     if (condition == Filter.IS_EMPTY) {
+
       if (noteValue == null) {
         return true;
       }

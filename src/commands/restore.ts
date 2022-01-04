@@ -63,7 +63,6 @@ export default class RestoreCommand extends Command {
     let filter = JSON.parse(jsonFilter);
 
     let filteredRepo = await Filter.filter(repo, filter);
-    console.log(repo)
     console.log("Total abstractions: "+repo.size);
     console.log("Filtered abstractions: "+ filteredRepo.size)
 
