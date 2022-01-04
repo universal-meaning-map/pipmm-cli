@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
+import { NoteWrap } from "./ipmm";
 
 export default class Utils {
   static resolveHome = (filepath: string) => {
@@ -52,6 +53,35 @@ export default class Utils {
   };
 
   static objectIsEmpty = function (a: any) {
-    return Object.keys(a).length ==0;
+    return Object.keys(a).length == 0;
+  };
+
+  static strMapToObj = function (strMap: Map<string, any>) {
+    let obj = Object.create(null);
+    for (let [k, v] of strMap) {
+      // We don’t escape the key '__proto__'
+      // which can cause problems on older engines
+      obj[k] = v;
+    }
+    return obj;
+  };
+
+  static notesWrapToObjs(mapNotes: Map<string, NoteWrap>) {
+    let objNotes: { [iid: string]: any } = {};
+
+    for (let [iid, note] of mapNotes.entries()) {
+      let newNote = note;
+      newNote.block = Utils.strMapToObj(note.block);
+      objNotes[iid] = newNote;
+    }
+    return objNotes;
+  }
+
+  static objToStrMap = function (obj: any) {
+    let strMap = new Map();
+    for (let k of Object.keys(obj)) {
+      strMap.set(k, obj[k]);
+    }
+    return strMap;
   };
 }

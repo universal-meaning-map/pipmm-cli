@@ -52,7 +52,7 @@ export default class WatchController {
     let data = Referencer.iidToNoteWrap   
     const res = await axios.put(
       "http://localhost:" + this.ipfoamServerPort + "/restore/x",
-      data
+      Utils.notesWrapToObjs(data)
     );
   };
 
@@ -125,9 +125,9 @@ export default class WatchController {
   };
 
   updateServer = async (note: NoteWrap): Promise<Boolean> => {
-    let notes: { [iid: string]: any } = {};
-    notes[note.iid] = note;
-    const res = await axios.put("http://localhost:8080/update/x", notes);
+    let notes : Map<string,NoteWrap> = new Map();
+    notes.set(note.iid, note);
+    const res = await axios.put("http://localhost:8080/update/x", Utils.notesWrapToObjs(notes));
     return true;
   };
   

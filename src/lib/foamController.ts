@@ -8,7 +8,6 @@ import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
-import ConfigController from "./configController";
 
 let foamRepo: string;
 let ipmmRepo: string;
