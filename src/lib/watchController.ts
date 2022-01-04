@@ -7,8 +7,7 @@ import Referencer from "./referencer";
 import axios from "axios";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
-import { Server as IpfoamServer } from "ipfoam-server";
-import { promises as fs, readFile } from "fs";
+import { Server as IpfoamServer } from "../../../ipfoam-server";
 
 
 //const WebSocket = require('isomorphic-ws')
@@ -75,7 +74,7 @@ export default class WatchController {
     //});
   };
 
-  notifyClient = async (iid: String): Promise<void> => {
+  notifyClient = async (iid: string): Promise<void> => {
     if (this.bridgeConnected) {
       this.webSocket.send(iid);
     } else {

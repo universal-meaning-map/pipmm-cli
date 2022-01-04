@@ -3,7 +3,6 @@ import validatorFunction from "@ipld/schema-validation";
 // @ts-ignore
 import { parse as parser } from "ipld-schema";
 import FoamController from "./foamController";
-import { NoteBlock } from "./ipmm";
 import Referencer from "./referencer";
 
 export default class IpmmType {
@@ -34,19 +33,19 @@ export default class IpmmType {
     type ipldSchema string`;
 
   getBlock() {
-    let block: NoteBlock = {};
+    let block: Map<string, any> = new Map();
     if (this.defaultName != "" && this.defaultName != null)
-      block.defaultName = this.defaultName;
+      block.set("defaultName", this.defaultName);
     if (this.represents != "" && this.represents != null)
-      block.represents = this.represents;
+      block.set("represents", this.represents);
     if (this.constrains != [] && this.constrains != null)
-      block.constrains = this.constrains;
+      block.set("constrains", this.constrains);
     if (this.typeDependencies != [] && this.typeDependencies != null)
-      block.typeDependencies = this.typeDependencies;
+      block.set("typeDependencies", this.typeDependencies);
     if (this.enumDependencies != [] && this.enumDependencies != null)
-      block.enumDependencies = this.enumDependencies;
+      block.set("enumDependencies", this.enumDependencies);
     if (this.ipldSchema != "" && this.ipldSchema != null)
-      block.ipldSchema = this.ipldSchema;
+      block.set("ipldSchema", this.ipldSchema);
 
     return block;
   }

@@ -3,7 +3,7 @@ import Utils from "./utils";
 import matter from "gray-matter";
 import * as path from "path";
 import { promises as fs, readFile } from "fs";
-import { NoteBlock, NoteWrap } from "../lib/ipmm";
+import {  NoteWrap } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
@@ -110,12 +110,13 @@ export default class FoamController {
       if (isType) iid = await Referencer.makeIid(foamId);
       else iid = await Referencer.makeIid(foamId);
 
-      if (forceUpdate == false && Referencer.iidExists(iid)) {
-        return Res.success(Referencer.getNote(iid));
+      if (forceUpdate == false && Referencer.iidToNoteWrap.has(iid)) {
+        return Res.success(Referencer.iidToNoteWrap.get(iid));
+        
       }
 
       //create and empty note
-      let noteBlock: NoteBlock = {};
+      let noteBlock:  Map<string, any> = new Map();
 
       //Iterate trhough all the note properties.
       //If a given note property key has not beeen processed yet it will process it before continuing
@@ -144,7 +145,7 @@ export default class FoamController {
             trimmed,
             foamId
           );
-          noteBlock[viewProp.key] = viewProp.value;
+          noteBlock.set(viewProp.key, viewProp.value);
         }
         //ALL other properties
         //The rest of the properties
@@ -154,7 +155,7 @@ export default class FoamController {
             frontMatter.data[key],
             foamId
           );
-          noteBlock[prop.key] = prop.value;
+          noteBlock.set(prop.key, prop.value);
         }
       }
 
@@ -164,7 +165,7 @@ export default class FoamController {
       Referencer.iidToCidMap[iid] = cid;
 
       const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
-      Referencer.iidToNoteWrap[iid] = noteWrap;
+      Referencer.iidToNoteWrap.set(iid, noteWrap);
 
       return Res.success(noteWrap);
     } catch (e) {

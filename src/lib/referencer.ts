@@ -1,5 +1,5 @@
 import IpldController from "./ipldController";
-import { NoteBlock, NoteWrap } from "./ipmm";
+import { NoteWrap } from "./ipmm";
 import IpmmType from "./ipmmType";
 import Utils from "./utils";
 
@@ -20,8 +20,8 @@ export default class Referencer {
 
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
-  static iidToNoteWrap: { [iid: string]: NoteWrap } = {};
-  
+  static iidToNoteWrap: Map<string, NoteWrap> = new Map();
+
   static miidSeparatorToken = "";
 
   static addIId(iid: string, cid: string): void {
@@ -32,16 +32,16 @@ export default class Referencer {
     const foamId = Utils.removeFileExtension(foamIdOrFileName);
     let iid = "";
 
-    let runs =foamId.split("/");
+    let runs = foamId.split("/");
     //does not include friendId, therefore is the author
     if (runs.length == 1) {
       let mid = await Referencer.makeMid(Referencer.SELF_FRIEND_ID);
       let liid = await Referencer.makeLocalIid(runs[0]);
-      iid = mid + Referencer.miidSeparatorToken + liid; 
+      iid = mid + Referencer.miidSeparatorToken + liid;
     } else if (runs.length == 2) {
       let mid = await Referencer.makeMid(runs[0]);
       let liid = await Referencer.makeLocalIid(runs[1]);
-      iid = mid + Referencer.miidSeparatorToken + liid; 
+      iid = mid + Referencer.miidSeparatorToken + liid;
     }
     return iid;
   };
@@ -55,10 +55,8 @@ export default class Referencer {
     return trunkated;
   };
 
- 
-
   static makeMid = async (friendId: string): Promise<any> => {
-    return  "i"+ await Referencer.makeLocalIid(friendId);
+    return "i" + (await Referencer.makeLocalIid(friendId));
   };
 
   static iidExists(iid: string): boolean {
@@ -77,9 +75,5 @@ export default class Referencer {
 
   static getType(iid: string): IpmmType {
     return Referencer.iidToTypeMap[iid];
-  }
-
-  static getNote(iid: string): NoteBlock {
-    return Referencer.iidToNoteWrap[iid];
   }
 }

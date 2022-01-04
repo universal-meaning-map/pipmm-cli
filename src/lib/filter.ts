@@ -11,24 +11,26 @@ export default class Filter {
   static IS_EMPTY: string = "isEmpty";
 
   static filter = async (
-    notesInput: { [iid: string]: NoteWrap } = {},
+    notesInput: Map<string, NoteWrap>,
     filter: any
-  ): Promise<NoteWrap[]> => {
-    let filtered: NoteWrap[] = [];
-    for (let iid in notesInput) {
-      if (await Filter.eval(filter, notesInput[iid])) {
-        filtered.push(notesInput[iid]);
+  ): Promise<Map<string, NoteWrap>> => {
+
+    let filtered: Map<string, NoteWrap> = new Map();
+
+    for (let [iid,note] of notesInput.entries()){
+      if (await Filter.eval(filter, note)) {
+        filtered.set(iid, note);
       }
     }
+
     return filtered;
   };
 
   static eval = async (element: any, note: NoteWrap): Promise<Boolean> => {
     try {
-      
       if (Utils.isObject(element)) {
         //NO FILTER
-        if(Utils.objectIsEmpty(element)){
+        if (Utils.objectIsEmpty(element)) {
           return true;
         }
         //AND
@@ -49,11 +51,11 @@ export default class Filter {
         }
         //NOT
         if (Filter.NOT in element) {
-          let res = ! (await Filter.eval(element.not[0], note));
+          let res = !(await Filter.eval(element.not[0], note));
           //console.log(element.not[0])
-          return res
+          return res;
         }
-        
+
         //FILTER
         return await Filter.matchesCondition(element, note);
       }
@@ -68,9 +70,9 @@ export default class Filter {
     note: NoteWrap
   ): Promise<Boolean> => {
     let noteValue = null;
-    let tiid = await Referencer.makeMiid(fc.tiid);
+    let tiid = await Referencer.makeIid(fc.tiid);
     if (tiid in note.block) {
-      noteValue = note.block[tiid];
+      noteValue = note.block.get(tiid);
     }
     let filterValue = fc.value;
     let type = Referencer.getType(tiid);

@@ -3,7 +3,7 @@ import cli, { config } from "cli-ux";
 import ConfigController from "../lib/configController";
 import FoamController from "../lib/foamController";
 import ErrorController from "../lib/errorController";
-import Ipmm, { NoteWrap } from "../lib/ipmm";
+import {NoteWrap}  from "../lib/ipmm";
 import { promises as fs, readFile } from "fs";
 import Referencer from "../lib/referencer";
 

@@ -42,6 +42,7 @@ export default class RestoreCommand extends Command {
   
     await FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
     let repo = Referencer.iidToNoteWrap;
+    
 
     let remoteEndPoint = "https://ipfoam-server-dc89h.ondigitalocean.app/restore/x"
     let localEndPoint = "http://localhost:8080/restore/x"
@@ -63,8 +64,8 @@ export default class RestoreCommand extends Command {
 
     let filteredRepo = await Filter.filter(repo, filter);
     console.log(repo)
-    console.log("Total abstractions: "+repo.length);
-    console.log("Filtered abstractions: "+ filteredRepo.length)
+    console.log("Total abstractions: "+repo.size);
+    console.log("Filtered abstractions: "+ filteredRepo.size)
 
 
 
