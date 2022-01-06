@@ -32,6 +32,8 @@ export default class ConfigCommand extends Command {
       this.error("No config command specified");
     }
 
+    ConfigController.load();
+
     if (args.subcommand == "get") {
       console.log(ConfigController.config);
     } else if (args.subcommand == "set") {

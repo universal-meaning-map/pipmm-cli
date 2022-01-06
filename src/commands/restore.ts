@@ -5,7 +5,6 @@ import Referencer from "../lib/referencer";
 import FoamController from "../lib/foamController";
 import Utils from "../lib/utils";
 import Filter from "../lib/filter";
-import { util } from "chai";
 
 export default class RestoreCommand extends Command {
   static description =
@@ -26,7 +25,6 @@ export default class RestoreCommand extends Command {
     remote: flags.boolean({
       name: "remote",
       char: "r",
-
       description:
         "Restores the IPMM repo into the remote server specified in the config file using the `remoteFilter.json`. If this flag is not use it will try to restore a local server using `localFilter.json` instead.",
     }),
@@ -34,6 +32,8 @@ export default class RestoreCommand extends Command {
 
   async run() {
     const { args, flags } = this.parse(RestoreCommand);
+
+    ConfigController.load();
 
     await FoamController.compileAll(
       ConfigController.ipmmRepoPath,

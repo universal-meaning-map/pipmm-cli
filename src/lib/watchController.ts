@@ -9,8 +9,6 @@ import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
 import { Server as IpfoamServer } from "../../../ipfoam-server";
 
-
-//const WebSocket = require('isomorphic-ws')
 export default class WatchController {
   webSocket: any;
   bridgeConnected = false;
@@ -19,6 +17,7 @@ export default class WatchController {
   clientWebsocketPort = 1234;
 
   start = async (): Promise<any> => {
+    ConfigController.load();
     await this.startIpfoamServer();
     await this.restoreIpfoamServer();
     await this.startClientServer();

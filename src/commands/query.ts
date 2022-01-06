@@ -10,6 +10,7 @@ export default class QueryCommand extends Command {
 
   async run() {
     const { args, flags } = this.parse(QueryCommand);
+    ConfigController.load();
 
     await FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
     let inputNotes = Referencer.iidToNoteWrap;

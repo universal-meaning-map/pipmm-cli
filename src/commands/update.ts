@@ -19,9 +19,7 @@ export default class UpdateCommand extends Command {
   async run() {
     const { args, flags } = this.parse(UpdateCommand);
 
-    if (!args.NoteUid) {
-      // this.error("No config NoteUID specified");
-    }
+    ConfigController.load();
 
     let repo = "";
     try {
