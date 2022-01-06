@@ -35,7 +35,7 @@ export default class ConfigCommand extends Command {
     ConfigController.load();
 
     if (args.subcommand == "get") {
-      console.log(ConfigController.config);
+      console.log(ConfigController._configFile);
     } else if (args.subcommand == "set") {
       if (!args.value) console.log("You need to specify the path");
       if (args.property == "ipmmRepo")

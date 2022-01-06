@@ -12,9 +12,6 @@ import { Server as IpfoamServer } from "../../../ipfoam-server";
 export default class WatchController {
   webSocket: any;
   bridgeConnected = false;
-  ipfoamServerPort = 8080;
-  clientServerPort = 8081;
-  clientWebsocketPort = 1234;
 
   start = async (): Promise<any> => {
     ConfigController.load();
@@ -30,35 +27,55 @@ export default class WatchController {
     const serveStatic = require("serve-static");
     const path = "/Users/xavi/Dev/ipfoam-client/build/web";
     const fullPath = Utils.resolveHome(path);
-    console.log(fullPath)
-
     connect()
       .use(serveStatic(fullPath))
-      .listen(this.clientServerPort, () =>
+      .listen(ConfigController._configFile.network.localClientPort, () =>
         console.log(
-          "Serving client on: " + "http://localhost:" + this.clientServerPort
+          "Serving client at: " + this.getClientUrl()
         )
       );
   };
 
   startIpfoamServer = async (): Promise<any> => {
-    let server = new IpfoamServer(this.ipfoamServerPort);
+    let server = new IpfoamServer(
+      ConfigController._configFile.network.localServerPort
+    );
     await server.startServer();
   };
 
   restoreIpfoamServer = async (): Promise<any> => {
-    await FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
-    let data = Referencer.iidToNoteWrap   
+    await FoamController.compileAll(
+      ConfigController.ipmmRepoPath,
+      ConfigController.foamRepoPath
+    );
+    let data = Referencer.iidToNoteWrap;
     const res = await axios.put(
-      "http://localhost:" + this.ipfoamServerPort + "/restore/x",
+      "http://localhost:" +
+        ConfigController._configFile.network.localServerPort +
+        "/restore/x",
       Utils.notesWrapToObjs(data)
     );
   };
 
+  getClientUrl = ()=>{
+    http://localhost:8081/#?expr=[%22is6hvlinq2lf4dbua%22,%22is6hvlinqxoswfrpq%22]
+    return "http://localhost:" +
+          ConfigController._configFile.network.localClientPort +
+          "/#?websocketsPort=" +
+          ConfigController._configFile.network.websocketsPort +
+          "&localServerPort=" +
+          ConfigController._configFile.network.localServerPort
+  }
+
   startWs = async (): Promise<any> => {
     const that = this;
-    console.log("Attempting WS connection on " + this.clientWebsocketPort);
-    const wss = new WebSocket.Server({ port: this.clientWebsocketPort });
+    console.log(
+      "Attempting WS connection on " +
+        ConfigController._configFile.network.websocketsPort
+    );
+    const wss = new WebSocket.Server({
+      port: ConfigController._configFile.network.websocketsPort,
+    });
 
     //return new Promise((resolve, reject) => {
     wss.on("connection", function connection(ws: any) {
@@ -79,7 +96,9 @@ export default class WatchController {
     } else {
       console.log(
         "Can't connecto to client. Try to reload http://localhost:" +
-          this.clientServerPort
+          ConfigController._configFile.network.localClientPort +
+          "/#bridgePort=" +
+          ConfigController._configFile.network.websocketsPort
       );
     }
   };
@@ -124,12 +143,15 @@ export default class WatchController {
   };
 
   updateServer = async (note: NoteWrap): Promise<Boolean> => {
-    let notes : Map<string,NoteWrap> = new Map();
+    let notes: Map<string, NoteWrap> = new Map();
     notes.set(note.iid, note);
-    const res = await axios.put("http://localhost:8080/update/x", Utils.notesWrapToObjs(notes));
+    const res = await axios.put(
+      "http://localhost:"+ConfigController._configFile.network.localServerPort+"/update/x",
+      Utils.notesWrapToObjs(notes)
+    );
     return true;
   };
-  
+
   reload = async (foamId: string): Promise<void> => {
     let note = await this.importFile(foamId);
     await this.updateServer(note);
