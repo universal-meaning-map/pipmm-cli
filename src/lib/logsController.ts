@@ -13,24 +13,25 @@ export default class LogsController {
   }
 
   static loadErrorLogs = (): ErrorContext[] => {
-    const path = Utils.resolveHome(ConfigController.logsPath);
-    if (fs.existsSync(path)) {
-      let data = JSON.parse(fs.readFileSync(path, "utf8"));
+    if (fs.existsSync(ConfigController._configFile.resources.logs)) {
+
+      let data = JSON.parse(fs.readFileSync(ConfigController._configFile.resources.logs, "utf8"));
+
       let logsFile: ErrorContext[] = [];
       let d: ErrorContext;
       for (d of data) {
         logsFile.push(new ErrorContext(d.message, d.info));
-        // new Res(d.filePath, d.processName, d.error));
       }
 
       return logsFile;
     }
-    throw new Error("No logs file for " + path + " exists");
+
+    throw new Error("No logs file for " + ConfigController._configFile.resources.logs + " exists");
   };
 
   static saveErrorLogs(errorLogs: ErrorContext[]) {
     const json = JSON.stringify(errorLogs);
-    Utils.saveFile(json, Utils.resolveHome(ConfigController.logsPath));
+    Utils.saveFile(json, Utils.resolveHome(ConfigController._configFile.resources.logs ));
   }
 
   static logNumberedList = (logs: ErrorContext[]) => {

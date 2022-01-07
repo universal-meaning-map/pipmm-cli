@@ -54,7 +54,7 @@ export default class ConfigController {
       resources: {
         foamRepo: Utils.resolveHome(foamRepo),
         ipmmRepo: Utils.resolveHome("~/.ipmm/ipmmRepo.json"),
-        logs: Utils.resolveHome("~/.ipmm/localFilter.json"),
+        logs: Utils.resolveHome("~/.ipmm/logs.json"),
         localFilter: Utils.resolveHome("~/.ipmm/localFilter.json"),
         remoteFilter: Utils.resolveHome("~/.ipmm/remoteFilter.json"),
       },
@@ -111,6 +111,24 @@ export default class ConfigController {
       Utils.resolveHome(ConfigController.configPath)
     );
   }
+
+  static loadFriendConfig = (frindFolder:string): FriendConfig|null => {
+    let path = Utils.resolveHome(ConfigController._configFile.resources.foamRepo+"/"+frindFolder+"/friendConfig.json")
+    if (fs.existsSync(path)) {
+      try {
+        let config: FriendConfig = JSON.parse(
+          fs.readFileSync(path, "utf8")
+        );
+        return config
+      } catch (e) {
+        console.log("Failed to parse friendConfig file:" + e);
+        return null;
+      }
+    } else {
+      console.log("No friendConfig file exists at " + path);
+      return null;
+    }
+  };
 }
 
 interface ConfigFile {
@@ -130,6 +148,13 @@ interface ConfigFile {
   identity: {
     mid: string;
     privKey: string;
+    pubKey: string;
+  };
+}
+
+interface FriendConfig {
+  identity: {
+    mid: string;
     pubKey: string;
   };
 }

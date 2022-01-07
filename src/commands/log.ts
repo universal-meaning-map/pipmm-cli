@@ -7,6 +7,7 @@ import { Console } from "console";
 import ConfigController from "../lib/configController";
 import LogsController from "../lib/logsController";
 import { Res } from "../lib/errorController";
+import { Config } from "@oclif/config";
 
 export default class LogsCommand extends Command {
   static description = "Use flags to config variables";
@@ -23,10 +24,13 @@ export default class LogsCommand extends Command {
   async run() {
     const { args, flags } = this.parse(LogsCommand);
 
+    ConfigController.load();
+
     let logs = LogsController.loadErrorLogs();
 
     if (args.errorIndex) LogsController.logErrorIndex(logs, args.errorIndex);
     else LogsController.logAllErrors(logs);
+
     this.exit(0);
 
     //LogsController.logNumberedList(logs);
