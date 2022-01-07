@@ -29,16 +29,13 @@ export default class ExportCommand extends Command {
     const { args, flags } = this.parse(ExportCommand);
     ConfigController.load();
 
-    let config = ConfigController.config;
 
-    if(config.resources.foamRepo==undefined)
-    console.log("You need first to specify your notes repository.")
 
       //import a single file
       if (args.fileName) {
         const res = await FoamController.compileFile(
-          config.resources.ipmmRepo,
-          config.resources.foamRepo,
+          ConfigController._configFile.resources.ipmmRepo,
+          ConfigController._configFile.resources.foamRepo,
           args.fileName
         );
 
@@ -50,7 +47,7 @@ export default class ExportCommand extends Command {
       }
       //import everything
       else {
-        await FoamController.compileAll(config.resources.ipmmRepo, config.resources.foamRepo);
+        await FoamController.compileAll(ConfigController._configFile.resources.ipmmRepo, ConfigController._configFile.resources.foamRepo);
         await fs.writeFile(
           ConfigController.ipmmRepoPath,
           JSON.stringify(Referencer.iidToNoteWrap, null, 4)

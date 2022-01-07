@@ -1,3 +1,4 @@
+import ConfigController from "./configController";
 import IpldController from "./ipldController";
 import { NoteWrap } from "./ipmm";
 import IpmmType from "./ipmmType";
@@ -7,7 +8,7 @@ export default class Referencer {
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
   static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
   static readonly PROP_TITLE_FOAMID = "prop-title-1612697362";
-  static readonly SELF_FRIEND_ID = "x";
+  //static readonly SELF_FRIEND_ID = "x";
 
   static readonly basicTypeInterplanetaryText = "interplanetary-text";
   static readonly basicTypeString = "string";
@@ -35,11 +36,12 @@ export default class Referencer {
     let runs = foamId.split("/");
     //does not include friendId, therefore is the author
     if (runs.length == 1) {
-      let mid = await Referencer.makeMid(Referencer.SELF_FRIEND_ID);
+      let mid = ConfigController._configFile.identity.mid;
       let liid = await Referencer.makeLocalIid(runs[0]);
       iid = mid + Referencer.miidSeparatorToken + liid;
     } else if (runs.length == 2) {
-      let mid = await Referencer.makeMid(runs[0]);
+     
+      let mid = await Referencer.getFriendMid(runs[0]);
       let liid = await Referencer.makeLocalIid(runs[1]);
       iid = mid + Referencer.miidSeparatorToken + liid;
     }
@@ -55,9 +57,22 @@ export default class Referencer {
     return trunkated;
   };
 
-  static makeMid = async (friendId: string): Promise<any> => {
-    return "i" + (await Referencer.makeLocalIid(friendId));
+
+
+  static getFriendMid  = async(friendFolder:string):Promise<string>=> {
+    //Go to the firendFolder, and get the friendConfig file where the mid is set
+    let friendConfig = ConfigController.loadFriendConfig(friendFolder);
+    if(friendConfig==null){
+      console.log("Trying to get MID of a friend but no friendConfig found");
+      console.log("Friend folder: "+friendFolder);
+      throw("Can't find friend config: "+ friendFolder);
+    }
+    return friendConfig.identity.mid;
+  }
+
+  /*  return "i" + (await Referencer.makeLocalIid(friendId));
   };
+  */
 
   static iidExists(iid: string): boolean {
     if (Referencer.iidToCidMap[iid]) return true;
