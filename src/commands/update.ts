@@ -16,10 +16,26 @@ export default class UpdateCommand extends Command {
     },
   ];
 
+
+  static flags = {
+    repoPath: flags.string({
+      name: "repoPath",
+      char: "p",
+      description:
+        "Executes the command relative to the specified path as oppose to the working directory",
+    }),
+  };
+
+
   async run() {
     const { args, flags } = this.parse(UpdateCommand);
 
-    ConfigController.load();
+    let workingPath = process.cwd();
+    if (flags.repoPath) {
+      workingPath = Utils.resolveHome(flags.repoPath);
+    }
+
+    if (!ConfigController.load(workingPath)) return;
 
     let repo = "";
     try {

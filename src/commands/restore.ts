@@ -28,12 +28,23 @@ export default class RestoreCommand extends Command {
       description:
         "Restores the IPMM repo into the remote server specified in the config file using the `remoteFilter.json`. If this flag is not use it will try to restore a local server using `localFilter.json` instead.",
     }),
+    repoPath: flags.string({
+      name: "repoPath",
+      char: "p",
+      description:
+        "Executes the command relative to the specified path as oppose to the working directory",
+    }),
   };
 
   async run() {
     const { args, flags } = this.parse(RestoreCommand);
 
-    ConfigController.load();
+    let workingPath = process.cwd();
+    if (flags.repoPath) {
+      workingPath = Utils.resolveHome(flags.repoPath);
+    }
+
+    if (!ConfigController.load(workingPath)) return;
 
     await FoamController.compileAll(
       ConfigController.ipmmRepoPath,

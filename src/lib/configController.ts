@@ -4,9 +4,9 @@ import * as path from "path";
 import Utils from "./utils";
 import * as ipfs from "ipfs-core";
 import ConfigCommand from "../commands/config";
-
 export default class ConfigController {
-  static configPath = Utils.resolveHome("~/.ipmm/config.json");
+  static configPath: any; //Utils.resolveHome("~/.ipmm/config.json");
+  static relativeConfigPath = "/ipmm/config.json";
   /*
   private static _defaultIpmmPath = "~/.ipmm/repo.json";
   private static _logsPath = "~/.ipmm/logs.json";
@@ -15,7 +15,10 @@ export default class ConfigController {
 */
   static _configFile: ConfigFile;
 
-  static load = (): Boolean => {
+  static load = (repoPath: any): Boolean => {
+    ConfigController.configPath =
+      repoPath + ConfigController.relativeConfigPath;
+
     if (fs.existsSync(ConfigController.configPath)) {
       try {
         ConfigController._configFile = JSON.parse(
@@ -34,8 +37,10 @@ export default class ConfigController {
     }
   };
 
-  static init = async (foamRepo:string): Promise<void> => {
-    let newConfig = await ConfigController.generateConfig(foamRepo);
+  static init = async (repoPath: string): Promise<void> => {
+    ConfigController.configPath =
+      repoPath + ConfigController.relativeConfigPath;
+    let newConfig = await ConfigController.generateConfig(repoPath);
     ConfigController._configFile = newConfig;
     ConfigController.save();
     console.log(
@@ -46,17 +51,17 @@ export default class ConfigController {
     console.log(ConfigController._configFile);
   };
 
-  static generateConfig = async (foamRepo:string): Promise<ConfigFile> => {
+  static generateConfig = async (foamRepo: string): Promise<ConfigFile> => {
     const id = await ipfs.PeerId.create({ bits: 1024, keyType: "RSA" });
     const idObj = id.toJSON();
 
     const configFile = {
       resources: {
         foamRepo: Utils.resolveHome(foamRepo),
-        ipmmRepo: Utils.resolveHome("~/.ipmm/ipmmRepo.json"),
-        logs: Utils.resolveHome("~/.ipmm/logs.json"),
-        localFilter: Utils.resolveHome("~/.ipmm/localFilter.json"),
-        remoteFilter: Utils.resolveHome("~/.ipmm/remoteFilter.json"),
+        ipmmRepo: Utils.resolveHome(foamRepo + "/ipmm/ipmmRepo.json"),
+        logs: Utils.resolveHome(foamRepo + "/ipmm/logs.json"),
+        localFilter: Utils.resolveHome(foamRepo + "/ipmm/localFilter.json"),
+        remoteFilter: Utils.resolveHome(foamRepo + "/ipmm/remoteFilter.json"),
       },
       network: {
         websocketsPort: 34343,
@@ -112,14 +117,17 @@ export default class ConfigController {
     );
   }
 
-  static loadFriendConfig = (frindFolder:string): FriendConfig|null => {
-    let path = Utils.resolveHome(ConfigController._configFile.resources.foamRepo+"/"+frindFolder+"/friendConfig.json")
+  static loadFriendConfig = (frindFolder: string): FriendConfig | null => {
+    let path = Utils.resolveHome(
+      ConfigController._configFile.resources.foamRepo +
+        "/" +
+        frindFolder +
+        "/friendConfig.json"
+    );
     if (fs.existsSync(path)) {
       try {
-        let config: FriendConfig = JSON.parse(
-          fs.readFileSync(path, "utf8")
-        );
-        return config
+        let config: FriendConfig = JSON.parse(fs.readFileSync(path, "utf8"));
+        return config;
       } catch (e) {
         console.log("Failed to parse friendConfig file:" + e);
         return null;

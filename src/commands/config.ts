@@ -1,5 +1,6 @@
 import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
+import Utils from "../lib/utils";
 
 export default class ConfigCommand extends Command {
   static description = "Use flags to config variables";
@@ -24,15 +25,28 @@ export default class ConfigCommand extends Command {
     },
   ];
 
+  static flags = {
+    repoPath: flags.string({
+      name: "repoPath",
+      char: "p",
+      description:
+        "Executes the command relative to the specified path as oppose to the working directory",
+    }),
+  };
+
   async run() {
     const { args, flags } = this.parse(ConfigCommand);
-    //console.log(args, flags);
+
+    let workingPath = process.cwd();
+    if (flags.repoPath) {
+      workingPath = Utils.resolveHome(flags.repoPath);
+    }
+
+    if (!ConfigController.load(workingPath)) return;
 
     if (!args.subcommand) {
       this.error("No config command specified");
     }
-
-    ConfigController.load();
 
     if (args.subcommand == "get") {
       console.log(ConfigController._configFile);

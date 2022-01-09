@@ -14,7 +14,6 @@ export default class WatchController {
   bridgeConnected = false;
 
   start = async (): Promise<any> => {
-    ConfigController.load();
     await this.startIpfoamServer();
     await this.restoreIpfoamServer();
     await this.startClientServer();
@@ -30,9 +29,7 @@ export default class WatchController {
     connect()
       .use(serveStatic(fullPath))
       .listen(ConfigController._configFile.network.localClientPort, () =>
-        console.log(
-          "Serving client at: " + this.buildClientUrl()
-        )
+        console.log("Serving client at: " + this.buildClientUrl())
       );
   };
 
@@ -57,24 +54,27 @@ export default class WatchController {
     );
   };
 
-  buildClientUrl = ()=>{
-    http://localhost:8081/#?expr=[%22is6hvlinq2lf4dbua%22,%22is6hvlinqxoswfrpq%22]
-    return "http://localhost:" +
-          ConfigController._configFile.network.localClientPort +
-          "/#?websocketsPort=" +
-          ConfigController._configFile.network.websocketsPort +
-          "&localServerPort=" +
-          ConfigController._configFile.network.localServerPort +
-          "&expr="+this.buildDefaultRun();
-  }
-  buildDefaultRun = ()=>{
+  buildClientUrl = () => {
+    //localhost:8081/#?expr=[%22is6hvlinq2lf4dbua%22,%22is6hvlinqxoswfrpq%22]
+    http: return (
+      "http://localhost:" +
+      ConfigController._configFile.network.localClientPort +
+      "/#?websocketsPort=" +
+      ConfigController._configFile.network.websocketsPort +
+      "&localServerPort=" +
+      ConfigController._configFile.network.localServerPort +
+      "&expr=" +
+      this.buildDefaultRun()
+    );
+  };
+  buildDefaultRun = () => {
     let mid = ConfigController._configFile.identity.mid; //hard code the renders since is not relative to the author
-    let liidColumNavigator = mid + "lzfmhs7a"
-    let liidSubAbstractionBlock = mid +"2lf4dbua";
-    let liidTemp = mid + "sdqwz4ea"
-    let expr = [liidColumNavigator,[liidSubAbstractionBlock,liidTemp]]
-    return JSON.stringify(expr)
-  }
+    let liidColumNavigator = mid + "lzfmhs7a";
+    let liidSubAbstractionBlock = mid + "2lf4dbua";
+    let liidTemp = mid + "sdqwz4ea";
+    let expr = [liidColumNavigator, [liidSubAbstractionBlock, liidTemp]];
+    return JSON.stringify(expr);
+  };
 
   startWs = async (): Promise<any> => {
     const that = this;
@@ -155,7 +155,9 @@ export default class WatchController {
     let notes: Map<string, NoteWrap> = new Map();
     notes.set(note.iid, note);
     const res = await axios.put(
-      "http://localhost:"+ConfigController._configFile.network.localServerPort+"/update/x",
+      "http://localhost:" +
+        ConfigController._configFile.network.localServerPort +
+        "/update/x",
       Utils.notesWrapToObjs(notes)
     );
     return true;

@@ -8,6 +8,7 @@ import ConfigController from "../lib/configController";
 import LogsController from "../lib/logsController";
 import { Res } from "../lib/errorController";
 import { Config } from "@oclif/config";
+import Utils from "../lib/utils";
 
 export default class LogsCommand extends Command {
   static description = "Use flags to config variables";
@@ -21,10 +22,25 @@ export default class LogsCommand extends Command {
     },
   ];
 
+  static flags = {
+    repoPath: flags.string({
+      name: "repoPath",
+      char: "p",
+      description:
+        "Executes the command relative to the specified path as oppose to the working directory",
+    }),
+  };
+
   async run() {
     const { args, flags } = this.parse(LogsCommand);
 
-    ConfigController.load();
+    let workingPath = process.cwd();
+    if (flags.repoPath) {
+      workingPath = Utils.resolveHome(flags.repoPath);
+    }
+
+    if (!ConfigController.load(workingPath)) return;
+
 
     let logs = LogsController.loadErrorLogs();
 
