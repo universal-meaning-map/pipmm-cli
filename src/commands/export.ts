@@ -27,10 +27,7 @@ export default class ExportCommand extends Command {
 
   async run() {
     const { args, flags } = this.parse(ExportCommand);
-    ConfigController.load();
-
-
-
+    ConfigController.load()
       //import a single file
       if (args.fileName) {
         const res = await FoamController.compileFile(
@@ -38,7 +35,6 @@ export default class ExportCommand extends Command {
           ConfigController._configFile.resources.foamRepo,
           args.fileName
         );
-
         if (res.isOk()) {
           let note: NoteWrap = res.value;
           console.log(note);

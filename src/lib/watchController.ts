@@ -31,7 +31,7 @@ export default class WatchController {
       .use(serveStatic(fullPath))
       .listen(ConfigController._configFile.network.localClientPort, () =>
         console.log(
-          "Serving client at: " + this.getClientUrl()
+          "Serving client at: " + this.buildClientUrl()
         )
       );
   };
@@ -57,14 +57,23 @@ export default class WatchController {
     );
   };
 
-  getClientUrl = ()=>{
+  buildClientUrl = ()=>{
     http://localhost:8081/#?expr=[%22is6hvlinq2lf4dbua%22,%22is6hvlinqxoswfrpq%22]
     return "http://localhost:" +
           ConfigController._configFile.network.localClientPort +
           "/#?websocketsPort=" +
           ConfigController._configFile.network.websocketsPort +
           "&localServerPort=" +
-          ConfigController._configFile.network.localServerPort
+          ConfigController._configFile.network.localServerPort +
+          "&expr="+this.buildDefaultRun();
+  }
+  buildDefaultRun = ()=>{
+    let mid = ConfigController._configFile.identity.mid; //hard code the renders since is not relative to the author
+    let liidColumNavigator = mid + "lzfmhs7a"
+    let liidSubAbstractionBlock = mid +"2lf4dbua";
+    let liidTemp = mid + "sdqwz4ea"
+    let expr = [liidColumNavigator,[liidSubAbstractionBlock,liidTemp]]
+    return JSON.stringify(expr)
   }
 
   startWs = async (): Promise<any> => {
