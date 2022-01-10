@@ -52,7 +52,7 @@ export default class ConfigController {
   };
 
   static generateConfig = async (foamRepo: string): Promise<ConfigFile> => {
-    const id = await ipfs.PeerId.create({ bits: 1024, keyType: "RSA" });
+    const id = await ipfs.PeerId.create({ bits: 2048, keyType: "Ed25519" });
     const idObj = id.toJSON();
 
     const configFile = {
