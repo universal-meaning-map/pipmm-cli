@@ -18,6 +18,7 @@ export default class Referencer {
     "abstraction-reference-list";
   static readonly basicTypeBoolean = "boolean";
   static readonly basicTypeUrl = "url";
+  static readonly basicTypeNumber= "number";
 
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};

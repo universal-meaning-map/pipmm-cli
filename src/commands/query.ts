@@ -31,6 +31,8 @@ export default class QueryCommand extends Command {
 
     let filterJson = Utils.getFile(ConfigController.remoteFilterPath);
     let filter = JSON.parse(filterJson);
+    console.log("Applying filter:");
+    console.log(filter);
     let outputNotes = await Filter.filter(inputNotes,filter);
 
     console.log(outputNotes);

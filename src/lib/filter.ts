@@ -9,15 +9,17 @@ export default class Filter {
   static NOT: string = "not";
   static CONTAINS: string = "contains";
   static IS_EMPTY: string = "isEmpty";
+  static IS_EQUAL: string = "isEqual";
+  static IS_BIGGER: string = "isBigger";
+  static IS_SMALLER: string = "isSmaller";
 
   static filter = async (
     notesInput: Map<string, NoteWrap>,
     filter: any
   ): Promise<Map<string, NoteWrap>> => {
-
     let filtered: Map<string, NoteWrap> = new Map();
 
-    for (let [iid,note] of notesInput.entries()){
+    for (let [iid, note] of notesInput.entries()) {
       if (await Filter.eval(filter, note)) {
         filtered.set(iid, note);
       }
@@ -95,7 +97,6 @@ export default class Filter {
   ): Boolean {
     //GENERICS
     if (condition == Filter.IS_EMPTY) {
-
       if (noteValue == null) {
         return true;
       }
@@ -110,6 +111,12 @@ export default class Filter {
         if (noteValue.indexOf(filterValue) == -1) return false;
         else return true;
       }
+      //IS EQUAL
+      else if (condition == Filter.IS_EQUAL) {
+        if (noteValue == filterValue) return true;
+        return false;
+      }
+
       return false;
     }
 
@@ -124,7 +131,34 @@ export default class Filter {
           }
         }
       }
+      //IS EQUAL
+      else if (condition == Filter.IS_EQUAL) {
+        if (noteValue == filterValue) return true;
+        return false;
+      }
     }
+    //NUMBER
+    else if (type.constrains[0] == Referencer.basicTypeNumber) {
+      if(noteValue==null) //Let's not make wierd castings
+      return false
+      
+      //IS EQUAL
+      if (condition == Filter.IS_EQUAL) {
+        if (noteValue == filterValue) return true;
+        return false;
+      }
+      //IS BIGGER
+      else if (condition == Filter.IS_BIGGER) {
+        if (noteValue > filterValue) return true;
+        return false;
+      }
+      //IS SMALLER
+      else if (condition == Filter.IS_SMALLER) {
+        if (noteValue < filterValue) return true;
+        return false;
+      }
+    }
+    //
     //console.log("Can't process type " + IpmmType);
     return false;
   }
