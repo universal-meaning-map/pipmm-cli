@@ -5,7 +5,7 @@ import axios from "axios";
 import Utils from "../lib/utils";
 
 export default class UpdateCommand extends Command {
-  static description = "Uploads repo to server";
+  static description = "Uploads a note to the sever";
 
   static args = [
     {

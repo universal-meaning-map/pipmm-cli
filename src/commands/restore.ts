@@ -8,16 +8,7 @@ import Filter from "../lib/filter";
 
 export default class RestoreCommand extends Command {
   static description =
-    "Compiles repo and uploads to the server (local or remote, depending on the flag) applying a filter";
-
-  static args = [
-    {
-      name: "Password",
-      required: false,
-      description: "foamId of the note to update",
-      hidden: false,
-    },
-  ];
+    "Compiles repo, filters it and uploads to the server (local or remote, depending on the flag) erasing the previous version applying a filter";
 
   static flags = {
     help: flags.help({ char: "h" }),

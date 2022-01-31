@@ -6,9 +6,15 @@ import FoamController from "../lib/foamController";
 import Referencer from "../lib/referencer";
 
 export default class QueryCommand extends Command {
-  static description = "Uploads repo to server";
+  static description = "Returns a list of compiled notes based on a filter. It uses the filterLocal set in the config by default. Use -r to use filterRemote instead";
 
   static flags = {
+    remote: flags.boolean({
+      name: "remote",
+      char: "r",
+      description:
+        "Use filterRemote specified in the config.",
+    }),
     repoPath: flags.string({
       name: "repoPath",
       char: "p",
@@ -26,14 +32,25 @@ export default class QueryCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-    await FoamController.compileAll(ConfigController.ipmmRepoPath, ConfigController.foamRepoPath);
+    await FoamController.compileAll(
+      ConfigController.ipmmRepoPath,
+      ConfigController.foamRepoPath
+    );
     let inputNotes = Referencer.iidToNoteWrap;
 
-    let filterJson = Utils.getFile(ConfigController.remoteFilterPath);
+    let filterJson;
+    if (flags.remote) {
+      console.log("Filtering based on filterRemote");
+      filterJson = Utils.getFile(ConfigController.remoteFilterPath);
+    } else {
+      console.log("Filtering based on loca filterLocal");
+      filterJson = Utils.getFile(ConfigController.localFilterPath);
+    }
+
     let filter = JSON.parse(filterJson);
     console.log("Applying filter:");
     console.log(filter);
-    let outputNotes = await Filter.filter(inputNotes,filter);
+    let outputNotes = await Filter.filter(inputNotes, filter);
 
     console.log(outputNotes);
   }

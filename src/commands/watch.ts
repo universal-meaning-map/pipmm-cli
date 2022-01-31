@@ -4,7 +4,7 @@ import Utils from "../lib/utils";
 import WatchController from "../lib/watchController";
 
 export default class WatchCommand extends Command {
-  static description = "Watches changes on Foam repo and updates the web view";
+  static description = "Creates a local server and watches changes on the Abstraction repo, when a file is changed it updates the client";
 
   static flags = {
     repoPath: flags.string({

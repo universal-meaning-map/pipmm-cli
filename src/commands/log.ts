@@ -11,7 +11,7 @@ import { Config } from "@oclif/config";
 import Utils from "../lib/utils";
 
 export default class LogsCommand extends Command {
-  static description = "Use flags to config variables";
+  static description = "View the logs from the last command ran";
 
   static args = [
     {

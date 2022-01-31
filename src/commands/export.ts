@@ -10,7 +10,7 @@ import Utils from "../lib/utils";
 
 export default class ExportCommand extends Command {
   static description =
-    "Compiles the entire Foam specified in the config (or a single note) into an IPMM repo and saves it as JSON object where specified in the config";
+    "Compiles the `Abstractions` repository (or a single note) into an IPMM repo and saves it as JSON object";
 
   static flags = {
     help: flags.help({ char: "h" }),
