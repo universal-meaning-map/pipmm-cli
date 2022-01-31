@@ -12,6 +12,7 @@ export default class Filter {
   static IS_EQUAL: string = "isEqual";
   static IS_BIGGER: string = "isBigger";
   static IS_SMALLER: string = "isSmaller";
+  static IS_TYPE: string = "isType";
 
   static filter = async (
     notesInput: Map<string, NoteWrap>,
@@ -79,6 +80,12 @@ export default class Filter {
     let filterValue = fc.value;
     let type = Referencer.getType(tiid);
 
+    //HACK: Fix me.
+    if (fc.condition == Filter.IS_TYPE) {
+      if (note.block.has("defaultName")) return true;
+      return false;
+    }
+
     let res = Filter.checkConditionbyType(
       fc.condition,
       noteValue,
@@ -102,6 +109,10 @@ export default class Filter {
       }
       return false;
     }
+
+    if (noteValue == null)
+      //Let's not make wierd castings
+      return false;
 
     //STRING
     if (type.constrains[0] == Referencer.basicTypeString) {
@@ -139,9 +150,6 @@ export default class Filter {
     }
     //NUMBER
     else if (type.constrains[0] == Referencer.basicTypeNumber) {
-      if(noteValue==null) //Let's not make wierd castings
-      return false
-      
       //IS EQUAL
       if (condition == Filter.IS_EQUAL) {
         if (noteValue == filterValue) return true;
@@ -155,6 +163,15 @@ export default class Filter {
       //IS SMALLER
       else if (condition == Filter.IS_SMALLER) {
         if (noteValue < filterValue) return true;
+        return false;
+      }
+    }
+
+    //BOOLEAN
+    else if (type.constrains[0] == Referencer.basicTypeBoolean) {
+      //IS EQUAL
+      if (condition == Filter.IS_EQUAL) {
+        if (noteValue == filterValue) return true;
         return false;
       }
     }
