@@ -2,14 +2,10 @@ import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import * as fs from "fs";
 import Utils from "../lib/utils";
-import { Console } from "console";
-import { off } from "process";
 
 export default class InitCommand extends Command {
   static description =
     "Generates initial configuration, the MID (mind-identifier) and its keys";
-
- 
 
   static flags = {
     help: flags.help({ char: "h" }),

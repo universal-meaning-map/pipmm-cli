@@ -1,18 +1,10 @@
-import { Config } from "@oclif/config";
 import * as fs from "fs";
-import * as path from "path";
 import Utils from "./utils";
 import * as ipfs from "ipfs-core";
-import ConfigCommand from "../commands/config";
 export default class ConfigController {
-  static configPath: any; //Utils.resolveHome("~/.ipmm/config.json");
+  static configPath: any;
   static relativeConfigPath = "/ipmm/config.json";
-  /*
-  private static _defaultIpmmPath = "~/.ipmm/repo.json";
-  private static _logsPath = "~/.ipmm/logs.json";
-  private static filterRemote = "~/.ipmm/filterRemote.json";
-  private static filterLocal = "~/.ipmm/filterLocal.json";
-*/
+
   static _configFile: ConfigFile;
 
   static load = (repoPath: any): Boolean => {
