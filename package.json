@@ -1,12 +1,12 @@
 {
-  "name": "ipmm-cli",
-  "description": "Toolkit to make a FOAM repo to make it Interplanetary",
+  "name": "pipmm",
+  "description": "Set of tools meant to play with the underlying assumptions of `Interplanetary mind-map`",
   "version": "0.0.0",
   "author": "xavivives",
   "bin": {
-    "ipmm": "./bin/run"
+    "pipmm": "./bin/run"
   },
-  "bugs": "https://github.com/xavivives/ipmm-cli/issues",
+  "bugs": "https://github.com/interplanetarymindmap/pipmm-cli/issues",
   "devDependencies": {
     "@oclif/dev-cli": "^1.26.0",
     "@oclif/test": "^1.2.8",
@@ -50,7 +50,7 @@
   },
   "repository": "xavivives/ipmm-cli",
   "scripts": {
-    "run": "node bin/run foam import",
+    "run": "node bin/run watch",
     "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint . --ext .ts --config .eslintrc",
     "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
