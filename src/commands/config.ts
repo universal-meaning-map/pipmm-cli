@@ -61,6 +61,6 @@ export default class ConfigCommand extends Command {
       }
     } else {
       this.error("Config command " + args.subcommand + " does not exist");
-    }
+    }[]
   }
 }

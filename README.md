@@ -1,16 +1,7 @@
-# ipmm-cli
+# Pseudo Interplanetary Mindmap CLI
 
-# Dev references
+Pseudo Interplanetary Mind-map is a set of tools meant to explore and play with the underlying assumptions of IPMM. It'
 
-CLI
-
-- https://dev.to/kenanchristian/build-an-interactive-cli-using-typescript-11fl
-- Option tells the function how to act (e.g. -a, -l, --verbose, --output , -name , -c , etc)
-- Arguments tells the function what to act on/from (e.g. \*, file1, hostname, database).
-
-Node commnication
-
-- https://medium.com/@NorbertdeLangen/communicating-between-nodejs-processes-4e68be42b917
 
 # Overview
 
@@ -36,7 +27,7 @@ Unless specified it uses the repo paths specified in the `config.json` file
 
 `foam`: Foam related commands
 
-- `import`: Parses the Foam repo and creates a new ipmm repo
+- `import`: Parses the Foam repo and creates a new ipmm repo  
 - `export`: Outputs a Foam repo from the ipmm repo
 - `watch`[daemon]: Listens to the foam repo for changes and it updates the ipmm repo
 - `sync`[daemon]: Listen for changes in foam and ipmm and syncs the other one. Exclusive to `watch`
@@ -52,15 +43,15 @@ Flags
 
 `foam import`
 
-> Parses a FOAM repo and converts it in a IPMM repo that lives in memory
-> Takes the current folder if is not specified with `path`
+> Parses a FOAM repo and converts it in a IPMM repo that lives in memory[
+> Takes the current folder if is not specified with `path`]
 
-`foam export`
+`foam export``
 
 `foam sync`
 
 `foam watch`
-
+[]
 ## status
 
 ## stats
