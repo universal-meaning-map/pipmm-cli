@@ -35,7 +35,7 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/xavivives/ipmm-cli",
+  "homepage": "https://github.com/interplanetarymindmap/pipmm-cli",
   "keywords": [
     "oclif"
   ],
@@ -43,12 +43,12 @@
   "main": "lib/index.js",
   "oclif": {
     "commands": "./lib/commands",
-    "bin": "ipmm",
+    "bin": "pipmm",
     "plugins": [
       "@oclif/plugin-help"
     ]
   },
-  "repository": "xavivives/ipmm-cli",
+  "repository": "interplanetarymindmap/pipmm-cli",
   "scripts": {
     "run": "node bin/run watch",
     "postpack": "rm -f oclif.manifest.json",
