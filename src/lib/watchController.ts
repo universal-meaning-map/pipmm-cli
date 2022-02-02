@@ -7,15 +7,15 @@ import Referencer from "./referencer";
 import axios from "axios";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
-import { Server as IpfoamServer } from "../../../ipfoam-server";
+import { Server as PipmmmServer } from "pipmm-server";
 
 export default class WatchController {
   webSocket: any;
   bridgeConnected = false;
 
   start = async (): Promise<any> => {
-    await this.startIpfoamServer();
-    await this.restoreIpfoamServer();
+    await this.startPipmmmServer();
+    await this.restorePipmmmServer();
     await this.startClientServer();
     await this.startFileWatcher();
     await this.startWs();
@@ -24,7 +24,8 @@ export default class WatchController {
   startClientServer = async (): Promise<any> => {
     const connect = require("connect");
     const serveStatic = require("serve-static");
-    const path = "/Users/xavi/Dev/ipfoam-client/build/web";
+    const path = Path.join( __dirname +"../../../client");
+    console.log("Serving client in: "+ path)
     const fullPath = Utils.resolveHome(path);
     connect()
       .use(serveStatic(fullPath))
@@ -33,14 +34,14 @@ export default class WatchController {
       );
   };
 
-  startIpfoamServer = async (): Promise<any> => {
-    let server = new IpfoamServer(
+  startPipmmmServer = async (): Promise<any> => {
+    let server = new PipmmmServer(
       ConfigController._configFile.network.localServerPort
     );
     await server.startServer();
   };
 
-  restoreIpfoamServer = async (): Promise<any> => {
+  restorePipmmmServer = async (): Promise<any> => {
     await FoamController.compileAll(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath
