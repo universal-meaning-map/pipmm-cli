@@ -1,11 +1,11 @@
 import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
-import Filter from "../lib/filter";
+import Filter from "../lib/filterController";
 import FoamController from "../lib/foamController";
 import Referencer from "../lib/referencer";
 
-export default class QueryCommand extends Command {
+export default class FilterCommand extends Command {
   static description = "Returns a list of compiled notes based on a filter. It uses the filterLocal set in the config by default. Use -r to use filterRemote instead";
 
   static flags = {
@@ -24,7 +24,7 @@ export default class QueryCommand extends Command {
   };
 
   async run() {
-    const { args, flags } = this.parse(QueryCommand);
+    const { args, flags } = this.parse(FilterCommand);
     let workingPath = process.cwd();
     if (flags.repoPath) {
       workingPath = Utils.resolveHome(flags.repoPath);

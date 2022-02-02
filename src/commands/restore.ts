@@ -4,7 +4,7 @@ import axios from "axios";
 import Referencer from "../lib/referencer";
 import FoamController from "../lib/foamController";
 import Utils from "../lib/utils";
-import Filter from "../lib/filter";
+import Filter from "../lib/filterController";
 
 export default class RestoreCommand extends Command {
   static description =
