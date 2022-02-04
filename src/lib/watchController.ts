@@ -69,12 +69,12 @@ export default class WatchController {
     );
   };
   buildDefaultRun = () => {
+    return "[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJlzfmhs7a%22,[[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJ2lf4dbua%22,%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJamsdlhba%22]]]"
     let mid = ConfigController._configFile.identity.mid; //hard code the renders since is not relative to the author
     let liidColumNavigator = mid + "lzfmhs7a";
     let liidSubAbstractionBlock = mid + "2lf4dbua";
     let liidTemp = mid + "sdqwz4ea";
-    //let expr = [liidColumNavigator, [liidSubAbstractionBlock, liidTemp]];
-    let expr = "[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJlzfmhs7a%22,[[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJ2lf4dbua%22,%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJamsdlhba%22]]]"
+    let expr = [liidColumNavigator, [liidSubAbstractionBlock, liidTemp]];
     return JSON.stringify(expr);
 
   };
