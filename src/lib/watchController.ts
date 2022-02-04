@@ -74,7 +74,7 @@ export default class WatchController {
     let liidSubAbstractionBlock = mid + "2lf4dbua";
     let liidTemp = mid + "sdqwz4ea";
     //let expr = [liidColumNavigator, [liidSubAbstractionBlock, liidTemp]];
-    let expr = "http://localhost:56565/#?localServerPort=45454&websocketsPort=34343&expr=[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJlzfmhs7a%22,[[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJ2lf4dbua%22,%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJamsdlhba%22]]]"
+    let expr = "[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJlzfmhs7a%22,[[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJ2lf4dbua%22,%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJamsdlhba%22]]]"
     return JSON.stringify(expr);
 
   };
