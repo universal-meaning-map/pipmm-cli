@@ -1,7 +1,7 @@
 {
   "name": "pipmm",
   "description": "Set of tools meant to play with the underlying assumptions of `Interplanetary mind-map`",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "author": "xavivives",
   "bin": {
     "pipmm": "./bin/run"
@@ -32,6 +32,7 @@
   "files": [
     "/bin",
     "/lib",
+    "/client",
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
@@ -69,7 +70,6 @@
     "cli-ux": "^5.5.1",
     "connect": "^3.7.0",
     "gray-matter": "^4.0.2",
-    "ipfoam-server": "file:../ipfoam-server",
     "ipfs-core": "^0.10.4",
     "ipld-schema": "^1.1.6",
     "multiformats": "^9.4.5",
