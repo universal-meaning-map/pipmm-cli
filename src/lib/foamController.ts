@@ -22,8 +22,6 @@ export default class FoamController {
     notesRepo = _notesRepo;
     ipmmRepo = _ipmmRepo;
 
-    console.log(_ipmmRepo,_notesRepo)
-
     let files = await fs.readdir(notesRepo);
     files = Utils.filterByExtensions(files, [".md"]);
 
@@ -66,6 +64,7 @@ export default class FoamController {
 
       if (fileData.isError()) return fileData;
 
+      
       const frontMatterRes = Res.sync(
         () => {
           return matter(fileData.value);
@@ -73,11 +72,11 @@ export default class FoamController {
         "Unable to parse front-matter for: " + foamId,
         Res.saveError,
         { data: fileData.value }
-      );
-
-      if (frontMatterRes.isError()) return frontMatterRes;
-
-      const frontMatter = frontMatterRes.value;
+        );
+        
+        if (frontMatterRes.isError()) return frontMatterRes;
+        
+        const frontMatter = frontMatterRes.value;
 
       //check if the note is a type definition
       let isType = false;
@@ -86,13 +85,15 @@ export default class FoamController {
         isType = true;
 
         if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
-          return Res.error(
-            "A Note with a type can't include other properties. Verify the note only contains " +
-              Referencer.PROP_TYPE_FOAMID +
-              " data and has no content.",
-            Res.saveError
+
+        return Res.error(
+          "A Note with a type can't include other properties. Verify the note only contains " +
+          Referencer.PROP_TYPE_FOAMID +
+          " data and has no content.",
+          Res.saveError
           );
-      }
+        }
+        
 
       //because we can create notes recursively when looking for a type, we need to be able to warn
       if (shouldBeAType && !isType) {

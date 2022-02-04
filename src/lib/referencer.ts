@@ -61,7 +61,6 @@ export default class Referencer {
 
 
   static getFriendMid  = async(friendFolder:string):Promise<string>=> {
-    console.log("friend mind")
     //Go to the firendFolder, and get the friendConfig file where the mid is set
     let friendConfig = ConfigController.loadFriendConfig(friendFolder);
     if(friendConfig==null){
@@ -69,8 +68,6 @@ export default class Referencer {
       console.log("Friend folder: "+friendFolder);
       throw("Can't find friend config: "+ friendFolder);
     }
-    console.log("out mind")
-
     return friendConfig.identity.mid;
   }
 

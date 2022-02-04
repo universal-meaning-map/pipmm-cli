@@ -59,7 +59,6 @@ export default class ExportCommand extends Command {
         ConfigController._configFile.resources.ipmmRepo,
         ConfigController._configFile.resources.notesRepo
       );
-      console.log("here")
       await fs.writeFile(
         ConfigController._configFile.resources.ipmmRepo,
         JSON.stringify(Utils.notesWrapToObjs(Referencer.iidToNoteWrap), null, 2)
