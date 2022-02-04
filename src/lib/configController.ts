@@ -24,7 +24,7 @@ export default class ConfigController {
     } else {
       console.log("No config file exists at " + ConfigController.configPath);
       console.log("To generate a new one run:");
-      console.log("\tipmm init");
+      console.log("\tpipmm init");
       return false;
     }
   };
@@ -36,7 +36,7 @@ export default class ConfigController {
     ConfigController._configFile = newConfig;
     ConfigController.save();
     console.log(
-      "New config files and keys created at " +
+      "Keys generated, new config file created at " +
         ConfigController.configPath +
         "\n"
     );
@@ -49,7 +49,7 @@ export default class ConfigController {
 
     const configFile = {
       resources: {
-        foamRepo: Utils.resolveHome(foamRepo),
+        notesRepo: Utils.resolveHome(foamRepo),
         ipmmRepo: Utils.resolveHome(foamRepo + "/ipmm/ipmmRepo.json"),
         logs: Utils.resolveHome(foamRepo + "/ipmm/logs.json"),
         localFilter: Utils.resolveHome(foamRepo + "/ipmm/localFilter.json"),
@@ -81,13 +81,13 @@ export default class ConfigController {
   }
 
   static set foamRepoPath(foamRepoPath: string) {
-    ConfigController._configFile.resources.foamRepo =
+    ConfigController._configFile.resources.notesRepo =
       Utils.resolveHome(foamRepoPath);
     ConfigController.save();
   }
 
   static get foamRepoPath(): string {
-    return ConfigController._configFile.resources.foamRepo;
+    return ConfigController._configFile.resources.notesRepo;
   }
 
   static get logsPath(): string {
@@ -109,13 +109,15 @@ export default class ConfigController {
     );
   }
 
-  static loadFriendConfig = (frindFolder: string): FriendConfig | null => {
+  static loadFriendConfig = (friendFolder: string): FriendConfig | null => {
+  
     let path = Utils.resolveHome(
-      ConfigController._configFile.resources.foamRepo +
+      ConfigController._configFile.resources.notesRepo +
         "/" +
-        frindFolder +
+        friendFolder +
         "/friendConfig.json"
     );
+
     if (fs.existsSync(path)) {
       try {
         let config: FriendConfig = JSON.parse(fs.readFileSync(path, "utf8"));
@@ -133,7 +135,7 @@ export default class ConfigController {
 
 interface ConfigFile {
   resources: {
-    foamRepo: string;
+    notesRepo: string;
     ipmmRepo: string;
     logs: string;
     localFilter: string;
