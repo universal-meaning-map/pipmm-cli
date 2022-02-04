@@ -9,7 +9,7 @@ import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
 
-let foamRepo: string;
+let notesRepo: string;
 let ipmmRepo: string;
 
 const foamIdToTypeCid: { [foamId: string]: string } = {};
@@ -17,12 +17,14 @@ const foamIdToTypeCid: { [foamId: string]: string } = {};
 export default class FoamController {
   static compileAll = async (
     _ipmmRepo: string,
-    _foamRepo: string
+    _notesRepo: string
   ): Promise<void> => {
-    foamRepo = _foamRepo;
+    notesRepo = _notesRepo;
     ipmmRepo = _ipmmRepo;
 
-    let files = await fs.readdir(foamRepo);
+    console.log(_ipmmRepo,_notesRepo)
+
+    let files = await fs.readdir(notesRepo);
     files = Utils.filterByExtensions(files, [".md"]);
 
     for (let fileName of files) {
@@ -34,10 +36,10 @@ export default class FoamController {
 
   static compileFile = async (
     _ipmmRepo: string,
-    _foamRepo: string,
+    _notesRepo: string,
     _fileName: string
   ): Promise<Res> => {
-    foamRepo = _foamRepo;
+    notesRepo = _notesRepo;
     ipmmRepo = _ipmmRepo;
 
     const foamId = Utils.removeFileExtension(_fileName);
@@ -53,7 +55,7 @@ export default class FoamController {
     //read file
 
     try {
-      const filePath = path.join(foamRepo, foamId + ".md");
+      const filePath = path.join(notesRepo, foamId + ".md");
       FoamController.checkFileName(foamId, filePath);
 
       const fileData = await Res.async(

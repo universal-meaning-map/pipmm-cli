@@ -14,7 +14,7 @@ export default class ExportCommand extends Command {
 
   static flags = {
     help: flags.help({ char: "h" }),
-    repoPath: flags.string({
+    notesRepoPath: flags.string({
       name: "repoPath",
       char: "p",
       description:
@@ -34,8 +34,8 @@ export default class ExportCommand extends Command {
   async run() {
     const { args, flags } = this.parse(ExportCommand);
     let workingPath = process.cwd();
-    if (flags.repoPath) {
-      workingPath = Utils.resolveHome(flags.repoPath);
+    if (flags.notesRepoPath) {
+      workingPath = Utils.resolveHome(flags.notesRepoPath);
     }
 
     if (!ConfigController.load(workingPath)) return;
@@ -44,7 +44,7 @@ export default class ExportCommand extends Command {
     if (args.fileName) {
       const res = await FoamController.compileFile(
         ConfigController._configFile.resources.ipmmRepo,
-        ConfigController._configFile.resources.foamRepo,
+        ConfigController._configFile.resources.notesRepo,
         args.fileName
       );
       if (res.isOk()) {
@@ -57,7 +57,7 @@ export default class ExportCommand extends Command {
     else {
       await FoamController.compileAll(
         ConfigController._configFile.resources.ipmmRepo,
-        ConfigController._configFile.resources.foamRepo
+        ConfigController._configFile.resources.notesRepo
       );
       console.log("here")
       await fs.writeFile(
