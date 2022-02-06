@@ -3,16 +3,16 @@ import Utils from "./utils";
 import matter from "gray-matter";
 import * as path from "path";
 import { promises as fs, readFile } from "fs";
-import {  NoteWrap } from "../lib/ipmm";
+import { NoteWrap } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
+import ConfigController from "./configController";
+import { off } from "process";
 
 let notesRepo: string;
 let ipmmRepo: string;
-
-const foamIdToTypeCid: { [foamId: string]: string } = {};
 
 export default class FoamController {
   static compileAll = async (
@@ -29,7 +29,6 @@ export default class FoamController {
       const foamId = Utils.removeFileExtension(fileName);
       await FoamController.makeNote(foamId);
     }
-    
   };
 
   static compileFile = async (
@@ -44,27 +43,75 @@ export default class FoamController {
     return await FoamController.makeNote(foamId, false, true);
   };
 
+  static getFriendIdFromFoamId = (
+    foamId: string | undefined
+  ): string | undefined => {
+    if (foamId) {
+      let runs = foamId.split("/");
+      if (runs.length == 2) {
+        return runs[0];
+      }
+    }
+    return undefined;
+  };
+
+
+  static updaterFoamIdWithFriendFolder = (
+    foamId: string , requesterFoamId:string|undefined
+  ): string  => {
+
+    let repoFolder = path.basename(
+      ConfigController._configFile.resources.notesRepo
+    );
+    let requesterFolder =
+      FoamController.getFriendIdFromFoamId(requesterFoamId);
+    //the containing note lives in a friendFolder
+    if (requesterFolder && requesterFolder != repoFolder) {
+      //check if the reference is pointing to a friendFolder or to self
+      let runs = foamId.split("/");
+      if (runs.length == 1) {
+        foamId = requesterFolder + "/" + foamId;
+      }
+    }
+    return foamId;
+  };
+
   static makeNote = async (
     foamId: string,
     shouldBeAType: boolean = false,
     forceUpdate: Boolean = false,
     requesterFoamId?: string
   ): Promise<Res> => {
-    //read file
-
     try {
+      //UPDATE FOAMID TO INCLUDE FRIENDID
+      /*
+      let repoFolder = path.basename(
+        ConfigController._configFile.resources.notesRepo
+      );
+      let requesterFolder =
+        FoamController.getFriendIdFromFoamId(requesterFoamId);
+      //the containing note lives in a friendFolder
+      if (requesterFolder && requesterFolder != repoFolder) {
+        //check if the reference is pointing to a friendFolder or to self
+        let runs = foamId.split("/");
+        if (runs.length == 1) {
+          foamId = requesterFolder + "/" + foamId;
+        }
+      }
+      */
+     foamId = FoamController.updaterFoamIdWithFriendFolder(foamId,requesterFoamId);
+
+      //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
       FoamController.checkFileName(foamId, filePath);
-
       const fileData = await Res.async(
         fs.readFile(filePath, "utf8"),
         "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
         Res.saveError
       );
-
       if (fileData.isError()) return fileData;
 
-      
+      //PARSE FRONT MATTER
       const frontMatterRes = Res.sync(
         () => {
           return matter(fileData.value);
@@ -72,28 +119,22 @@ export default class FoamController {
         "Unable to parse front-matter for: " + foamId,
         Res.saveError,
         { data: fileData.value }
-        );
-        
-        if (frontMatterRes.isError()) return frontMatterRes;
-        
-        const frontMatter = frontMatterRes.value;
+      );
+      if (frontMatterRes.isError()) return frontMatterRes;
+      const frontMatter = frontMatterRes.value;
 
-      //check if the note is a type definition
+      //CHECK IF IS A TYPE
       let isType = false;
-
       if (frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
         isType = true;
-
         if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
-
-        return Res.error(
-          "A Note with a type can't include other properties. Verify the note only contains " +
-          Referencer.PROP_TYPE_FOAMID +
-          " data and has no content.",
-          Res.saveError
+          return Res.error(
+            "A Note with a type can't include other properties. Verify the note only contains " +
+              Referencer.PROP_TYPE_FOAMID +
+              " data and has no content.",
+            Res.saveError
           );
-        }
-        
+      }
 
       //because we can create notes recursively when looking for a type, we need to be able to warn
       if (shouldBeAType && !isType) {
@@ -114,11 +155,10 @@ export default class FoamController {
 
       if (forceUpdate == false && Referencer.iidToNoteWrap.has(iid)) {
         return Res.success(Referencer.iidToNoteWrap.get(iid));
-        
       }
 
       //create and empty note
-      let noteBlock:  Map<string, any> = new Map();
+      let noteBlock: Map<string, any> = new Map();
 
       //Iterate trhough all the note properties.
       //If a given note property key has not beeen processed yet it will process it before continuing
@@ -129,7 +169,6 @@ export default class FoamController {
       //MAKE TYPE
       //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
       if (isType) {
-        //console.log("creating type for", foamId, iid);
         const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
         const ipmmType = await FoamController.makeType(typeProps, foamId);
         Referencer.iidToTypeMap[iid] = ipmmType;
@@ -153,7 +192,7 @@ export default class FoamController {
         //The rest of the properties
         for (let key in frontMatter.data) {
           const prop = await FoamController.processProperty(
-            key,
+            FoamController.updaterFoamIdWithFriendFolder(key,foamId),
             frontMatter.data[key],
             foamId
           );
@@ -190,7 +229,6 @@ export default class FoamController {
       const typeCreateErrorCallback = (error: string) => {
         Res.error("Creating new type for : " + foamId, Res.saveError, error);
       };
-      //console.log("\nCreating type for",filePath,typeProps)
       const ipmmType = await IpmmType.create(
         typeProps,
         typeCreateErrorCallback
@@ -210,8 +248,6 @@ export default class FoamController {
 
     //Create a Type for the propertyId if it doesn't exists yet
     if (!Referencer.iidToTypeMap[typeIId]) {
-      //console.log("No type exists for", key, keyIid);
-
       await FoamController.makeNote(typeFoamId, true, false, requesterFoamId);
       if (!Referencer.iidToTypeMap[typeIId]) {
         Res.error(
@@ -240,7 +276,7 @@ export default class FoamController {
     else if (typeof propertyValue === "object" && propertyValue !== null) {
       for (let subTypeFoamId in propertyValue) {
         const prop = await FoamController.processProperty(
-          subTypeFoamId,
+          FoamController.updaterFoamIdWithFriendFolder(subTypeFoamId,requesterFoamId),
           propertyValue[subTypeFoamId],
           requesterFoamId
         );
