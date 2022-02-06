@@ -3,6 +3,7 @@ import IpldController from "./ipldController";
 import { NoteWrap } from "./ipmm";
 import IpmmType from "./ipmmType";
 import Utils from "./utils";
+import * as path from "path";
 
 export default class Referencer {
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
@@ -92,4 +93,35 @@ export default class Referencer {
   static getType(iid: string): IpmmType {
     return Referencer.iidToTypeMap[iid];
   }
+
+  static getFriendIdFromFoamId = (
+    foamId: string | undefined
+  ): string | undefined => {
+    if (foamId) {
+      let runs = foamId.split("/");
+      if (runs.length == 2) {
+        return runs[0];
+      }
+    }
+    return undefined;
+  };
+
+  static updaterFoamIdWithFriendFolder = (
+    foamId: string,
+    requesterFoamId: string | undefined
+  ): string => {
+    let repoFolder = path.basename(
+      ConfigController._configFile.resources.notesRepo
+    );
+    let requesterFolder = Referencer.getFriendIdFromFoamId(requesterFoamId);
+    //the containing note lives in a friendFolder
+    if (requesterFolder && requesterFolder != repoFolder) {
+      //check if the reference is pointing to a friendFolder or to self
+      let runs = foamId.split("/");
+      if (runs.length == 1) {
+        foamId = requesterFolder + "/" + foamId;
+      }
+    }
+    return foamId;
+  };
 }

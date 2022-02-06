@@ -43,39 +43,6 @@ export default class FoamController {
     return await FoamController.makeNote(foamId, false, true);
   };
 
-  static getFriendIdFromFoamId = (
-    foamId: string | undefined
-  ): string | undefined => {
-    if (foamId) {
-      let runs = foamId.split("/");
-      if (runs.length == 2) {
-        return runs[0];
-      }
-    }
-    return undefined;
-  };
-
-
-  static updaterFoamIdWithFriendFolder = (
-    foamId: string , requesterFoamId:string|undefined
-  ): string  => {
-
-    let repoFolder = path.basename(
-      ConfigController._configFile.resources.notesRepo
-    );
-    let requesterFolder =
-      FoamController.getFriendIdFromFoamId(requesterFoamId);
-    //the containing note lives in a friendFolder
-    if (requesterFolder && requesterFolder != repoFolder) {
-      //check if the reference is pointing to a friendFolder or to self
-      let runs = foamId.split("/");
-      if (runs.length == 1) {
-        foamId = requesterFolder + "/" + foamId;
-      }
-    }
-    return foamId;
-  };
-
   static makeNote = async (
     foamId: string,
     shouldBeAType: boolean = false,
@@ -83,25 +50,12 @@ export default class FoamController {
     requesterFoamId?: string
   ): Promise<Res> => {
     try {
-      //UPDATE FOAMID TO INCLUDE FRIENDID
-      /*
-      let repoFolder = path.basename(
-        ConfigController._configFile.resources.notesRepo
-      );
-      let requesterFolder =
-        FoamController.getFriendIdFromFoamId(requesterFoamId);
-      //the containing note lives in a friendFolder
-      if (requesterFolder && requesterFolder != repoFolder) {
-        //check if the reference is pointing to a friendFolder or to self
-        let runs = foamId.split("/");
-        if (runs.length == 1) {
-          foamId = requesterFolder + "/" + foamId;
-        }
-      }
-      */
-     foamId = FoamController.updaterFoamIdWithFriendFolder(foamId,requesterFoamId);
 
-     console.log(foamId)
+      //UPDATE FOAMID TO INCLUDE FRIENDID
+      foamId = Referencer.updaterFoamIdWithFriendFolder(
+        foamId,
+        requesterFoamId
+      );
 
       //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
@@ -194,7 +148,7 @@ export default class FoamController {
         //The rest of the properties
         for (let key in frontMatter.data) {
           const prop = await FoamController.processProperty(
-            FoamController.updaterFoamIdWithFriendFolder(key,foamId),
+            Referencer.updaterFoamIdWithFriendFolder(key, foamId),
             frontMatter.data[key],
             foamId
           );
@@ -278,7 +232,10 @@ export default class FoamController {
     else if (typeof propertyValue === "object" && propertyValue !== null) {
       for (let subTypeFoamId in propertyValue) {
         const prop = await FoamController.processProperty(
-          FoamController.updaterFoamIdWithFriendFolder(subTypeFoamId,requesterFoamId),
+          Referencer.updaterFoamIdWithFriendFolder(
+            subTypeFoamId,
+            requesterFoamId
+          ),
           propertyValue[subTypeFoamId],
           requesterFoamId
         );
