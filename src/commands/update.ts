@@ -52,7 +52,7 @@ export default class UpdateCommand extends Command {
       "https://ipfoam-server-dc89h.ondigitalocean.app/uploadMindRepo/x",
       data
     );*/
-    const res = await axios.put("http://localhost:8080/update/x", notes);
+    const res = await axios.put("http://localhost:"+ConfigController._configFile.network.localServerPort+"/update/x", notes);
     if (res.data) console.log(res.data);
     else console.log(res);
   }

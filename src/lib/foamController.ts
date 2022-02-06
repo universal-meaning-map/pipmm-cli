@@ -101,6 +101,8 @@ export default class FoamController {
       */
      foamId = FoamController.updaterFoamIdWithFriendFolder(foamId,requesterFoamId);
 
+     console.log(foamId)
+
       //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
       FoamController.checkFileName(foamId, filePath);
