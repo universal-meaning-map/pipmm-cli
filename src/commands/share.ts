@@ -24,7 +24,8 @@ export default class InitCommand extends Command {
     }
 
     if (!ConfigController.load(workingPath)) return;
+    let config = ConfigController.makeSelfFriendConfig();
 
-    console.log(ConfigController.makeSelfFriendConfig());
+    console.log(JSON.stringify(config,null,2));
   }
 }
