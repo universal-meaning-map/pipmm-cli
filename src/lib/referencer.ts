@@ -6,6 +6,7 @@ import Utils from "./utils";
 import * as path from "path";
 
 export default class Referencer {
+  static readonly xaviId = "xavi-1644219237";
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
   static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
   static readonly PROP_TITLE_FOAMID = "prop-title-1612697362";
@@ -19,7 +20,7 @@ export default class Referencer {
     "abstraction-reference-list";
   static readonly basicTypeBoolean = "boolean";
   static readonly basicTypeUrl = "url";
-  static readonly basicTypeNumber= "number";
+  static readonly basicTypeNumber = "number";
 
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
@@ -42,7 +43,6 @@ export default class Referencer {
       let liid = await Referencer.makeLocalIid(runs[0]);
       iid = mid + Referencer.miidSeparatorToken + liid;
     } else if (runs.length == 2) {
-     
       let mid = await Referencer.getFriendMid(runs[0]);
       let liid = await Referencer.makeLocalIid(runs[1]);
       iid = mid + Referencer.miidSeparatorToken + liid;
@@ -59,18 +59,16 @@ export default class Referencer {
     return trunkated;
   };
 
-
-
-  static getFriendMid  = async(friendFolder:string):Promise<string>=> {
+  static getFriendMid = async (friendFolder: string): Promise<string> => {
     //Go to the firendFolder, and get the friendConfig file where the mid is set
     let friendConfig = ConfigController.loadFriendConfig(friendFolder);
-    if(friendConfig==null){
+    if (friendConfig == null) {
       console.log("Trying to get MID of a friend but no friendConfig found");
-      console.log("Friend folder: "+friendFolder);
-      throw("Can't find friend config: "+ friendFolder);
+      console.log("Friend folder: " + friendFolder);
+      throw "Can't find friend config: " + friendFolder;
     }
     return friendConfig.identity.mid;
-  }
+  };
 
   /*  return "i" + (await Referencer.makeLocalIid(friendId));
   };
@@ -121,6 +119,13 @@ export default class Referencer {
       if (runs.length == 1) {
         foamId = requesterFolder + "/" + foamId;
       }
+    }
+    return foamId;
+  };
+
+  static makeFoamIdRelativeToXaviIfIsNotXavi = (foamId: string): string => {
+    if (!ConfigController.isXavi) {
+      return Referencer.xaviId + "/" + foamId;
     }
     return foamId;
   };

@@ -4,6 +4,7 @@ import * as ipfs from "ipfs-core";
 export default class ConfigController {
   static configPath: any;
   static relativeConfigPath = "/ipmm/config.json";
+  static isXavi = false;
 
   static _configFile: ConfigFile;
 

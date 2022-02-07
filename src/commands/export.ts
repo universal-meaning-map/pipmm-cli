@@ -20,6 +20,13 @@ export default class ExportCommand extends Command {
       description:
         "Executes the command relative to the specified path as oppose to the working directory",
     }),
+    isXavi: flags.boolean({
+      name: "isXavi",
+      char: "x",
+      description:
+        "Hard-coded foamId references to Xavi's repo are assumed to be on the root folder",
+    }),
+   
   };
 
   static args = [
@@ -37,8 +44,8 @@ export default class ExportCommand extends Command {
     if (flags.notesRepoPath) {
       workingPath = Utils.resolveHome(flags.notesRepoPath);
     }
-
     if (!ConfigController.load(workingPath)) return;
+    if (flags.isXavi) ConfigController.isXavi = true;
 
     //import a single file
     if (args.fileName) {
@@ -47,6 +54,7 @@ export default class ExportCommand extends Command {
         ConfigController._configFile.resources.notesRepo,
         args.fileName
       );
+  
       if (res.isOk()) {
         let note: NoteWrap = res.value;
         console.log(note);

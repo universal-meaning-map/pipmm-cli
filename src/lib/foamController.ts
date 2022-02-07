@@ -81,12 +81,14 @@ export default class FoamController {
 
       //CHECK IF IS A TYPE
       let isType = false;
-      if (frontMatter.data[Referencer.PROP_TYPE_FOAMID]) {
+      let propTypeFoamId = Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(Referencer.PROP_TYPE_FOAMID);
+      
+      if (frontMatter.data[propTypeFoamId]) {
         isType = true;
         if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
           return Res.error(
             "A Note with a type can't include other properties. Verify the note only contains " +
-              Referencer.PROP_TYPE_FOAMID +
+              propTypeFoamId +
               " data and has no content.",
             Res.saveError
           );
@@ -98,7 +100,7 @@ export default class FoamController {
           "Note " +
             foamId +
             " is used as a type but " +
-            Referencer.PROP_TYPE_FOAMID +
+            propTypeFoamId +
             " was not found.",
           Res.saveError
         );
@@ -125,7 +127,7 @@ export default class FoamController {
       //MAKE TYPE
       //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
       if (isType) {
-        const typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
+        const typeProps = frontMatter.data[propTypeFoamId];
         const ipmmType = await FoamController.makeType(typeProps, foamId);
         Referencer.iidToTypeMap[iid] = ipmmType;
         noteBlock = ipmmType.getBlock();
@@ -138,7 +140,7 @@ export default class FoamController {
           const trimmed = removedFoodNotes.trim();
 
           const viewProp = await FoamController.processProperty(
-            Referencer.PROP_VIEW_FOAMID,
+            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(Referencer.PROP_VIEW_FOAMID),
             trimmed,
             foamId
           );
