@@ -131,6 +131,15 @@ export default class ConfigController {
       return null;
     }
   };
+
+  static makeSelfFriendConfig = (): FriendConfig => {
+    return  {
+      identity: {
+        mid: ConfigController._configFile.identity.mid,
+        pubKey: ConfigController._configFile.identity.pubKey
+      },
+  };
+}
 }
 
 interface ConfigFile {

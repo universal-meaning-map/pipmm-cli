@@ -52,7 +52,6 @@ export default class ExportCommand extends Command {
         console.log(note);
         //TODO: Update repo
       }
-      
     }
     //import everything
     else {
@@ -60,16 +59,10 @@ export default class ExportCommand extends Command {
         ConfigController._configFile.resources.ipmmRepo,
         ConfigController._configFile.resources.notesRepo
       );
-      let obj = Utils.notesWrapToObjs(Referencer.iidToNoteWrap)
-      let json = JSON.stringify(obj, null, 2)
-      await fs.writeFile(
-        ConfigController._configFile.resources.ipmmRepo,
-        json
-      );
-
-
+      let obj = Utils.notesWrapToObjs(Referencer.iidToNoteWrap);
+      let json = JSON.stringify(obj, null, 2);
+      await fs.writeFile(ConfigController._configFile.resources.ipmmRepo, json);
     }
-    console.log("fone")
     ErrorController.saveLogs();
   }
 }
