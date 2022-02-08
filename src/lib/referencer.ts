@@ -9,7 +9,7 @@ export default class Referencer {
   static readonly xaviId = "xavi-1644219237";
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
   static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
-  static readonly PROP_TITLE_FOAMID = "prop-title-1612697362";
+  static readonly PROP_NAME_FOAMID = "prop-name-1612697362";
   //static readonly SELF_FRIEND_ID = "x";
 
   static readonly basicTypeInterplanetaryText = "interplanetary-text";
