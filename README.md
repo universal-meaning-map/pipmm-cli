@@ -15,7 +15,7 @@ npm install pipmm -g
 
 - `help`: display help for `pipmm`
 - `init`: Generates initial configuration, the `MID` (mind-identifier)
-- `export`: Compiles the `Abstractions` repository (or a single note) into an IPMM repo and saves it as JSON object and its keys
+- `compile`: Compiles the `Abstractions` repository (or a single note) into an IPMM repo and saves it as JSON object and its keys
 - `log`: View the logs from the last command ran
 - `filter`: Returns a list of notes based on a filter.
 - `restore`: Compiles `Abstractions`repo, filters it and uploads to the server (local or remote, depending on the flag) erasing the previous version.

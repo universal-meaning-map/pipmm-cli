@@ -1,18 +1,15 @@
-import ErrorController, { Res } from "./errorController";
+import { Res } from "./errorController";
 import Utils from "./utils";
 import matter from "gray-matter";
 import * as path from "path";
-import { promises as fs, readFile } from "fs";
+import { promises as fs } from "fs";
 import { NoteWrap } from "../lib/ipmm";
 import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
-import ConfigController from "./configController";
-import { off } from "process";
 
 let notesRepo: string;
-let ipmmRepo: string;
 
 export default class FoamController {
   static compileAll = async (
@@ -20,7 +17,6 @@ export default class FoamController {
     _notesRepo: string
   ): Promise<void> => {
     notesRepo = _notesRepo;
-    ipmmRepo = _ipmmRepo;
 
     let files = await fs.readdir(notesRepo);
     files = Utils.filterByExtensions(files, [".md"]);
@@ -37,7 +33,6 @@ export default class FoamController {
     _fileName: string
   ): Promise<Res> => {
     notesRepo = _notesRepo;
-    ipmmRepo = _ipmmRepo;
 
     const foamId = Utils.removeFileExtension(_fileName);
     return await FoamController.makeNote(foamId, false, true);
@@ -50,7 +45,6 @@ export default class FoamController {
     requesterFoamId?: string
   ): Promise<Res> => {
     try {
-
       //UPDATE FOAMID TO INCLUDE FRIENDID
       foamId = Referencer.updaterFoamIdWithFriendFolder(
         foamId,
@@ -81,9 +75,13 @@ export default class FoamController {
 
       //CHECK IF IS A TYPE
       let isType = false;
-      let propTypeFoamId = Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(Referencer.PROP_TYPE_FOAMID);
+      let propTypeFoamId = Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
+        Referencer.PROP_TYPE_FOAMID
+      );
       
-      if (frontMatter.data[propTypeFoamId]) {
+      let foamIdTypeToLookFor = Referencer.updaterFoamIdWithFriendFolder(Referencer.PROP_NAME_FOAMID,requesterFoamId);
+
+      if (frontMatter.data[Referencer.PROP_TYPE_FOAMID] || frontMatter.data[Referencer.xaviId+"/"+Referencer.PROP_TYPE_FOAMID]) {
         isType = true;
         if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
           return Res.error(
@@ -93,6 +91,7 @@ export default class FoamController {
             Res.saveError
           );
       }
+
 
       //because we can create notes recursively when looking for a type, we need to be able to warn
       if (shouldBeAType && !isType) {
@@ -127,7 +126,10 @@ export default class FoamController {
       //MAKE TYPE
       //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
       if (isType) {
-        const typeProps = frontMatter.data[propTypeFoamId];
+        let typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
+        if(!typeProps)
+          typeProps = frontMatter.data[Referencer.xaviId+"/"+Referencer.PROP_TYPE_FOAMID]
+
         const ipmmType = await FoamController.makeType(typeProps, foamId);
         Referencer.iidToTypeMap[iid] = ipmmType;
         noteBlock = ipmmType.getBlock();
@@ -140,7 +142,9 @@ export default class FoamController {
           const trimmed = removedFoodNotes.trim();
 
           const viewProp = await FoamController.processProperty(
-            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(Referencer.PROP_VIEW_FOAMID),
+            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
+              Referencer.PROP_VIEW_FOAMID
+            ),
             trimmed,
             foamId
           );

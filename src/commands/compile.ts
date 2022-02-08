@@ -8,7 +8,7 @@ import { promises as fs, readFile } from "fs";
 import Referencer from "../lib/referencer";
 import Utils from "../lib/utils";
 
-export default class ExportCommand extends Command {
+export default class CompileCommand extends Command {
   static description =
     "Compiles the `Abstractions` repository (or a single note) into an IPMM repo and saves it as JSON object";
 
@@ -39,7 +39,7 @@ export default class ExportCommand extends Command {
   ];
 
   async run() {
-    const { args, flags } = this.parse(ExportCommand);
+    const { args, flags } = this.parse(CompileCommand);
     let workingPath = process.cwd();
     if (flags.notesRepoPath) {
       workingPath = Utils.resolveHome(flags.notesRepoPath);
