@@ -44,11 +44,12 @@ export default class RestoreCommand extends Command {
     let repo = Referencer.iidToNoteWrap;
 
     let remoteEndPoint =
-      "https://ipfoam-server-dc89h.ondigitalocean.app/restore/x";
+      ConfigController._configFile.network.remoteServer + "/restore/x";
 
-    let localEndPoint = "http://localhost:" +
-    ConfigController._configFile.network.localServerPort +
-    "/restore/x"
+    let localEndPoint =
+      "http://localhost:" +
+      ConfigController._configFile.network.localServerPort +
+      "/restore/x";
 
     let endpoint = "";
     let jsonFilter = "";
@@ -67,8 +68,7 @@ export default class RestoreCommand extends Command {
     let filteredRepo = await Filter.filter(repo, filter);
     console.log("Total abstractions: " + repo.size);
     console.log("Filtered abstractions: " + filteredRepo.size);
-    console.log("Percentage* "+ (filteredRepo.size/repo.size*100))
-
+    console.log("Percentage* " + (filteredRepo.size / repo.size) * 100);
 
     const res = await axios.put(endpoint, Utils.notesWrapToObjs(filteredRepo));
 
