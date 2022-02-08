@@ -115,7 +115,7 @@ export default class Tokenizer {
     if (runs.length == 1) {
       if (assumeTitleTransclusion) {
         exp =
-          exp + "/" + (await Referencer.makeIid(Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(Referencer.PROP_TYPE_FOAMID)));
+          exp + "/" + (await Referencer.makeIid(Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(Referencer.PROP_NAME_FOAMID)));
       }
     } else if (runs.length > 1) {
       let backRuns = runs[1].split("/");
