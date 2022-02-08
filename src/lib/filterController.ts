@@ -2,6 +2,7 @@ import { NoteWrap } from "./ipmm";
 import Referencer from "./referencer";
 import IpmmType from "./ipmmType";
 import Utils from "./utils";
+import ConfigController from "./configController";
 
 export default class Filter {
   static OR: string = "or";
@@ -26,8 +27,33 @@ export default class Filter {
       }
     }
 
+
+    filtered = await  Filter.addAlwaysCompileNotes(filtered);
+
     return filtered;
   };
+
+  
+  static addAlwaysCompileNotes = async (
+    notesInput: Map<string, NoteWrap>,
+    
+  ): Promise<Map<string, NoteWrap>> => {
+    
+    for (let foamId of ConfigController._configFile.compile.alwaysCompile) {
+      let iid = await Referencer.makeIid(foamId)
+      console.log("adding ", foamId, iid)
+      let noteWrap = Referencer.iidToNoteWrap.get(iid);
+      if(noteWrap){
+        notesInput.set(iid,noteWrap);
+      }
+      else{
+        console.log("Unable to find "+foamId+" when adding 'always compile' notes to the filtered ones");
+      }
+    }
+
+    return notesInput;
+  };
+  
 
   static eval = async (element: any, note: NoteWrap): Promise<Boolean> => {
     try {

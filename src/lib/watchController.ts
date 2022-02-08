@@ -8,6 +8,7 @@ import axios from "axios";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
 import { Server as PipmmmServer } from "pipmm-server";
+import { promises as fs, readFile } from "fs";
 
 export default class WatchController {
   webSocket: any;
@@ -46,12 +47,15 @@ export default class WatchController {
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath
     );
+
     let data = Referencer.iidToNoteWrap;
+    let obj = Utils.notesWrapToObjs(data);
+
     const res = await axios.put(
       "http://localhost:" +
         ConfigController._configFile.network.localServerPort +
         "/restore/x",
-      Utils.notesWrapToObjs(data)
+      obj
     );
   };
 

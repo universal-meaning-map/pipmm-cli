@@ -26,7 +26,6 @@ export default class CompileCommand extends Command {
       description:
         "Hard-coded foamId references to Xavi's repo are assumed to be on the root folder",
     }),
-   
   };
 
   static args = [
@@ -47,30 +46,32 @@ export default class CompileCommand extends Command {
     if (!ConfigController.load(workingPath)) return;
     if (flags.isXavi) ConfigController.isXavi = true;
 
-    //import a single file
+    //compile a single file
     if (args.fileName) {
       const res = await FoamController.compileFile(
         ConfigController._configFile.resources.ipmmRepo,
         ConfigController._configFile.resources.notesRepo,
         args.fileName
       );
-  
+
       if (res.isOk()) {
         let note: NoteWrap = res.value;
         console.log(note);
         //TODO: Update repo
       }
     }
-    //import everything
+    //compile all files from user repo and its dependencies
     else {
       await FoamController.compileAll(
         ConfigController._configFile.resources.ipmmRepo,
         ConfigController._configFile.resources.notesRepo
       );
+
       let obj = Utils.notesWrapToObjs(Referencer.iidToNoteWrap);
       let json = JSON.stringify(obj, null, 2);
       await fs.writeFile(ConfigController._configFile.resources.ipmmRepo, json);
     }
+
     ErrorController.saveLogs();
   }
 }

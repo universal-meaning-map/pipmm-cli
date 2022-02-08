@@ -8,6 +8,7 @@ import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
+import ConfigController from "./configController";
 
 let notesRepo: string;
 
@@ -24,6 +25,11 @@ export default class FoamController {
     for (let fileName of files) {
       const foamId = Utils.removeFileExtension(fileName);
       await FoamController.makeNote(foamId);
+    }
+
+    //compile "always compile"
+    for (let foamId of ConfigController._configFile.compile.alwaysCompile) {
+     let res =  await FoamController.makeNote(foamId);
     }
   };
 
@@ -78,10 +84,16 @@ export default class FoamController {
       let propTypeFoamId = Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
         Referencer.PROP_TYPE_FOAMID
       );
-      
-      let foamIdTypeToLookFor = Referencer.updaterFoamIdWithFriendFolder(Referencer.PROP_NAME_FOAMID,requesterFoamId);
 
-      if (frontMatter.data[Referencer.PROP_TYPE_FOAMID] || frontMatter.data[Referencer.xaviId+"/"+Referencer.PROP_TYPE_FOAMID]) {
+      let foamIdTypeToLookFor = Referencer.updaterFoamIdWithFriendFolder(
+        Referencer.PROP_NAME_FOAMID,
+        requesterFoamId
+      );
+
+      if (
+        frontMatter.data[Referencer.PROP_TYPE_FOAMID] ||
+        frontMatter.data[Referencer.xaviId + "/" + Referencer.PROP_TYPE_FOAMID]
+      ) {
         isType = true;
         if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
           return Res.error(
@@ -91,7 +103,6 @@ export default class FoamController {
             Res.saveError
           );
       }
-
 
       //because we can create notes recursively when looking for a type, we need to be able to warn
       if (shouldBeAType && !isType) {
@@ -127,8 +138,11 @@ export default class FoamController {
       //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
       if (isType) {
         let typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
-        if(!typeProps)
-          typeProps = frontMatter.data[Referencer.xaviId+"/"+Referencer.PROP_TYPE_FOAMID]
+        if (!typeProps)
+          typeProps =
+            frontMatter.data[
+              Referencer.xaviId + "/" + Referencer.PROP_TYPE_FOAMID
+            ];
 
         const ipmmType = await FoamController.makeType(typeProps, foamId);
         Referencer.iidToTypeMap[iid] = ipmmType;

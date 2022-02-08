@@ -67,6 +67,13 @@ export default class ConfigController {
         privKey: idObj.privKey!,
         pubKey: idObj.pubKey!,
       },
+      compile: {
+        alwaysCompile: [
+          "xavi-1644219237/trans-sub-abstraction-block-1639169078",
+          "xavi-1644219237/trans-column-navigator-1612122309",
+          "xavi-1644219237/note-viewer-1641223323",
+        ],
+      },
     };
     return configFile;
   };
@@ -111,7 +118,6 @@ export default class ConfigController {
   }
 
   static loadFriendConfig = (friendFolder: string): FriendConfig | null => {
-  
     let path = Utils.resolveHome(
       ConfigController._configFile.resources.notesRepo +
         "/" +
@@ -134,13 +140,13 @@ export default class ConfigController {
   };
 
   static makeSelfFriendConfig = (): FriendConfig => {
-    return  {
+    return {
       identity: {
         mid: ConfigController._configFile.identity.mid,
-        pubKey: ConfigController._configFile.identity.pubKey
+        pubKey: ConfigController._configFile.identity.pubKey,
       },
+    };
   };
-}
 }
 
 interface ConfigFile {
@@ -161,6 +167,9 @@ interface ConfigFile {
     mid: string;
     privKey: string;
     pubKey: string;
+  };
+  compile: {
+    alwaysCompile: string[];
   };
 }
 
