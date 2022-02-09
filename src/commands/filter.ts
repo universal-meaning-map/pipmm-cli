@@ -2,7 +2,7 @@ import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
 import Filter from "../lib/filterController";
-import FoamController from "../lib/foamController";
+import Compiler from "../lib/compiler";
 import Referencer from "../lib/referencer";
 
 export default class FilterCommand extends Command {
@@ -32,7 +32,7 @@ export default class FilterCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-    await FoamController.compileAll(
+    await Compiler.compileAll(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath
     );

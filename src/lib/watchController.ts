@@ -2,7 +2,7 @@ import WebSocket from "ws";
 import ConfigController from "./configController";
 import chokidar from "chokidar";
 import Path from "path";
-import FoamController from "./foamController";
+import Compiler from "./compiler";
 import Referencer from "./referencer";
 import axios from "axios";
 import { NoteWrap } from "./ipmm";
@@ -43,7 +43,7 @@ export default class WatchController {
   };
 
   restorePipmmmServer = async (): Promise<any> => {
-    await FoamController.compileAll(
+    await Compiler.compileAll(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath
     );
@@ -143,7 +143,7 @@ export default class WatchController {
   };
 
   importFile = async (foamId: string): Promise<NoteWrap> => {
-    const res = await FoamController.compileFile(
+    const res = await Compiler.compileFile(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath,
       foamId

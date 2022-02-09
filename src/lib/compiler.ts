@@ -3,7 +3,7 @@ import Utils from "./utils";
 import matter from "gray-matter";
 import * as path from "path";
 import { promises as fs } from "fs";
-import { NoteWrap } from "../lib/ipmm";
+import { NoteWrap } from "./ipmm";
 import IpldController from "./ipldController";
 import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
@@ -12,7 +12,7 @@ import ConfigController from "./configController";
 
 let notesRepo: string;
 
-export default class FoamController {
+export default class Compiler {
   static compileAll = async (
     _ipmmRepo: string,
     _notesRepo: string
@@ -24,12 +24,12 @@ export default class FoamController {
 
     for (let fileName of files) {
       const foamId = Utils.removeFileExtension(fileName);
-      await FoamController.makeNote(foamId);
+      await Compiler.makeNote(foamId);
     }
 
     //compile "always compile"
     for (let foamId of ConfigController._configFile.compile.alwaysCompile) {
-     let res =  await FoamController.makeNote(foamId);
+     let res =  await Compiler.makeNote(foamId);
     }
   };
 
@@ -41,7 +41,7 @@ export default class FoamController {
     notesRepo = _notesRepo;
 
     const foamId = Utils.removeFileExtension(_fileName);
-    return await FoamController.makeNote(foamId, false, true);
+    return await Compiler.makeNote(foamId, false, true);
   };
 
   static makeNote = async (
@@ -59,7 +59,7 @@ export default class FoamController {
 
       //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
-      FoamController.checkFileName(foamId, filePath);
+      Compiler.checkFileName(foamId, filePath);
       const fileData = await Res.async(
         fs.readFile(filePath, "utf8"),
         "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
@@ -139,7 +139,7 @@ export default class FoamController {
               Referencer.xaviId + "/" + Referencer.PROP_TYPE_FOAMID
             ];
 
-        const ipmmType = await FoamController.makeType(typeProps, foamId);
+        const ipmmType = await Compiler.makeType(typeProps, foamId);
         Referencer.iidToTypeMap[iid] = ipmmType;
         noteBlock = ipmmType.getBlock();
       }
@@ -150,7 +150,7 @@ export default class FoamController {
           const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
           const trimmed = removedFoodNotes.trim();
 
-          const viewProp = await FoamController.processProperty(
+          const viewProp = await Compiler.processProperty(
             Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
               Referencer.PROP_VIEW_FOAMID
             ),
@@ -162,7 +162,7 @@ export default class FoamController {
         //ALL other properties
         //The rest of the properties
         for (let key in frontMatter.data) {
-          const prop = await FoamController.processProperty(
+          const prop = await Compiler.processProperty(
             Referencer.updaterFoamIdWithFriendFolder(key, foamId),
             frontMatter.data[key],
             foamId
@@ -219,7 +219,7 @@ export default class FoamController {
 
     //Create a Type for the propertyId if it doesn't exists yet
     if (!Referencer.iidToTypeMap[typeIId]) {
-      await FoamController.makeNote(typeFoamId, true, false, requesterFoamId);
+      await Compiler.makeNote(typeFoamId, true, false, requesterFoamId);
       if (!Referencer.iidToTypeMap[typeIId]) {
         Res.error(
           "The type for `" +
@@ -246,7 +246,7 @@ export default class FoamController {
     //recursivelly process sub-properties
     else if (typeof propertyValue === "object" && propertyValue !== null) {
       for (let subTypeFoamId in propertyValue) {
-        const prop = await FoamController.processProperty(
+        const prop = await Compiler.processProperty(
           Referencer.updaterFoamIdWithFriendFolder(
             subTypeFoamId,
             requesterFoamId

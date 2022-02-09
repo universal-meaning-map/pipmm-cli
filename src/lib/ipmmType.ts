@@ -2,7 +2,7 @@
 import validatorFunction from "@ipld/schema-validation";
 // @ts-ignore
 import { parse as parser } from "ipld-schema";
-import FoamController from "./foamController";
+import Compiler from "./compiler";
 import Referencer from "./referencer";
 
 export default class IpmmType {
@@ -118,7 +118,7 @@ export default class IpmmType {
     for (const foamId of this.typeDependencies) {
       const typeIid = await Referencer.makeIid(foamId);
       if (!Referencer.typeExists(typeIid))
-        await FoamController.makeNote(foamId, true);
+        await Compiler.makeNote(foamId, true);
       if (!Referencer.typeExists(typeIid))
         throw "Type for " + foamId + " " + typeIid + " should exist already";
       const type = Referencer.getType(typeIid);

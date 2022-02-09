@@ -2,7 +2,7 @@ import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import axios from "axios";
 import Referencer from "../lib/referencer";
-import FoamController from "../lib/foamController";
+import Compiler from "../lib/compiler";
 import Utils from "../lib/utils";
 import Filter from "../lib/filterController";
 
@@ -37,7 +37,7 @@ export default class RestoreCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-    await FoamController.compileAll(
+    await Compiler.compileAll(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath
     );

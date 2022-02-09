@@ -1,7 +1,7 @@
 import { Command, flags } from "@oclif/command";
 import cli, { config } from "cli-ux";
 import ConfigController from "../lib/configController";
-import FoamController from "../lib/foamController";
+import Compiler from "../lib/compiler";
 import ErrorController from "../lib/errorController";
 import { NoteWrap } from "../lib/ipmm";
 import { promises as fs, readFile } from "fs";
@@ -48,7 +48,7 @@ export default class CompileCommand extends Command {
 
     //compile a single file
     if (args.fileName) {
-      const res = await FoamController.compileFile(
+      const res = await Compiler.compileFile(
         ConfigController._configFile.resources.ipmmRepo,
         ConfigController._configFile.resources.notesRepo,
         args.fileName
@@ -62,7 +62,7 @@ export default class CompileCommand extends Command {
     }
     //compile all files from user repo and its dependencies
     else {
-      await FoamController.compileAll(
+      await Compiler.compileAll(
         ConfigController._configFile.resources.ipmmRepo,
         ConfigController._configFile.resources.notesRepo
       );

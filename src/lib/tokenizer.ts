@@ -1,6 +1,6 @@
 import { run } from "..";
 import { Res } from "./errorController";
-import FoamController from "./foamController";
+import Compiler from "./compiler";
 import Referencer from "./referencer";
 
 export default class Tokenizer {
@@ -105,7 +105,7 @@ export default class Tokenizer {
   
     const makeNotesInInterplaryText = true
   if(makeNotesInInterplaryText){
-   FoamController.makeNote(foamId,false,false,requesterFoamId)
+   Compiler.makeNote(foamId,false,false,requesterFoamId)
   }
     
     /*
