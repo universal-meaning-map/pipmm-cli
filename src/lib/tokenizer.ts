@@ -100,27 +100,19 @@ export default class Tokenizer {
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
-    let foamId = runs[0]
-    let exp = await Referencer.makeIid(foamId);
-  
+
+    let foamId = Referencer.updaterFoamIdWithFriendFolder(
+      runs[0],
+      requesterFoamId
+    );
+
     const makeNotesInInterplaryText = true
-  if(makeNotesInInterplaryText){
-   Compiler.makeNote(foamId,false,false,requesterFoamId)
-  }
-    
-    /*
-    let frontRuns = runs[0].split("/");
-    if (frontRuns.length == 1) {
-      let mid = await Referencer.makeMid(Referencer.SELF_FRIEND_ID);
-      let iid = await Referencer.makeMiid(frontRuns[0]);
-      exp = mid + ":" + iid; //currently overriten
-      //exp = iid;
-    } else if (frontRuns.length == 2) {
-      let mid = await Referencer.makeMid(frontRuns[0]);
-      let iid = await Referencer.makeMiid(frontRuns[1]);
-      exp = mid + ":" + iid;
+    if(makeNotesInInterplaryText){
+      Compiler.makeNote(foamId,false,false,requesterFoamId)
     }
-    */
+    
+    let exp = await Referencer.makeIid(foamId);
+
 
     if (runs.length == 1) {
       if (assumeTitleTransclusion) {
