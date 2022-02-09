@@ -3,7 +3,7 @@ import Utils from "./utils";
 import * as ipfs from "ipfs-core";
 export default class ConfigController {
   static configPath: any;
-  static relativeConfigPath = "/ipmm/config.json";
+  static relativeConfigPath = "/.pipmm/config.json";
   static isXavi = false;
 
   static _configFile: ConfigFile;
@@ -51,10 +51,10 @@ export default class ConfigController {
     const configFile = {
       resources: {
         notesRepo: Utils.resolveHome(foamRepo),
-        ipmmRepo: Utils.resolveHome(foamRepo + "/ipmm/ipmmRepo.json"),
-        logs: Utils.resolveHome(foamRepo + "/ipmm/logs.json"),
-        localFilter: Utils.resolveHome(foamRepo + "/ipmm/localFilter.json"),
-        remoteFilter: Utils.resolveHome(foamRepo + "/ipmm/remoteFilter.json"),
+        ipmmRepo: Utils.resolveHome(foamRepo + "/.pipmm/pipmmRepo.json"),
+        logs: Utils.resolveHome(foamRepo + "/.pipmm/logs.json"),
+        localFilter: Utils.resolveHome(foamRepo + "/.pipmm/localFilter.json"),
+        remoteFilter: Utils.resolveHome(foamRepo + "/.pipmm/remoteFilter.json"),
       },
       network: {
         websocketsPort: 34343,
