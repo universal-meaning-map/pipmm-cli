@@ -68,8 +68,8 @@ export default class WatchController {
       ConfigController._configFile.network.websocketsPort +
       "&localServerPort=" +
       ConfigController._configFile.network.localServerPort +
-      "&expr=" +
-      this.buildDefaultRun()
+      "&expr=" +ConfigController._configFile.misc.defaultExpr
+      
     );
   };
   buildDefaultRun = () => {

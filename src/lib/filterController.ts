@@ -39,7 +39,7 @@ export default class Filter {
     
   ): Promise<Map<string, NoteWrap>> => {
     
-    for (let foamId of ConfigController._configFile.compile.alwaysCompile) {
+    for (let foamId of ConfigController._configFile.misc.alwaysCompile) {
       let iid = await Referencer.makeIid(foamId)
       console.log("adding ", foamId, iid)
       let noteWrap = Referencer.iidToNoteWrap.get(iid);

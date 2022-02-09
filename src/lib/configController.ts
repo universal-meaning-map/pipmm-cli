@@ -67,12 +67,13 @@ export default class ConfigController {
         privKey: idObj.privKey!,
         pubKey: idObj.pubKey!,
       },
-      compile: {
+      misc: {
         alwaysCompile: [
           "xavi-1644219237/trans-sub-abstraction-block-1639169078",
           "xavi-1644219237/trans-column-navigator-1612122309",
           "xavi-1644219237/note-viewer-1641223323",
         ],
+        defaultExpr:"[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJlzfmhs7a%22,[[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJ2lf4dbua%22,%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJl5uz4zaq%22]]]"
       },
     };
     return configFile;
@@ -168,8 +169,9 @@ interface ConfigFile {
     privKey: string;
     pubKey: string;
   };
-  compile: {
+  misc: {
     alwaysCompile: string[];
+    defaultExpr: string;
   };
 }
 
