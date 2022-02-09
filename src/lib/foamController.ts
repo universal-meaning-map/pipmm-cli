@@ -85,11 +85,6 @@ export default class FoamController {
         Referencer.PROP_TYPE_FOAMID
       );
 
-      let foamIdTypeToLookFor = Referencer.updaterFoamIdWithFriendFolder(
-        Referencer.PROP_NAME_FOAMID,
-        requesterFoamId
-      );
-
       if (
         frontMatter.data[Referencer.PROP_TYPE_FOAMID] ||
         frontMatter.data[Referencer.xaviId + "/" + Referencer.PROP_TYPE_FOAMID]

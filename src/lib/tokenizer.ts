@@ -1,5 +1,6 @@
 import { run } from "..";
 import { Res } from "./errorController";
+import FoamController from "./foamController";
 import Referencer from "./referencer";
 
 export default class Tokenizer {
@@ -29,7 +30,7 @@ export default class Tokenizer {
       original: string
     ) => {
       await Tokenizer.checkFoamId(wikilink, requesterFoamId);
-      const exp = await Tokenizer.wikilinkToTransclusionExp(wikilink, true);
+      const exp = await Tokenizer.wikilinkToTransclusionExp(wikilink, true, requesterFoamId);
       const transclusionExp = Tokenizer.transclusionExpToJson(exp);
       return Tokenizer.addSplitTokens(transclusionExp);
     };
@@ -41,7 +42,7 @@ export default class Tokenizer {
       original: string
     ) => {
       const transclusionExp = await Tokenizer.transformToTransclusionExp(
-        transform
+        transform,requesterFoamId
       );
       transclusionExp;
       return Tokenizer.addSplitTokens(transclusionExp);
@@ -62,7 +63,8 @@ export default class Tokenizer {
   };
 
   static transformToTransclusionExp = async (
-    transform: string
+    transform: string,
+    requesterFoamId:string
   ): Promise<string> => {
     // ((wikilink, asdf, 1)) --> ["iid","asdf","1"]
     let wikilinkFoundCallback = async (match: string,
@@ -71,7 +73,8 @@ export default class Tokenizer {
       original: string) => {
       const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
         wikilink,
-        false
+        false,
+        requesterFoamId
       );
       return transclusionExp;
     };
@@ -92,11 +95,18 @@ export default class Tokenizer {
 
   static wikilinkToTransclusionExp = async (
     wikilink: string,
-    assumeTitleTransclusion: boolean
+    assumeTitleTransclusion: boolean,
+    requesterFoamId:string
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
-    let exp = await Referencer.makeIid(runs[0]);
+    let foamId = runs[0]
+    let exp = await Referencer.makeIid(foamId);
+  
+    const makeNotesInInterplaryText = true
+  if(makeNotesInInterplaryText){
+   FoamController.makeNote(foamId,false,false,requesterFoamId)
+  }
     
     /*
     let frontRuns = runs[0].split("/");
