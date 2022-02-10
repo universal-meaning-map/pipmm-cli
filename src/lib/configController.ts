@@ -72,6 +72,7 @@ export default class ConfigController {
           "xavi-1644219237/trans-sub-abstraction-block-1639169078",
           "xavi-1644219237/trans-column-navigator-1612122309",
           "xavi-1644219237/trans-note-viewer-1641223323",
+          "xavi-1644219237/pipmm-instructions-1644422409"
         ],
         defaultExpr:"[%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
         compileInterplanetaryTextArefs:false
