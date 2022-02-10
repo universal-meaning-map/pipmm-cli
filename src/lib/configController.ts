@@ -71,9 +71,10 @@ export default class ConfigController {
         alwaysCompile: [
           "xavi-1644219237/trans-sub-abstraction-block-1639169078",
           "xavi-1644219237/trans-column-navigator-1612122309",
-          "xavi-1644219237/note-viewer-1641223323",
+          "xavi-1644219237/trans-note-viewer-1641223323",
         ],
-        defaultExpr:"[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJlzfmhs7a%22,[[%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJ2lf4dbua%22,%22QmXPTSJee8a4uy61vhAs35tM5bXDomSmo1BbTMUVAVbAGJl5uz4zaq%22]]]"
+        defaultExpr:"[%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
+        compileInterplanetaryTextArefs:false
       },
     };
     return configFile;
@@ -172,6 +173,7 @@ interface ConfigFile {
   misc: {
     alwaysCompile: string[];
     defaultExpr: string;
+    compileInterplanetaryTextArefs:boolean;
   };
 }
 

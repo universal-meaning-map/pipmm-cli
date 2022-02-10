@@ -2,6 +2,7 @@ import { run } from "..";
 import { Res } from "./errorController";
 import Compiler from "./compiler";
 import Referencer from "./referencer";
+import ConfigController from "./configController";
 
 export default class Tokenizer {
   static splitToken = "<split>";
@@ -30,7 +31,11 @@ export default class Tokenizer {
       original: string
     ) => {
       await Tokenizer.checkFoamId(wikilink, requesterFoamId);
-      const exp = await Tokenizer.wikilinkToTransclusionExp(wikilink, true, requesterFoamId);
+      const exp = await Tokenizer.wikilinkToTransclusionExp(
+        wikilink,
+        true,
+        requesterFoamId
+      );
       const transclusionExp = Tokenizer.transclusionExpToJson(exp);
       return Tokenizer.addSplitTokens(transclusionExp);
     };
@@ -42,7 +47,8 @@ export default class Tokenizer {
       original: string
     ) => {
       const transclusionExp = await Tokenizer.transformToTransclusionExp(
-        transform,requesterFoamId
+        transform,
+        requesterFoamId
       );
       transclusionExp;
       return Tokenizer.addSplitTokens(transclusionExp);
@@ -64,13 +70,15 @@ export default class Tokenizer {
 
   static transformToTransclusionExp = async (
     transform: string,
-    requesterFoamId:string
+    requesterFoamId: string
   ): Promise<string> => {
     // ((wikilink, asdf, 1)) --> ["iid","asdf","1"]
-    let wikilinkFoundCallback = async (match: string,
+    let wikilinkFoundCallback = async (
+      match: string,
       wikilink: string,
       offset: string,
-      original: string) => {
+      original: string
+    ) => {
       const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
         wikilink,
         false,
@@ -86,8 +94,7 @@ export default class Tokenizer {
     );
 
     let runs = wikilinksReplaced.split(",");
-    let runsTrimmed = runs.map((run:string)=> run.trim());
-
+    let runsTrimmed = runs.map((run: string) => run.trim());
 
     const transclusionExp = JSON.stringify(runsTrimmed);
     return transclusionExp;
@@ -96,7 +103,7 @@ export default class Tokenizer {
   static wikilinkToTransclusionExp = async (
     wikilink: string,
     assumeTitleTransclusion: boolean,
-    requesterFoamId:string
+    requesterFoamId: string
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
@@ -106,18 +113,25 @@ export default class Tokenizer {
       requesterFoamId
     );
 
-    const makeNotesInInterplaryText = true
-    if(makeNotesInInterplaryText){
-      Compiler.makeNote(foamId,false,false,requesterFoamId)
-    }
-    
-    let exp = await Referencer.makeIid(foamId);
+    let iid = await Referencer.makeIid(foamId);
 
+    if (ConfigController._configFile.misc.compileInterplanetaryTextArefs) {
+      if (!Referencer.iidToNoteWrap.has(iid))
+        Compiler.makeNote(foamId, false, false, requesterFoamId);
+    }
+
+    let exp = iid;
 
     if (runs.length == 1) {
       if (assumeTitleTransclusion) {
         exp =
-          exp + "/" + (await Referencer.makeIid(Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(Referencer.PROP_NAME_FOAMID)));
+          exp +
+          "/" +
+          (await Referencer.makeIid(
+            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
+              Referencer.PROP_NAME_FOAMID
+            )
+          ));
       }
     } else if (runs.length > 1) {
       let backRuns = runs[1].split("/");
@@ -195,7 +209,10 @@ export default class Tokenizer {
 
     if (Tokenizer.containsSpaces(wikilink))
       Res.error(
-        "Note " + requesterFoamId + " contains a reference with spaces: " + wikilink,
+        "Note " +
+          requesterFoamId +
+          " contains a reference with spaces: " +
+          wikilink,
         Res.saveError
       );
     //new wikilinks should be formated with timestmap in the back.
