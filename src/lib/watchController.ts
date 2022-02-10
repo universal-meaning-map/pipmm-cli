@@ -26,12 +26,13 @@ export default class WatchController {
     const connect = require("connect");
     const serveStatic = require("serve-static");
     const path = Path.join(__dirname + "../../../client");
-    console.log("Serving client in: " + path);
     const fullPath = Utils.resolveHome(path);
     connect()
       .use(serveStatic(fullPath))
-      .listen(ConfigController._configFile.network.localClientPort, () =>
-        console.log("Serving client at: " + this.buildClientUrl())
+      .listen(ConfigController._configFile.network.localClientPort, () =>{
+        console.log("Client ready at: "+ConfigController._configFile.network.localClientPort);
+        console.log("\n" + "👉"+this.buildClientUrl())
+      }
       );
   };
 
@@ -85,7 +86,7 @@ export default class WatchController {
   startWs = async (): Promise<any> => {
     const that = this;
     console.log(
-      "Attempting WS connection on " +
+      "Websocket connection ready at: " +
         ConfigController._configFile.network.websocketsPort
     );
     const wss = new WebSocket.Server({
