@@ -56,7 +56,10 @@ export default class CompileCommand extends Command {
 
       if (res.isOk()) {
         let note: NoteWrap = res.value;
-        console.log(note);
+        let obj = Utils.strMapToObj(note.block);
+        console.log("iid: "+note.iid);
+        console.log("cid: "+note.cid);
+        console.log(JSON.stringify(obj,null,2));
         //TODO: Update repo
       }
     }
