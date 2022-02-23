@@ -24,6 +24,12 @@ export default class UpdateCommand extends Command {
       description:
         "Executes the command relative to the specified path as oppose to the working directory",
     }),
+    isXavi: flags.boolean({
+      name: "isXavi",
+      char: "x",
+      description:
+        "Hard-coded foamId references to Xavi's repo are assumed to be on the root folder",
+    }),
   };
 
 
@@ -36,6 +42,8 @@ export default class UpdateCommand extends Command {
     }
 
     if (!ConfigController.load(workingPath)) return;
+    if (flags.isXavi) ConfigController.isXavi = true;
+
 
     let repo = "";
     try {
