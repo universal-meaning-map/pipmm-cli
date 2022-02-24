@@ -4,6 +4,7 @@ import { NoteWrap } from "./ipmm";
 import IpmmType from "./ipmmType";
 import Utils from "./utils";
 import * as path from "path";
+import * as ipfs from "ipfs-core";
 
 export default class Referencer {
   static readonly xaviId = "xavi-1644219237";
@@ -58,6 +59,15 @@ export default class Referencer {
     //return "i" + trunkated;
     return trunkated;
   };
+
+  static makeIdObj = async (): Promise<ipfs.PeerId.JSONPeerId> => {
+    const id = await ipfs.PeerId.create({ bits: 2048, keyType: "Ed25519" });
+    const idObj = id.toJSON();
+    //Dirty hack to be able to have IIDs as keys in IPLD Schema as it does not support keys prefixed by numbers
+    idObj.id = "i"+idObj.id;
+    return idObj;
+
+  }
 
   static getFriendMid = async (friendFolder: string): Promise<string> => {
     //Go to the firendFolder, and get the friendConfig file where the mid is set

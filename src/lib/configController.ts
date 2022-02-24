@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import Utils from "./utils";
-import * as ipfs from "ipfs-core";
+import Referencer from "./referencer";
 export default class ConfigController {
   static configPath: any;
   static relativeConfigPath = "/.pipmm/config.json";
@@ -45,9 +45,8 @@ export default class ConfigController {
   };
 
   static generateConfig = async (foamRepo: string): Promise<ConfigFile> => {
-    const id = await ipfs.PeerId.create({ bits: 2048, keyType: "Ed25519" });
-    const idObj = id.toJSON();
-
+    let idObj = await Referencer.makeIdObj();
+    
     const configFile = {
       resources: {
         notesRepo: Utils.resolveHome(foamRepo),
