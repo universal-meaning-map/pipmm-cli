@@ -50,33 +50,45 @@ export default class RestoreCommand extends Command {
     );
     let repo = Referencer.iidToNoteWrap;
 
-    let remoteEndPoint =
-      ConfigController._configFile.network.remoteServer + "/restore/x";
-
-    let localEndPoint =
-      "http://localhost:" +
-      ConfigController._configFile.network.localServerPort +
-      "/restore/x";
-
     let endpoint = "";
     let jsonFilter = "";
 
+    //REMOTE
     if (flags.remote) {
-      endpoint = remoteEndPoint;
+      console.log(
+        "Remote: " + ConfigController._configFile.network.remoteServer
+      );
+      if (ConfigController._configFile.network.remoteServer == "") {
+        console.log(
+          "'remoteServer' not specified in " + ConfigController.configPath
+        );
+        return;
+      }
+      endpoint =
+        ConfigController._configFile.network.remoteServer + "/restore/x";
       jsonFilter = Utils.getFile(ConfigController.remoteFilterPath);
       console.log("Restoring remote repo");
-    } else {
-      console.log("Applying local filter");
-      endpoint = localEndPoint;
+    }
+    //LOCAL
+    else {
+      endpoint =
+        "http://localhost:" +
+        ConfigController._configFile.network.localServerPort +
+        "/restore/x";
       jsonFilter = Utils.getFile(ConfigController.localFilterPath);
     }
     let filter = JSON.parse(jsonFilter);
+    console.log("Applying filter:\n" + jsonFilter);
 
     let filteredRepo = await Filter.filter(repo, filter);
     console.log("Total abstractions: " + repo.size);
     console.log("Filtered abstractions: " + filteredRepo.size);
-    console.log("Percentage* " + (filteredRepo.size / repo.size) * 100);
+    console.log(
+      "Percentage " +
+        Math.round(((filteredRepo.size * 100) / repo.size*100)) / 100
+        + "%") ;
 
+    console.log("Uploading...")
     const res = await axios.put(endpoint, Utils.notesWrapToObjs(filteredRepo));
 
     if (res.data) {
