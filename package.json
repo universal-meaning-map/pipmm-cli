@@ -1,7 +1,7 @@
 {
   "name": "pipmm",
   "description": "Set of tools meant to play with the underlying assumptions of `Interplanetary mind-map`",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "author": "xavivives",
   "bin": {
     "pipmm": "./bin/run"
