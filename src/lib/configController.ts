@@ -46,7 +46,7 @@ export default class ConfigController {
 
   static generateConfig = async (foamRepo: string): Promise<ConfigFile> => {
     let idObj = await Referencer.makeIdObj();
-    
+
     const configFile = {
       resources: {
         notesRepo: Utils.resolveHome(foamRepo),
@@ -73,7 +73,7 @@ export default class ConfigController {
           "xavi-1644219237/trans-note-viewer-1641223323",
           "xavi-1644219237/pipmm-instructions-1644422409"
         ],
-        defaultExpr:"[%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%2212D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
+        defaultExpr:"[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
         compileInterplanetaryTextArefs:false
       },
     };
