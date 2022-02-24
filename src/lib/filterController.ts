@@ -41,7 +41,6 @@ export default class Filter {
     
     for (let foamId of ConfigController._configFile.misc.alwaysCompile) {
       let iid = await Referencer.makeIid(foamId)
-      console.log("adding ", foamId, iid)
       let noteWrap = Referencer.iidToNoteWrap.get(iid);
       if(noteWrap){
         notesInput.set(iid,noteWrap);
