@@ -117,7 +117,7 @@ export default class Tokenizer {
 
     if (ConfigController._configFile.misc.compileInterplanetaryTextArefs) {
       if (!Referencer.iidToNoteWrap.has(iid))
-        Compiler.makeNote(foamId, false, false, requesterFoamId);
+       await Compiler.makeNote(foamId, false, false, requesterFoamId);
     }
 
     let exp = iid;
