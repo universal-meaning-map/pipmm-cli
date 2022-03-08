@@ -64,10 +64,9 @@ export default class Referencer {
     const id = await ipfs.PeerId.create({ bits: 2048, keyType: "Ed25519" });
     const idObj = id.toJSON();
     //Dirty hack to be able to have IIDs as keys in IPLD Schema as it does not support keys prefixed by numbers
-    idObj.id = "i"+idObj.id;
+    idObj.id = "i" + idObj.id;
     return idObj;
-
-  }
+  };
 
   static getFriendMid = async (friendFolder: string): Promise<string> => {
     //Go to the firendFolder, and get the friendConfig file where the mid is set
@@ -83,6 +82,10 @@ export default class Referencer {
   /*  return "i" + (await Referencer.makeLocalIid(friendId));
   };
   */
+
+  static makeExpr(iid: string, piid: string) {
+    return iid + "/" + piid;
+  }
 
   static iidExists(iid: string): boolean {
     if (Referencer.iidToCidMap[iid]) return true;
