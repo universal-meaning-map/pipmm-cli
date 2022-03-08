@@ -112,9 +112,8 @@ export default class Compiler {
       }
 
       /////////////////////////////////
-      let iid = "";
-      if (isType) iid = await Referencer.makeIid(foamId);
-      else iid = await Referencer.makeIid(foamId);
+
+      let iid = await Referencer.makeIid(foamId);
 
       if (forceUpdate == false && Referencer.iidToNoteWrap.has(iid)) {
         return Res.success(Referencer.iidToNoteWrap.get(iid));
