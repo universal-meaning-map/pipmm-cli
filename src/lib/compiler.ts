@@ -41,7 +41,6 @@ export default class Compiler {
     notesRepo = _notesRepo;
 
     const foamId = Utils.removeFileExtension(_fileName);
-
     return await Compiler.makeNote(foamId, false, true);
   };
 
@@ -58,7 +57,7 @@ export default class Compiler {
         requesterFoamId
       );
 
-      //console.log(foamId + "\tby\t" + requesterFoamId);
+     // console.log(foamId + "\tby\t" + requesterFoamId);
 
       //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
@@ -185,16 +184,31 @@ export default class Compiler {
 
       //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
 
-      if (ConfigController._configFile.misc.compileInterplanetaryTextArefs) {
+      if (ConfigController._configFile.misc.compileInterplanetaryTextArefs && !isType) {
         //itereate through the note properties values and compile the referenced notes
+        //view property
+        if (frontMatter.content) {
+          const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
+          const trimmed = removedFoodNotes.trim();
 
+          const viewProp = await Compiler.processProperty(
+            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
+              Referencer.PROP_VIEW_FOAMID
+            ),
+            trimmed,
+            foamId,
+            true
+          );
+         
+        }
+        //rest of properties
         for (let key in frontMatter.data) {
           const prop = await Compiler.processProperty(
             Referencer.updaterFoamIdWithFriendFolder(key, foamId),
             frontMatter.data[key],
             foamId,
             true
-          );
+            );
         }
       }
 
