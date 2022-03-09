@@ -1,12 +1,9 @@
-import * as path from "path";
-import * as fs from "fs";
-import { NoteWrap } from "./ipmm";
-import { runInNewContext } from "vm";
 import Referencer from "./referencer";
 import { Res } from "./errorController";
+import { ExportTemplate } from "./configController";
 
 export default class InterplanetaryText {
-  static transclude = (aref: string): string => {
+  static transclude = (aref: string, exportTemplate:ExportTemplate): string => {
     let runs = aref.split("/");
     let iid = runs[0];
     if (runs.length <= 1) {
@@ -28,14 +25,23 @@ export default class InterplanetaryText {
 
     let ipt = note?.block.get(tiid);
     if (!ipt) {
-      Res.error("Unable to find property in note: " + iid, Res.saveError, note);
+      Res.error(
+        "Unable to find property " + tiid + " in note " + iid,
+        Res.saveError,
+        note
+      );
+      //What to replace it with?
     }
 
     //We check what type it is (interplanetary-text, string or something else)
     if (type?.block.has("constrains")) {
       let constrains = type?.block.get("constrains");
       if (constrains[0] != Referencer.basicTypeInterplanetaryText) {
-        return ipt;
+       // let linkTemplate ="[{transclusion}](https://xavivives.com/#?expr=%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3ck7dwg62a%22,%22{iid}%22%5D%5D%5D)";
+       return InterplanetaryText.buildStringTemplate(exportTemplate.aref, {
+          transclusion: ipt,
+          iid: iid,
+        });
       }
     }
 
@@ -47,24 +53,29 @@ export default class InterplanetaryText {
           let expr = JSON.parse(run);
           if (expr.length == 1) {
             //static transclusion
-            compiled.push(InterplanetaryText.transclude(expr[0]));
+            compiled.push(InterplanetaryText.transclude(expr[0],exportTemplate));
           } else if (expr.length > 1) {
             //dynamic transclusion
-            console.log(
-              Res.error(
-                "Dynamic transclusion found but still not supported:" + expr,
-                Res.saveError
-              )
+            Res.error(
+              "Dynamic transclusion found but still not supported:" + expr,
+              Res.saveError
             );
           }
         } else {
           compiled.push(run);
+          //Create link?
         }
       }
     }
     let text = compiled.join("");
-
     console.log(text);
     return text;
   };
+
+  static buildStringTemplate = (template: string, vars: any): string => {
+    var format = require("string-template");
+    let link = format(template, vars);
+    return link;
+  };
 }
+// Format using an object hash with keys matching [0-9a-zA-Z]+

@@ -1,5 +1,5 @@
 import { Command, flags } from "@oclif/command";
-import ConfigController from "../lib/configController";
+import ConfigController, { ExportTemplate } from "../lib/configController";
 import Referencer from "../lib/referencer";
 import Compiler from "../lib/compiler";
 import Utils from "../lib/utils";
@@ -29,6 +29,12 @@ export default class ExportCommand extends Command {
 
   static args = [
     {
+      name: "exportId",
+      required: true,
+      description: "exportId defined in the config file",
+      hidden: false,
+    },
+    {
       name: "prop",
       required: true,
       description: "<fileName/property> of interplanetary-text to export",
@@ -46,6 +52,25 @@ export default class ExportCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
     if (flags.isXavi) ConfigController.isXavi = true;
+
+    let exportTemplate:ExportTemplate |null = null;
+    let existingExportIds = [];
+
+    for (let t of ConfigController._configFile.export.stringTemplates) {
+      if (t.exportId == args.exportId) {
+        exportTemplate = t;
+        break;
+      }
+      existingExportIds.push(t.exportId);
+    }
+    if (exportTemplate==null) {
+      console.log(
+        "The exportId specified does not match any of the defined in " +
+          ConfigController.configPath
+      );
+      console.log("Available exportIds: " + existingExportIds.join(", "));
+      return;
+    }
 
     let runs = args.prop.split("/");
     let foamId = runs[0];
@@ -68,7 +93,7 @@ export default class ExportCommand extends Command {
     if (res.isOk()) {
       let note: NoteWrap = res.value;
       let ipt = note.block.get(tiid);
-      InterplanetaryText.transclude(expr);
+      InterplanetaryText.transclude(expr, exportTemplate!);
     }
     ErrorController.saveLogs();
   }

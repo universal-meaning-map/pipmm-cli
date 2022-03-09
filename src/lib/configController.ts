@@ -71,10 +71,25 @@ export default class ConfigController {
           "xavi-1644219237/trans-sub-abstraction-block-1639169078",
           "xavi-1644219237/trans-column-navigator-1612122309",
           "xavi-1644219237/trans-note-viewer-1641223323",
-          "xavi-1644219237/pipmm-instructions-1644422409"
+          "xavi-1644219237/pipmm-instructions-1644422409",
         ],
-        defaultExpr:"[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
-        compileInterplanetaryTextArefs:false
+        defaultExpr:
+          "[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
+        compileInterplanetaryTextArefs: false,
+      },
+      export: {
+        stringTemplates: [
+          {
+            exportId:"md",
+            aref: "[{transclusion}](https://example.com/#?expr=%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3ck7dwg62a%22,%22{iid}%22%5D%5D%5D)",
+            arefNotFound: "<404>",
+          },
+          {
+            exportId:"txt",
+            aref: "{transclusion}",
+            arefNotFound: "-",
+          },
+        ],
       },
     };
     return configFile;
@@ -173,8 +188,17 @@ interface ConfigFile {
   misc: {
     alwaysCompile: string[];
     defaultExpr: string;
-    compileInterplanetaryTextArefs:boolean;
+    compileInterplanetaryTextArefs: boolean;
   };
+  export: {
+    stringTemplates: ExportTemplate[];
+  };
+}
+
+export interface ExportTemplate {
+  exportId:string;
+  aref: string;
+  arefNotFound: string;
 }
 
 interface FriendConfig {
