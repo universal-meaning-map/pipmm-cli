@@ -29,7 +29,7 @@ export default class Compiler {
 
     //compile "always compile"
     for (let foamId of ConfigController._configFile.misc.alwaysCompile) {
-     let res =  await Compiler.makeNote(foamId);
+      let res = await Compiler.makeNote(foamId);
     }
   };
 
@@ -41,6 +41,7 @@ export default class Compiler {
     notesRepo = _notesRepo;
 
     const foamId = Utils.removeFileExtension(_fileName);
+
     return await Compiler.makeNote(foamId, false, true);
   };
 
@@ -56,6 +57,8 @@ export default class Compiler {
         foamId,
         requesterFoamId
       );
+
+      //console.log(foamId + "\tby\t" + requesterFoamId);
 
       //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
@@ -154,7 +157,8 @@ export default class Compiler {
               Referencer.PROP_VIEW_FOAMID
             ),
             trimmed,
-            foamId
+            foamId,
+            false
           );
           noteBlock.set(viewProp.key, viewProp.value);
         }
@@ -164,7 +168,8 @@ export default class Compiler {
           const prop = await Compiler.processProperty(
             Referencer.updaterFoamIdWithFriendFolder(key, foamId),
             frontMatter.data[key],
-            foamId
+            foamId,
+            false
           );
           noteBlock.set(prop.key, prop.value);
         }
@@ -177,6 +182,21 @@ export default class Compiler {
 
       const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
       Referencer.iidToNoteWrap.set(iid, noteWrap);
+
+      //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
+
+      if (ConfigController._configFile.misc.compileInterplanetaryTextArefs) {
+        //itereate through the note properties values and compile the referenced notes
+
+        for (let key in frontMatter.data) {
+          const prop = await Compiler.processProperty(
+            Referencer.updaterFoamIdWithFriendFolder(key, foamId),
+            frontMatter.data[key],
+            foamId,
+            true
+          );
+        }
+      }
 
       return Res.success(noteWrap);
     } catch (e) {
@@ -211,7 +231,8 @@ export default class Compiler {
   static processProperty = async (
     typeFoamId: string,
     propertyValue: any,
-    requesterFoamId: string
+    requesterFoamId: string,
+    compileInterplanetaryTextArefs: boolean
     // errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
     const typeIId = await Referencer.makeIid(typeFoamId);
@@ -251,7 +272,8 @@ export default class Compiler {
             requesterFoamId
           ),
           propertyValue[subTypeFoamId],
-          requesterFoamId
+          requesterFoamId,
+          compileInterplanetaryTextArefs
         );
         newValue[prop.key] = prop.value;
       }
@@ -269,7 +291,8 @@ export default class Compiler {
         ) {
           newValue = await Tokenizer.wikilinksToInterplanetaryText(
             newValue,
-            requesterFoamId
+            requesterFoamId,
+            compileInterplanetaryTextArefs
           );
         } else if (
           Referencer.iidToTypeMap[typeIId].constrains[0] ==

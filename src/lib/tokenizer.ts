@@ -11,18 +11,23 @@ export default class Tokenizer {
 
   static wikilinksToInterplanetaryText = async (
     text: string,
-    requesterFoamId: string
+    requesterFoamId: string,
+    compileInterplanetaryTextArefs: boolean
   ): Promise<string[]> => {
+
     const splitReplaced = await Tokenizer.wikilinksToTransclusions(
       text,
-      requesterFoamId
+      requesterFoamId,
+      compileInterplanetaryTextArefs,
+      
     );
     return splitReplaced.split(Tokenizer.splitToken);
   };
 
   static wikilinksToTransclusions = async (
     text: string,
-    requesterFoamId: string
+    requesterFoamId: string,
+    compileInterplanetaryTextArefs: boolean
   ): Promise<string> => {
     let wikilinkFoundCallback = async (
       match: string,
@@ -34,7 +39,8 @@ export default class Tokenizer {
       const exp = await Tokenizer.wikilinkToTransclusionExp(
         wikilink,
         true,
-        requesterFoamId
+        requesterFoamId,
+        compileInterplanetaryTextArefs
       );
       const transclusionExp = Tokenizer.transclusionExpToJson(exp);
       return Tokenizer.addSplitTokens(transclusionExp);
@@ -48,7 +54,8 @@ export default class Tokenizer {
     ) => {
       const transclusionExp = await Tokenizer.transformToTransclusionExp(
         transform,
-        requesterFoamId
+        requesterFoamId,
+        compileInterplanetaryTextArefs
       );
       transclusionExp;
       return Tokenizer.addSplitTokens(transclusionExp);
@@ -70,7 +77,8 @@ export default class Tokenizer {
 
   static transformToTransclusionExp = async (
     transform: string,
-    requesterFoamId: string
+    requesterFoamId: string,
+    compileInterplanetaryTextArefs:boolean
   ): Promise<string> => {
     // ((wikilink, asdf, 1)) --> ["iid","asdf","1"]
     let wikilinkFoundCallback = async (
@@ -82,7 +90,8 @@ export default class Tokenizer {
       const transclusionExp = await Tokenizer.wikilinkToTransclusionExp(
         wikilink,
         false,
-        requesterFoamId
+        requesterFoamId,
+        compileInterplanetaryTextArefs
       );
       return transclusionExp;
     };
@@ -103,7 +112,8 @@ export default class Tokenizer {
   static wikilinkToTransclusionExp = async (
     wikilink: string,
     assumeTitleTransclusion: boolean,
-    requesterFoamId: string
+    requesterFoamId: string,
+    compileInterplanetaryTextArefs: boolean
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
     let runs = wikilink.split("|");
@@ -115,7 +125,7 @@ export default class Tokenizer {
 
     let iid = await Referencer.makeIid(foamId);
 
-    if (ConfigController._configFile.misc.compileInterplanetaryTextArefs) {
+    if (compileInterplanetaryTextArefs) {
       if (!Referencer.iidToNoteWrap.has(iid))
        await Compiler.makeNote(foamId, false, false, requesterFoamId);
     }
