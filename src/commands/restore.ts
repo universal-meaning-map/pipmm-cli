@@ -56,7 +56,7 @@ export default class RestoreCommand extends Command {
     //REMOTE
     if (flags.remote) {
       console.log(
-        "Remote: " + ConfigController._configFile.network.remoteServer
+        "Restoring to remote: " + ConfigController._configFile.network.remoteServer
       );
       if (ConfigController._configFile.network.remoteServer == "") {
         console.log(
@@ -76,6 +76,7 @@ export default class RestoreCommand extends Command {
         ConfigController._configFile.network.localServerPort +
         "/restore/x";
       jsonFilter = Utils.getFile(ConfigController.localFilterPath);
+      console.log("Restoring to local:"+ endpoint);
     }
     let filter = JSON.parse(jsonFilter);
     console.log("Applying filter:\n" + jsonFilter);
@@ -85,10 +86,12 @@ export default class RestoreCommand extends Command {
     console.log("Filtered abstractions: " + filteredRepo.size);
     console.log(
       "Percentage " +
-        Math.round(((filteredRepo.size * 100) / repo.size*100)) / 100
-        + "%") ;
+        Math.round(((filteredRepo.size * 100) / repo.size) * 100) / 100 +
+        "%"
+    );
 
-    console.log("Uploading...")
+    console.log("Uploading...");
+
     const res = await axios.put(endpoint, Utils.notesWrapToObjs(filteredRepo));
 
     if (res.data) {
