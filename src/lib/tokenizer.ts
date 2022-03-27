@@ -14,12 +14,10 @@ export default class Tokenizer {
     requesterFoamId: string,
     compileInterplanetaryTextArefs: boolean
   ): Promise<string[]> => {
-
     const splitReplaced = await Tokenizer.wikilinksToTransclusions(
       text,
       requesterFoamId,
-      compileInterplanetaryTextArefs,
-      
+      compileInterplanetaryTextArefs
     );
     return splitReplaced.split(Tokenizer.splitToken);
   };
@@ -78,7 +76,7 @@ export default class Tokenizer {
   static transformToTransclusionExp = async (
     transform: string,
     requesterFoamId: string,
-    compileInterplanetaryTextArefs:boolean
+    compileInterplanetaryTextArefs: boolean
   ): Promise<string> => {
     // ((wikilink, asdf, 1)) --> ["iid","asdf","1"]
     let wikilinkFoundCallback = async (
@@ -127,7 +125,7 @@ export default class Tokenizer {
 
     if (compileInterplanetaryTextArefs) {
       if (!Referencer.iidToNoteWrap.has(iid))
-       await Compiler.makeNote(foamId, false, false, requesterFoamId);
+        await Compiler.makeNote(foamId, false, false, requesterFoamId);
     }
 
     let exp = iid;
@@ -264,5 +262,17 @@ export default class Tokenizer {
   static foamIdDoesNotContainTimestamp(str: string): boolean {
     if (str.indexOf("-16") == -1 || str.indexOf("-17") == -1) return false;
     return true;
+  }
+
+  static getTyeForContent(str: string) {
+    let expression = /\s*([^:]*?)\s*:\s*([^:\s]*)/g; //matches str in front of semicolon
+    let regex = new RegExp(expression);
+    let firstLine = str.split("\n", 1)[0];
+    let r = regex.exec(firstLine);
+    if (r == null) {
+      return Referencer.PROP_VIEW_FOAMID;
+    } else {
+      return r[1];
+    }
   }
 }

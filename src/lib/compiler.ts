@@ -57,7 +57,7 @@ export default class Compiler {
         requesterFoamId
       );
 
-     // console.log(foamId + "\tby\t" + requesterFoamId);
+      // console.log(foamId + "\tby\t" + requesterFoamId);
 
       //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
@@ -146,14 +146,17 @@ export default class Compiler {
       }
       // VIEW property
       else {
-        //Process the content of the .md file and convert it into the "view" type
+        //Process the content of the .md file and convert it into the the type expressed in the first line or the "view" if not expressed.
         if (frontMatter.content) {
+          //for FOAM repositories
           const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
-          const trimmed = removedFoodNotes.trim();
+          const trimmed = removedFoodNotes.trim(); 
+
+          let contentType = Tokenizer.getTyeForContent(trimmed);
 
           const viewProp = await Compiler.processProperty(
             Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
-              Referencer.PROP_VIEW_FOAMID
+              contentType
             ),
             trimmed,
             foamId,
@@ -184,7 +187,10 @@ export default class Compiler {
 
       //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
 
-      if (ConfigController._configFile.misc.compileInterplanetaryTextArefs && !isType) {
+      if (
+        ConfigController._configFile.misc.compileInterplanetaryTextArefs &&
+        !isType
+      ) {
         //itereate through the note properties values and compile the referenced notes
         //view property
         if (frontMatter.content) {
@@ -199,7 +205,6 @@ export default class Compiler {
             foamId,
             true
           );
-         
         }
         //rest of properties
         for (let key in frontMatter.data) {
@@ -208,7 +213,7 @@ export default class Compiler {
             frontMatter.data[key],
             foamId,
             true
-            );
+          );
         }
       }
 
