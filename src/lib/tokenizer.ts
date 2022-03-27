@@ -264,15 +264,23 @@ export default class Tokenizer {
     return true;
   }
 
-  static getTyeForContent(str: string) {
+  static getTypeAndValueForContent(str: string) {
+    let lines = str.split("\n");
     let expression = /\s*([^:]*?)\s*:\s*([^:\s]*)/g; //matches str in front of semicolon
     let regex = new RegExp(expression);
-    let firstLine = str.split("\n", 1)[0];
-    let r = regex.exec(firstLine);
+    let r = regex.exec(lines[0]);
     if (r == null) {
-      return Referencer.PROP_VIEW_FOAMID;
+      return {
+        type: Referencer.PROP_VIEW_FOAMID,
+        value: str,
+      };
     } else {
-      return r[1];
+      lines.splice(0, 1); //remove the type line
+      let value = lines.join("\n");
+      return {
+        type: r[1],
+        value: value,
+      };
     }
   }
 }
