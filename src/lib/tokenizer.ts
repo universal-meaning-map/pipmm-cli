@@ -271,7 +271,7 @@ export default class Tokenizer {
     let r = regex.exec(lines[0]);
     if (r == null) {
       return {
-        type: Referencer.PROP_VIEW_FOAMID,
+        type: ConfigController._configFile.misc.defaultContentProperty,
         value: str,
       };
     } else {

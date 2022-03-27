@@ -73,6 +73,7 @@ export default class ConfigController {
           "xavi-1644219237/trans-note-viewer-1641223323",
           "xavi-1644219237/pipmm-instructions-1644422409",
         ],
+        defaultContentProperty: "xavi-1644219237/prop-view-1612698885",
         defaultExpr:
           "[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
         compileInterplanetaryTextArefs: false,
@@ -188,6 +189,7 @@ interface ConfigFile {
   misc: {
     alwaysCompile: string[];
     defaultExpr: string;
+    defaultContentProperty:string;
     compileInterplanetaryTextArefs: boolean;
   };
   export: {
