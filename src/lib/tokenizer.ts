@@ -33,7 +33,6 @@ export default class Tokenizer {
       offset: string,
       original: string
     ) => {
-      await Tokenizer.checkFoamId(wikilink, requesterFoamId);
       const exp = await Tokenizer.wikilinkToTransclusionExp(
         wikilink,
         true,
@@ -120,6 +119,8 @@ export default class Tokenizer {
       runs[0],
       requesterFoamId
     );
+
+    await Tokenizer.checkFoamId(foamId, requesterFoamId);
 
     let iid = await Referencer.makeIid(foamId);
 
@@ -259,11 +260,6 @@ export default class Tokenizer {
     return true;
   }
 
-  static foamIdDoesNotContainTimestamp2(str: string): boolean {
-    if (str.indexOf("-16") == -1 || str.indexOf("-17") == -1) return false;
-    return true;
-  }
-
   static foamIdDoesNotContainTimestamp(str: string): boolean {
     if (str.length < 10) {
       return true;
@@ -272,7 +268,6 @@ export default class Tokenizer {
       str.indexOf("16") == str.length - 10 ||
       str.indexOf("17") == str.length - 10
     ) {
-
       return false;
     }
 
@@ -280,10 +275,6 @@ export default class Tokenizer {
   }
 
   static getTypeAndValueForContent(str: string) {
-    /*return {
-      type: ConfigController._configFile.misc.defaultContentProperty,
-      value: str,
-    };*/
     let lines = str.split("\n");
     let expression = /\s*([^:]*?)\s*:\s*([^:\s]*)/g; //matches str in front of semicolon
     let regex = new RegExp(expression);
