@@ -61,7 +61,7 @@ export default class Compiler {
 
       //READ FILE
       const filePath = path.join(notesRepo, foamId + ".md");
-      Compiler.checkFileName(foamId, filePath);
+      Compiler.checkFileName(foamId, filePath, requesterFoamId);
       const fileData = await Res.async(
         fs.readFile(filePath, "utf8"),
         "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
@@ -150,13 +150,11 @@ export default class Compiler {
         if (frontMatter.content) {
           //for FOAM repositories
           const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
-          const trimmed = removedFoodNotes.trim(); 
+          const trimmed = removedFoodNotes.trim();
 
           let content = Tokenizer.getTypeAndValueForContent(removedFoodNotes);
-           const contentProp = await Compiler.processProperty(
-            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
-              content.type
-            ),
+          const contentProp = await Compiler.processProperty(
+            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(content.type),
             content.value,
             foamId,
             false
@@ -370,7 +368,8 @@ export default class Compiler {
 
   static checkFileName = async (
     foamId: string,
-    filePath: string
+    filePath: string,
+    requesterFoamId: string | undefined
   ): Promise<void> => {
     //new wikilinks should be formated with timestmap in the back.
     //Super crappy check that will last 5 years
@@ -378,7 +377,8 @@ export default class Compiler {
       Res.error(
         "File '" +
           foamId +
-          "' contains uppercase in its filename. Should be only lowercase characters, numbers and '.'",
+          "' contains uppercase in its filename. Should be only lowercase characters, numbers and '.' Requested by " +
+          requesterFoamId,
         Res.saveError,
         { filepath: filePath }
       );
@@ -387,7 +387,8 @@ export default class Compiler {
       Res.error(
         "File '" +
           foamId +
-          "' contains spaces in its filename. Should be only lowercase characters, numbers and '.'",
+          "' contains spaces in its filename. Should be only lowercase characters, numbers and '.'Requested by " +
+          requesterFoamId,
         Res.saveError,
         { filepath: filePath }
       );
@@ -396,7 +397,8 @@ export default class Compiler {
       Res.error(
         "File '" +
           foamId +
-          "' does not contain a timestamp in its filename. Is likley an old version",
+          "' does not contain a timestamp in its filename. Requested by " +
+          requesterFoamId,
         Res.saveError,
         { filepath: filePath }
       );
