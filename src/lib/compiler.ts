@@ -152,8 +152,7 @@ export default class Compiler {
           const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
           const trimmed = removedFoodNotes.trim(); 
 
-          let content = Tokenizer.getTypeAndValueForContent(trimmed);
-          console.log(content);
+          let content = Tokenizer.getTypeAndValueForContent(removedFoodNotes);
            const contentProp = await Compiler.processProperty(
             Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
               content.type

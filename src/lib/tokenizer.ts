@@ -259,17 +259,37 @@ export default class Tokenizer {
     return true;
   }
 
-  static foamIdDoesNotContainTimestamp(str: string): boolean {
+  static foamIdDoesNotContainTimestamp2(str: string): boolean {
     if (str.indexOf("-16") == -1 || str.indexOf("-17") == -1) return false;
     return true;
   }
 
+  static foamIdDoesNotContainTimestamp(str: string): boolean {
+    if (str.length < 10) {
+      return true;
+    }
+    if (
+      str.indexOf("16") == str.length - 10 ||
+      str.indexOf("17") == str.length - 10
+    ) {
+
+      return false;
+    }
+
+    return true;
+  }
+
   static getTypeAndValueForContent(str: string) {
+    /*return {
+      type: ConfigController._configFile.misc.defaultContentProperty,
+      value: str,
+    };*/
     let lines = str.split("\n");
     let expression = /\s*([^:]*?)\s*:\s*([^:\s]*)/g; //matches str in front of semicolon
     let regex = new RegExp(expression);
-    let r = regex.exec(lines[0]);
-    if (r == null) {
+    var r = regex.exec(lines[0]);
+
+    if (r == null || Tokenizer.foamIdDoesNotContainTimestamp(r[1])) {
       return {
         type: ConfigController._configFile.misc.defaultContentProperty,
         value: str,
@@ -277,6 +297,7 @@ export default class Tokenizer {
     } else {
       lines.splice(0, 1); //remove the type line
       let value = lines.join("\n");
+
       return {
         type: r[1],
         value: value,
