@@ -150,16 +150,17 @@ export default class Compiler {
         if (frontMatter.content) {
           //for FOAM repositories
           const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
-          const trimmed = removedFoodNotes.trim();
-
           let content = Tokenizer.getTypeAndValueForContent(removedFoodNotes);
-          const contentProp = await Compiler.processProperty(
-            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(content.type),
-            content.value,
-            foamId,
-            false
-          );
-          noteBlock.set(contentProp.key, contentProp.value);
+          let value = content.value.trim();
+          if (value != "") {
+            const contentProp = await Compiler.processProperty(
+              Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(content.type),
+              value,
+              foamId,
+              false
+            );
+            noteBlock.set(contentProp.key, contentProp.value);
+          }
         }
         //ALL other properties
         //The rest of the properties
