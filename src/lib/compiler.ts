@@ -29,7 +29,7 @@ export default class Compiler {
 
     //compile "always compile"
     for (let foamId of ConfigController._configFile.misc.alwaysCompile) {
-      let res = await Compiler.makeNote(foamId);
+      await Compiler.makeNote(foamId);
     }
   };
 

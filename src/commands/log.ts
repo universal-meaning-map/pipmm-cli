@@ -1,13 +1,6 @@
 import { Command, flags } from "@oclif/command";
-import cli from "cli-ux";
-import * as fs from "fs";
-import * as path from "path";
-import * as matter from "gray-matter";
-import { Console } from "console";
 import ConfigController from "../lib/configController";
 import LogsController from "../lib/logsController";
-import { Res } from "../lib/errorController";
-import { Config } from "@oclif/config";
 import Utils from "../lib/utils";
 
 export default class LogsCommand extends Command {
@@ -41,15 +34,11 @@ export default class LogsCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-
     let logs = LogsController.loadErrorLogs();
 
     if (args.errorIndex) LogsController.logErrorIndex(logs, args.errorIndex);
     else LogsController.logAllErrors(logs);
 
     this.exit(0);
-
-    //LogsController.logNumberedList(logs);
-    //this.log("\nUse the flag -e=<error-index> to view error details");
   }
 }
