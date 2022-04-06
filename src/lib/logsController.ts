@@ -64,4 +64,9 @@ export default class LogsController {
     if (logs.length == 0) console.log("\nSuccess! No errors were found");
     else console.log("\nUse 'ipmm log <errorIndex>' to see more details");
   };
+
+  static logSummary = (logs: ErrorContext[]) => {
+    if (logs.length == 0) console.log("\nSuccess! No errors were found");
+    else console.log(logs.length+" errors were found. Run 'ipmm log' to list them");
+  };
 }

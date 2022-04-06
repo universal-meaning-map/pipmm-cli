@@ -7,6 +7,7 @@ import { NoteWrap } from "../lib/ipmm";
 import { promises as fs, readFile } from "fs";
 import Referencer from "../lib/referencer";
 import Utils from "../lib/utils";
+import LogsController from "../lib/logsController";
 
 export default class CompileCommand extends Command {
   static description =
@@ -57,9 +58,9 @@ export default class CompileCommand extends Command {
       if (res.isOk()) {
         let note: NoteWrap = res.value;
         let obj = Utils.strMapToObj(note.block);
-        console.log("iid: "+note.iid);
-        console.log("cid: "+note.cid);
-        console.log(JSON.stringify(obj,null,2));
+        console.log("iid: " + note.iid);
+        console.log("cid: " + note.cid);
+        console.log(JSON.stringify(obj, null, 2));
         //TODO: Update repo
       }
     }
@@ -70,11 +71,14 @@ export default class CompileCommand extends Command {
         ConfigController._configFile.resources.notesRepo
       );
 
-      let obj = Utils.notesWrapToObjs(Referencer.iidToNoteWrap);
+      let repo = Referencer.iidToNoteWrap;
+      let obj = Utils.notesWrapToObjs(repo);
       let json = JSON.stringify(obj, null, 2);
       await fs.writeFile(ConfigController._configFile.resources.ipmmRepo, json);
+      console.log("Compiled "+repo.size+" abstractions");
     }
-
+    
     ErrorController.saveLogs();
+    LogsController.logSummary(ErrorController.savedErrors);
   }
 }
