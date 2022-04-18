@@ -107,7 +107,7 @@ export default class ExportCommand extends Command {
     if (res.isOk()) {
       let note: NoteWrap = res.value;
       let ipt = note.block.get(tiid);
-      InterplanetaryText.transclude(expr, exportTemplate!, args.v1, args.v2);
+      InterplanetaryText.transclude(expr, exportTemplate!,iid, args.v1, args.v2);
     }
     ErrorController.saveLogs();
   }

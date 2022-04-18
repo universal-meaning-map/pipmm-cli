@@ -3,7 +3,7 @@ import { Res } from "./errorController";
 import { ExportTemplate } from "./configController";
 
 export default class InterplanetaryText {
-  static transclude = (aref: string, exportTemplate:ExportTemplate, v1:string, v2:string): string => {
+  static transclude = (aref: string, exportTemplate:ExportTemplate,requesterIid:string, v1:string, v2:string): string => {
     let runs = aref.split("/");
     let iid = runs[0];
     if (runs.length <= 1) {
@@ -41,6 +41,7 @@ export default class InterplanetaryText {
        return InterplanetaryText.buildStringTemplate(exportTemplate.aref, {
           transclusion: ipt,
           iid: iid,
+          requesterIid: requesterIid,
           v1:v1,
           v2:v2
         });
@@ -55,7 +56,7 @@ export default class InterplanetaryText {
           let expr = JSON.parse(run);
           if (expr.length == 1) {
             //static transclusion
-            compiled.push(InterplanetaryText.transclude(expr[0],exportTemplate,v1,v2));
+            compiled.push(InterplanetaryText.transclude(expr[0],exportTemplate,requesterIid,v1,v2));
           } else if (expr.length > 1) {
             //dynamic transclusion
             Res.error(
