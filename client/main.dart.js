@@ -54935,7 +54935,7 @@ r=new F.cO()
 r.ew(a)
 r=H.a([[u.z,r.b]],t.t6)
 $.a4s().$1([u.K,r])},
-Jw(){var s,r,q,p,o,n,m=P.aaz(window.location.href),l=m.gtu().h(0,"localServerPort")
+Jw(){var s,r,q,p,o,n,m=P.aaz(window.location.hash),l=m.gtu().h(0,"localServerPort")
 if(l!=null&&l!==$.C7)$.C7=l
 q=m.gtu().h(0,"websocketsPort")
 if(q!=null&&q!==this.a.a)this.a.uo(this.ga0F(),q)
@@ -54949,7 +54949,7 @@ $.adh().$1(o)}catch(n){H.U(n)
 P.eQ(C.b.R("Unable to decode expr:",s))}},
 a0S(a){var s=this.a.a,r=s!==""?"#?websocketsPort="+s+"&":"#?"
 s=$.C7
-r=(s!==""?r+"localServerPort="+s+"&":r)+"expr="+C.af.hf(a)
+r=(s!==""?r+"localServerPort="+s+"&":r)+"expr="+C.af.hf(a)+"&"
 window.location.hash=r}}
 Z.XI.prototype={
 $1(a){var s=P.aaz(window.location.href).i(0),r=this.a

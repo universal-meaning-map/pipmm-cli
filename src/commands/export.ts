@@ -24,7 +24,7 @@ export default class ExportCommand extends Command {
       char: "x",
       description:
         "Hard-coded foamId references to Xavi's repo are assumed to be on the root folder",
-    }),
+    })
   };
 
   static args = [
@@ -38,6 +38,20 @@ export default class ExportCommand extends Command {
       name: "prop",
       required: true,
       description: "<fileName/property> of interplanetary-text to export",
+      hidden: false,
+    },
+
+    {
+      name: "v1",
+      required: false,
+      description: "value that will replace the  string-template {v1}",
+      hidden: false,
+    },
+
+    {
+      name: "v2",
+      required: false,
+      description: "value that will replace the  string-template {v2}",
       hidden: false,
     },
   ];
@@ -93,7 +107,7 @@ export default class ExportCommand extends Command {
     if (res.isOk()) {
       let note: NoteWrap = res.value;
       let ipt = note.block.get(tiid);
-      InterplanetaryText.transclude(expr, exportTemplate!);
+      InterplanetaryText.transclude(expr, exportTemplate!, args.v1, args.v2);
     }
     ErrorController.saveLogs();
   }
