@@ -29,11 +29,13 @@ export default class WatchController {
     const fullPath = Utils.resolveHome(path);
     connect()
       .use(serveStatic(fullPath))
-      .listen(ConfigController._configFile.network.localClientPort, () =>{
-        console.log("Client ready at: "+ConfigController._configFile.network.localClientPort);
-        console.log("\n" + "👉"+this.buildClientUrl())
-      }
-      );
+      .listen(ConfigController._configFile.network.localClientPort, () => {
+        console.log(
+          "Client ready at: " +
+            ConfigController._configFile.network.localClientPort
+        );
+        console.log("\n" + "👉" + this.buildClientUrl());
+      });
   };
 
   startPipmmmServer = async (): Promise<any> => {
@@ -69,8 +71,8 @@ export default class WatchController {
       ConfigController._configFile.network.websocketsPort +
       "&localServerPort=" +
       ConfigController._configFile.network.localServerPort +
-      "&expr=" +ConfigController._configFile.misc.defaultExpr
-      
+      "&expr=" +
+      ConfigController._configFile.misc.defaultExpr
     );
   };
 
@@ -151,7 +153,9 @@ export default class WatchController {
 
   updateServer = async (note: NoteWrap): Promise<Boolean> => {
     let notes: Map<string, NoteWrap> = new Map();
+
     notes.set(note.iid, note);
+
     const res = await axios.put(
       "http://localhost:" +
         ConfigController._configFile.network.localServerPort +
@@ -163,6 +167,14 @@ export default class WatchController {
 
   reload = async (foamId: string): Promise<void> => {
     let note = await this.importFile(foamId);
+    if (!note) {
+      console.log(
+        "🔥 " +
+          foamId +
+          " could not be compiled. Verify that the YAML format is correct"
+      );
+      return;
+    }
     await this.updateServer(note);
     await this.notifyClient(note.iid);
   };
