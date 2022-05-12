@@ -1,6 +1,9 @@
 import * as path from "path";
 import * as fs from "fs";
 import { NoteWrap } from "./ipmm";
+import Referencer from "./referencer";
+import { promises as fsPromises, readFile } from "fs";
+import ConfigController from "./configController";
 
 export default class Utils {
   static resolveHome = (filepath: string) => {
@@ -84,4 +87,12 @@ export default class Utils {
     }
     return strMap;
   };
+
+  static async  saveIpmmRepo(){
+    let repo = Referencer.iidToNoteWrap;
+    let obj = Utils.notesWrapToObjs(repo);
+    let json = JSON.stringify(obj, null, 2);
+    await fsPromises.writeFile(ConfigController._configFile.resources.ipmmRepo, json);
+    console.log("Compiled "+repo.size+" abstractions");
+  }
 }

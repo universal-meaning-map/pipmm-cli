@@ -71,11 +71,8 @@ export default class CompileCommand extends Command {
         ConfigController._configFile.resources.notesRepo
       );
 
-      let repo = Referencer.iidToNoteWrap;
-      let obj = Utils.notesWrapToObjs(repo);
-      let json = JSON.stringify(obj, null, 2);
-      await fs.writeFile(ConfigController._configFile.resources.ipmmRepo, json);
-      console.log("Compiled "+repo.size+" abstractions");
+      Utils.saveIpmmRepo();
+
     }
     
     ErrorController.saveLogs();
