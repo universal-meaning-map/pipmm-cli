@@ -394,7 +394,8 @@ export default class Compiler {
         { filepath: filePath }
       );
     //No uper case allowed
-    if (Tokenizer.foamIdDoesNotContainTimestamp(foamId))
+    let localFoamId = Tokenizer.getLocalFoamId(foamId);
+    if (Tokenizer.idDoesNotContainTimestamp(localFoamId))
       Res.error(
         "File '" +
           foamId +

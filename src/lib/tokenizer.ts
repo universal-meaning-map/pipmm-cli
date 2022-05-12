@@ -203,46 +203,48 @@ export default class Tokenizer {
   };
 
   static checkFoamId = async (
-    wikilink: string,
+    foamId: string,
     requesterFoamId: string
   ): Promise<void> => {
-    //wikilinks should not include extension
-    if (Tokenizer.containsMdExtension(wikilink))
+    //foamId should not include extension
+    let localFoamId = Tokenizer.getLocalFoamId(foamId);
+    if (Tokenizer.containsMdExtension(foamId))
       Res.error(
         "Note " +
           requesterFoamId +
           " contains wikilink with .md extension. Wikilink: " +
-          wikilink,
+          foamId,
         Res.saveError
       );
 
-    if (Tokenizer.containsSpaces(wikilink))
+    if (Tokenizer.containsSpaces(foamId))
       Res.error(
         "Note " +
           requesterFoamId +
           " contains a reference with spaces: " +
-          wikilink,
+          foamId,
         Res.saveError
       );
     //new wikilinks should be formated with timestmap in the back.
     //Super crappy check that will last 5 years
-    if (Tokenizer.containsUpperCase(wikilink))
+    if (Tokenizer.containsUpperCase(foamId))
       Res.error(
         "Note " +
           requesterFoamId +
           " contains wikilink with upercase. Wikilink: " +
-          wikilink,
+          foamId,
         Res.saveError
       );
     //No upper case allowed
-    if (Tokenizer.foamIdDoesNotContainTimestamp(wikilink))
+    if (Tokenizer.idDoesNotContainTimestamp(localFoamId)) {
       Res.error(
         "Note " +
           requesterFoamId +
           " contains wikilink without timestamp. Wikilink: " +
-          wikilink,
+          localFoamId,
         Res.saveError
       );
+    }
   };
 
   static containsMdExtension(str: string): boolean {
@@ -260,10 +262,11 @@ export default class Tokenizer {
     return true;
   }
 
-  static foamIdDoesNotContainTimestamp(str: string): boolean {
+  static idDoesNotContainTimestamp(str: string): boolean {
     if (str.length < 10) {
       return true;
     }
+
     if (
       str.indexOf("16") == str.length - 10 ||
       str.indexOf("17") == str.length - 10
@@ -278,9 +281,12 @@ export default class Tokenizer {
     let lines = str.split("\n");
     let expression = /\s*([^:]*?)\s*:\s*([^:\s]*)/g; //matches str in front of semicolon
     let regex = new RegExp(expression);
-    var r = regex.exec(lines[0]);
+    let r = regex.exec(lines[0]);
 
-    if (r == null || Tokenizer.foamIdDoesNotContainTimestamp(r[1])) {
+    if (
+      r == null ||
+      Tokenizer.idDoesNotContainTimestamp(Tokenizer.getLocalFoamId(r[1]))
+    ) {
       return {
         type: ConfigController._configFile.misc.defaultContentProperty,
         value: str,
@@ -293,6 +299,18 @@ export default class Tokenizer {
         type: r[1],
         value: value,
       };
+    }
+  }
+
+  static getLocalFoamId(foamId: string): string {
+    let runs = foamId.split("/");
+    if (runs.length == 1) {
+      return runs[0];
+    } else if (runs.length == 2) {
+      return runs[1];
+    } else {
+      console.log("IPLD paths not supported yet. " + foamId);
+      return foamId;
     }
   }
 }

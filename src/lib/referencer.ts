@@ -117,6 +117,7 @@ export default class Referencer {
     return undefined;
   };
 
+  //Ads friend relative path if the requester contains it and no other friendPath is specified
   static updaterFoamIdWithFriendFolder = (
     foamId: string,
     requesterFoamId: string | undefined
