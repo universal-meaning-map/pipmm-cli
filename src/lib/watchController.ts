@@ -9,6 +9,8 @@ import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
 import { Server as PipmmmServer } from "pipmm-server";
 import { promises as fs, readFile } from "fs";
+import ErrorController from "./errorController";
+import LogsController from "./logsController";
 
 export default class WatchController {
   webSocket: any;
@@ -16,7 +18,7 @@ export default class WatchController {
 
   start = async (): Promise<any> => {
     await this.startPipmmmServer();
-    await this.restorePipmmmServer();
+    await this.compileAndRestorePipmmmServer();
     await this.startClientServer();
     await this.startFileWatcher();
     await this.startWs();
@@ -45,15 +47,18 @@ export default class WatchController {
     await server.startServer();
   };
 
-  restorePipmmmServer = async (): Promise<any> => {
+  compileAndRestorePipmmmServer = async (): Promise<any> => {
     await Compiler.compileAll(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath
     );
 
-    let data = Referencer.iidToNoteWrap;
-    let obj = Utils.notesWrapToObjs(data);
+    console.log("Compiled " + Referencer.iidToNoteWrap.size + " abstractions");
+    await Utils.saveIpmmRepo();
+    ErrorController.saveLogs();
+    LogsController.logSummary(ErrorController.savedErrors);
 
+    let obj = Utils.notesWrapToObjs(Referencer.iidToNoteWrap);
     const res = await axios.put(
       "http://localhost:" +
         ConfigController._configFile.network.localServerPort +
