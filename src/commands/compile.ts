@@ -70,8 +70,8 @@ export default class CompileCommand extends Command {
         ConfigController._configFile.resources.ipmmRepo,
         ConfigController._configFile.resources.notesRepo
       );
-
-      Utils.saveIpmmRepo();
+      console.log("Compiled "+Referencer.iidToNoteWrap.size+" abstractions");
+      await Utils.saveIpmmRepo();
 
     }
     
