@@ -62,8 +62,6 @@ export default class Utils {
   static strMapToObj = function (strMap: Map<string, any>) {
     let obj = Object.create(null);
     for (let [k, v] of strMap) {
-      // We don’t escape the key '__proto__'
-      // which can cause problems on older engines
       obj[k] = v;
     }
     return obj;
@@ -73,7 +71,7 @@ export default class Utils {
     let objNotes: { [iid: string]: any } = {};
 
     for (let [iid, note] of mapNotes.entries()) {
-      let newNote = note;
+      let newNote = { ...note };
       newNote.block = Utils.strMapToObj(note.block);
       objNotes[iid] = newNote;
     }
@@ -88,11 +86,13 @@ export default class Utils {
     return strMap;
   };
 
-  static async  saveIpmmRepo(){
+  static async saveIpmmRepo() {
     let repo = Referencer.iidToNoteWrap;
     let obj = Utils.notesWrapToObjs(repo);
     let json = JSON.stringify(obj, null, 2);
-    await fsPromises.writeFile(ConfigController._configFile.resources.ipmmRepo, json);
-    console.log("Compiled "+repo.size+" abstractions");
+    await fsPromises.writeFile(
+      ConfigController._configFile.resources.ipmmRepo,
+      json
+    );
   }
 }
