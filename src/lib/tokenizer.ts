@@ -108,7 +108,7 @@ export default class Tokenizer {
 
   static wikilinkToTransclusionExp = async (
     wikilink: string,
-    assumeTitleTransclusion: boolean,
+    assumeAbstractionPointer: boolean,
     requesterFoamId: string,
     compileInterplanetaryTextArefs: boolean
   ): Promise<string> => {
@@ -132,15 +132,10 @@ export default class Tokenizer {
     let exp = iid;
 
     if (runs.length == 1) {
-      if (assumeTitleTransclusion) {
-
-/*
-        HERE: Make this generic for any friend
-        Use defaultAbstractionPointer in user config or friend config
-*/
+      if (assumeAbstractionPointer) {
         exp = exp +"/" + (await Referencer.makeIid(
             Referencer.updaterFoamIdWithFriendFolder(
-              Referencer.PROP_NAME_FOAMID, requesterFoamId
+              ConfigController._configFile.interplanetaryText.defaultAbstractionPointer, requesterFoamId
             )
           ));
       }
