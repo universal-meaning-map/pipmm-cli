@@ -83,10 +83,9 @@ export default class Compiler {
 
       //CHECK IF IS A TYPE
       let isType = false;
-      let propTypeFoamId = Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
-        Referencer.PROP_TYPE_FOAMID
+      let propTypeFoamId = Referencer.updaterFoamIdWithFriendFolder(
+        Referencer.PROP_TYPE_FOAMID, requesterFoamId
       );
-
       if (
         frontMatter.data[Referencer.PROP_TYPE_FOAMID] ||
         frontMatter.data[Referencer.xaviId + "/" + Referencer.PROP_TYPE_FOAMID]
@@ -144,7 +143,7 @@ export default class Compiler {
         Referencer.iidToTypeMap[iid] = ipmmType;
         noteBlock = ipmmType.getBlock();
       }
-      // VIEW property
+      // Content property
       else {
         //Process the content of the .md file and convert it into the the type expressed in the first line or the "view" if not expressed.
         if (frontMatter.content) {
@@ -154,7 +153,7 @@ export default class Compiler {
           let value = content.value.trim();
           if (value != "") {
             const contentProp = await Compiler.processProperty(
-              Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(content.type),
+              Referencer.updaterFoamIdWithFriendFolder(content.type, requesterFoamId),
               value,
               foamId,
               false
@@ -186,7 +185,7 @@ export default class Compiler {
       //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
 
       if (
-        ConfigController._configFile.misc.compileInterplanetaryTextArefs &&
+        ConfigController._configFile.interplanetaryText.compileArefs &&
         !isType
       ) {
         //itereate through the note properties values and compile the referenced notes
@@ -196,8 +195,8 @@ export default class Compiler {
           const trimmed = removedFoodNotes.trim();
 
           const viewProp = await Compiler.processProperty(
-            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
-              Referencer.PROP_VIEW_FOAMID
+            Referencer.updaterFoamIdWithFriendFolder(
+              Referencer.PROP_VIEW_FOAMID,requesterFoamId
             ),
             trimmed,
             foamId,
@@ -216,14 +215,15 @@ export default class Compiler {
       }
 
       return Res.success(noteWrap);
-    } catch (e) {
+    } catch (e:any) {
       return Res.error(
+        
         "Exception creating note " +
           foamId +
           " requested by " +
           requesterFoamId,
         Res.saveError,
-        e
+        e.toString()
       );
     }
   };

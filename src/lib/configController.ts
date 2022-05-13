@@ -4,8 +4,6 @@ import Referencer from "./referencer";
 export default class ConfigController {
   static configPath: any;
   static relativeConfigPath = "/.pipmm/config.json";
-  static isXavi = false;
-
   static _configFile: ConfigFile;
 
   static load = (repoPath: any): Boolean => {
@@ -76,17 +74,20 @@ export default class ConfigController {
         defaultContentProperty: "xavi-1644219237/prop-view-1612698885",
         defaultExpr:
           "[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
-        compileInterplanetaryTextArefs: false,
+      },
+      interplanetaryText: {
+        compileArefs: false,
+        defaultAbstractionPointer: "xavi-1644219237/prop-name-1612697362",
       },
       export: {
         stringTemplates: [
           {
-            exportId:"md",
+            exportId: "md",
             aref: "[{transclusion}](https://example.com/#?expr=%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3ck7dwg62a%22,%22{iid}%22%5D%5D%5D)",
             arefNotFound: "<404>",
           },
           {
-            exportId:"txt",
+            exportId: "txt",
             aref: "{transclusion}",
             arefNotFound: "-",
           },
@@ -189,8 +190,11 @@ interface ConfigFile {
   misc: {
     alwaysCompile: string[];
     defaultExpr: string;
-    defaultContentProperty:string;
-    compileInterplanetaryTextArefs: boolean;
+    defaultContentProperty: string;
+  };
+  interplanetaryText: {
+    compileArefs: boolean;
+    defaultAbstractionPointer: string;
   };
   export: {
     stringTemplates: ExportTemplate[];
@@ -198,7 +202,7 @@ interface ConfigFile {
 }
 
 export interface ExportTemplate {
-  exportId:string;
+  exportId: string;
   aref: string;
   arefNotFound: string;
 }

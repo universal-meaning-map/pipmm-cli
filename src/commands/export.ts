@@ -19,12 +19,6 @@ export default class ExportCommand extends Command {
       description:
         "Executes the command relative to the specified path as oppose to the working directory",
     }),
-    isXavi: flags.boolean({
-      name: "isXavi",
-      char: "x",
-      description:
-        "Hard-coded foamId references to Xavi's repo are assumed to be on the root folder",
-    })
   };
 
   static args = [
@@ -65,9 +59,8 @@ export default class ExportCommand extends Command {
     }
 
     if (!ConfigController.load(workingPath)) return;
-    if (flags.isXavi) ConfigController.isXavi = true;
 
-    let exportTemplate:ExportTemplate |null = null;
+    let exportTemplate: ExportTemplate | null = null;
     let existingExportIds = [];
 
     for (let t of ConfigController._configFile.export.stringTemplates) {
@@ -77,7 +70,7 @@ export default class ExportCommand extends Command {
       }
       existingExportIds.push(t.exportId);
     }
-    if (exportTemplate==null) {
+    if (exportTemplate == null) {
       console.log(
         "The exportId specified does not match any of the defined in " +
           ConfigController.configPath
@@ -107,7 +100,13 @@ export default class ExportCommand extends Command {
     if (res.isOk()) {
       let note: NoteWrap = res.value;
       let ipt = note.block.get(tiid);
-      InterplanetaryText.transclude(expr, exportTemplate!,iid, args.v1, args.v2);
+      InterplanetaryText.transclude(
+        expr,
+        exportTemplate!,
+        iid,
+        args.v1,
+        args.v2
+      );
     }
     ErrorController.saveLogs();
   }

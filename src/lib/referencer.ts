@@ -122,6 +122,8 @@ export default class Referencer {
     foamId: string,
     requesterFoamId: string | undefined
   ): string => {
+
+
     let repoFolder = path.basename(
       ConfigController._configFile.resources.notesRepo
     );
@@ -131,16 +133,11 @@ export default class Referencer {
       //check if the reference is pointing to a friendFolder or to self
       let runs = foamId.split("/");
       if (runs.length == 1) {
-        foamId = requesterFolder + "/" + foamId;
+        return requesterFolder + "/" + foamId;
       }
+      
     }
-    return foamId;
-  };
-
-  static makeFoamIdRelativeToXaviIfIsNotXavi = (foamId: string): string => {
-    if (!ConfigController.isXavi) {
-      return Referencer.xaviId + "/" + foamId;
-    }
+  
     return foamId;
   };
 }

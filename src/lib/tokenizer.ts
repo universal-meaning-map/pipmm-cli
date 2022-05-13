@@ -133,12 +133,14 @@ export default class Tokenizer {
 
     if (runs.length == 1) {
       if (assumeTitleTransclusion) {
-        exp =
-          exp +
-          "/" +
-          (await Referencer.makeIid(
-            Referencer.makeFoamIdRelativeToXaviIfIsNotXavi(
-              Referencer.PROP_NAME_FOAMID
+
+/*
+        HERE: Make this generic for any friend
+        Use defaultAbstractionPointer in user config or friend config
+*/
+        exp = exp +"/" + (await Referencer.makeIid(
+            Referencer.updaterFoamIdWithFriendFolder(
+              Referencer.PROP_NAME_FOAMID, requesterFoamId
             )
           ));
       }

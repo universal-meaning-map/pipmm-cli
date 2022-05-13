@@ -25,12 +25,6 @@ export default class RestoreCommand extends Command {
       description:
         "Executes the command relative to the specified path as oppose to the working directory",
     }),
-    isXavi: flags.boolean({
-      name: "isXavi",
-      char: "x",
-      description:
-        "Hard-coded foamId references to Xavi's repo are assumed to be on the root folder",
-    }),
   };
 
   async run() {
@@ -42,7 +36,6 @@ export default class RestoreCommand extends Command {
     }
 
     if (!ConfigController.load(workingPath)) return;
-    if (flags.isXavi) ConfigController.isXavi = true;
 
     await Compiler.compileAll(
       ConfigController.ipmmRepoPath,
@@ -56,7 +49,8 @@ export default class RestoreCommand extends Command {
     //REMOTE
     if (flags.remote) {
       console.log(
-        "Restoring to remote: " + ConfigController._configFile.network.remoteServer
+        "Restoring to remote: " +
+          ConfigController._configFile.network.remoteServer
       );
       if (ConfigController._configFile.network.remoteServer == "") {
         console.log(
@@ -76,7 +70,7 @@ export default class RestoreCommand extends Command {
         ConfigController._configFile.network.localServerPort +
         "/restore/x";
       jsonFilter = Utils.getFile(ConfigController.localFilterPath);
-      console.log("Restoring to local:"+ endpoint);
+      console.log("Restoring to local:" + endpoint);
     }
     let filter = JSON.parse(jsonFilter);
     console.log("Applying filter:\n" + jsonFilter);
