@@ -79,6 +79,15 @@ export default class Referencer {
     return friendConfig.identity.mid;
   };
 
+  static makeSelfFriendFolderId (): string {
+    // Generate the folderName to be shared to friends
+    // Takes the last 6 characters of the MID and stick them at the back of the "myName" defined in the config
+    let mid = ConfigController._configFile.identity.mid;
+    let friendId = mid.substr(mid.length - 6);
+    let folderId = ConfigController._configFile.share.myName + "-" + friendId;
+    return folderId;
+  };
+
   /*  return "i" + (await Referencer.makeLocalIid(friendId));
   };
   */
@@ -122,8 +131,6 @@ export default class Referencer {
     foamId: string,
     requesterFoamId: string | undefined
   ): string => {
-
-
     let repoFolder = path.basename(
       ConfigController._configFile.resources.notesRepo
     );
@@ -135,9 +142,8 @@ export default class Referencer {
       if (runs.length == 1) {
         return requesterFolder + "/" + foamId;
       }
-      
     }
-  
+
     return foamId;
   };
 }

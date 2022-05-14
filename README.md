@@ -4,7 +4,6 @@
 
 Is `pseudo` because it neglects many aspects of its design in order to focus on its more challenging conceptual unknowns.  See the [docs](https://github.com/interplanetarymindmap/docs) repository to get a better overview.
 
-
 ## Install
 
 ```

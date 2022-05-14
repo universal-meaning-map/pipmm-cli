@@ -1,5 +1,6 @@
 import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
+import Referencer from "../lib/referencer";
 import Utils from "../lib/utils";
 
 export default class InitCommand extends Command {
@@ -25,7 +26,12 @@ export default class InitCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
     let config = ConfigController.makeSelfFriendConfig();
+    let folderName = Referencer.makeSelfFriendFolderId();
 
-    console.log(JSON.stringify(config,null,2));
+    console.log(JSON.stringify(config, null, 2));
+    console.log(
+      "Create a file named friendConfig.json and copy the JSON above inside. Place the file inside a folder named " +
+        folderName
+    );
   }
 }

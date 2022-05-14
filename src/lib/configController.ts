@@ -93,6 +93,9 @@ export default class ConfigController {
           },
         ],
       },
+      share: {
+        myName: "NameThatWillAppearInTheFriendsFolderOfYOurFriends"
+      }
     };
     return configFile;
   };
@@ -199,6 +202,9 @@ interface ConfigFile {
   export: {
     stringTemplates: ExportTemplate[];
   };
+  share:{
+    myName:string;
+  }
 }
 
 export interface ExportTemplate {
