@@ -133,22 +133,29 @@ export default class Tokenizer {
 
     if (runs.length == 1) {
       if (assumeAbstractionPointer) {
-        exp = exp +"/" + (await Referencer.makeIid(
-            Referencer.updaterFoamIdWithFriendFolder(
-              ConfigController._configFile.interplanetaryText.defaultAbstractionPointer, requesterFoamId
-            )
-          ));
+
+        let abstractionPointer = await Referencer.makeIid(
+          Referencer.updaterFoamIdWithFriendFolder(
+            ConfigController._configFile.interplanetaryText
+              .defaultAbstractionPointer,
+            requesterFoamId
+          )
+        );
+        exp = exp + "/" + abstractionPointer;
       }
     } else if (runs.length > 1) {
-      let backRuns = runs[1].split("/");
-      let tiid = await Referencer.makeIid(backRuns[0]);
+      console.log(runs)
+      //let tiid = await Referencer.makeIid(backRuns[0]);
+      let tiid = await Referencer.makeIid(runs[1]);
       exp = exp + "/" + tiid;
+    /*  let backRuns = runs[1].split("/");
       if (backRuns.length > 1) {
         for (let i = 1; i < backRuns.length; i++) {
           //We only assume the first property to be an iid, the rest is an IPLD path
           exp = exp + "/" + backRuns[i];
         }
       }
+      */
     }
 
     return exp;
@@ -227,7 +234,7 @@ export default class Tokenizer {
     if (Tokenizer.containsUpperCase(localFoamId))
       Res.error(
         "Note " +
-        foamId +
+          foamId +
           " contains wikilink with upercase. Wikilink: " +
           localFoamId,
         Res.saveError
