@@ -167,6 +167,10 @@ export default class ConfigController {
         mid: ConfigController._configFile.identity.mid,
         pubKey: ConfigController._configFile.identity.pubKey,
       },
+      interplanetaryText:{
+        defaultAbstractionPointer: ConfigController._configFile.interplanetaryText.defaultAbstractionPointer
+      }
+      
     };
   };
 }
@@ -218,4 +222,7 @@ interface FriendConfig {
     mid: string;
     pubKey: string;
   };
+  interplanetaryText:{
+    defaultAbstractionPointer: string;
+  }
 }
