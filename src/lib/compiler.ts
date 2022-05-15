@@ -374,7 +374,9 @@ export default class Compiler {
   ): Promise<void> => {
     //new wikilinks should be formated with timestmap in the back.
     //Super crappy check that will last 5 years
-    if (Tokenizer.containsUpperCase(foamId))
+
+    let localFoamId = Tokenizer.getLocalFoamId(foamId);
+    if (Tokenizer.containsUpperCase(localFoamId))
       Res.error(
         "File '" +
           foamId +
@@ -394,7 +396,6 @@ export default class Compiler {
         { filepath: filePath }
       );
     //No uper case allowed
-    let localFoamId = Tokenizer.getLocalFoamId(foamId);
     if (Tokenizer.idDoesNotContainTimestamp(localFoamId))
       Res.error(
         "File '" +
