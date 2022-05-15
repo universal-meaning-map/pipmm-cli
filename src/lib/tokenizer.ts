@@ -224,12 +224,12 @@ export default class Tokenizer {
       );
     //new wikilinks should be formated with timestmap in the back.
     //Super crappy check that will last 5 years
-    if (Tokenizer.containsUpperCase(foamId))
+    if (Tokenizer.containsUpperCase(localFoamId))
       Res.error(
         "Note " +
-          requesterFoamId +
+        foamId +
           " contains wikilink with upercase. Wikilink: " +
-          foamId,
+          localFoamId,
         Res.saveError
       );
     //No upper case allowed
