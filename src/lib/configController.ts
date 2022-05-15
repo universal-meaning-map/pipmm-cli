@@ -94,8 +94,8 @@ export default class ConfigController {
         ],
       },
       share: {
-        myName: "NameThatWillAppearInTheFriendsFolderOfYOurFriends"
-      }
+        myName: "myName",
+      },
     };
     return configFile;
   };
@@ -167,10 +167,6 @@ export default class ConfigController {
         mid: ConfigController._configFile.identity.mid,
         pubKey: ConfigController._configFile.identity.pubKey,
       },
-      interplanetaryText:{
-        defaultAbstractionPointer: ConfigController._configFile.interplanetaryText.defaultAbstractionPointer
-      }
-      
     };
   };
 }
@@ -206,9 +202,9 @@ interface ConfigFile {
   export: {
     stringTemplates: ExportTemplate[];
   };
-  share:{
-    myName:string;
-  }
+  share: {
+    myName: string;
+  };
 }
 
 export interface ExportTemplate {
@@ -222,7 +218,4 @@ interface FriendConfig {
     mid: string;
     pubKey: string;
   };
-  interplanetaryText:{
-    defaultAbstractionPointer: string;
-  }
 }

@@ -144,7 +144,6 @@ export default class Tokenizer {
         exp = exp + "/" + abstractionPointer;
       }
     } else if (runs.length > 1) {
-      console.log(runs)
       //let tiid = await Referencer.makeIid(backRuns[0]);
       let tiid = await Referencer.makeIid(runs[1]);
       exp = exp + "/" + tiid;
