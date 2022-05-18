@@ -7,7 +7,7 @@ import * as path from "path";
 import * as ipfs from "ipfs-core";
 
 export default class Referencer {
-  static readonly xaviId = "xavi-1644219237";
+  static readonly xaviId = "xavi-YAxr3c";
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
   static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
   static readonly PROP_NAME_FOAMID = "prop-name-1612697362";

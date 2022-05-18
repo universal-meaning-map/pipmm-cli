@@ -66,18 +66,18 @@ export default class ConfigController {
       },
       misc: {
         alwaysCompile: [
-          "xavi-1644219237/trans-sub-abstraction-block-1639169078",
-          "xavi-1644219237/trans-column-navigator-1612122309",
-          "xavi-1644219237/trans-note-viewer-1641223323",
-          "xavi-1644219237/pipmm-instructions-1644422409",
+          "xavi-YAxr3c/trans-sub-abstraction-block-1639169078",
+          "xavi-YAxr3c/trans-column-navigator-1612122309",
+          "xavi-YAxr3c/trans-note-viewer-1641223323",
+          "xavi-YAxr3c/pipmm-instructions-1644422409",
         ],
-        defaultContentProperty: "xavi-1644219237/prop-view-1612698885",
+        defaultContentProperty: "xavi-YAxr3c/prop-view-1612698885",
         defaultExpr:
           "[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
       },
       interplanetaryText: {
         compileArefs: false,
-        defaultAbstractionPointer: "xavi-1644219237/prop-name-1612697362",
+        defaultAbstractionPointer: "xavi-YAxr3c/prop-name-1612697362",
       },
       export: {
         stringTemplates: [
