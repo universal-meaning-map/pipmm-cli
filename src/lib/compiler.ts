@@ -215,7 +215,7 @@ export default class Compiler {
       }
 
       return Res.success(noteWrap);
-    } catch (e:any) {
+    } catch (e) {
       return Res.error(
         
         "Exception creating note " +
@@ -223,7 +223,7 @@ export default class Compiler {
           " requested by " +
           requesterFoamId,
         Res.saveError,
-        e.toString()
+        (e as any).toString()
       );
     }
   };
