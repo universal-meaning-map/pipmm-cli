@@ -17,7 +17,7 @@ export default class InterplanetaryText {
     if (Referencer.iidToNoteWrap.has(tiid)) {
       let type = Referencer.iidToNoteWrap.get(tiid);
     } else {
-      Res.error("Unable to find property for" + aref, Res.saveError);
+      Res.error("Property type does not exist: " + tiid, Res.saveError);
     }
 
     let note = Referencer.iidToNoteWrap.get(iid);
@@ -71,7 +71,6 @@ export default class InterplanetaryText {
       }
     }
     let text = compiled.join("");
-    console.log(text);
     return text;
   };
 
