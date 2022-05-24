@@ -69,6 +69,11 @@ export default class Referencer {
   };
 
   static getFriendMid = async (friendFolder: string): Promise<string> => {
+    //Check if its not self
+    let selfFriendId = Referencer.makeSelfFriendFolderId();
+    if (friendFolder == selfFriendId)
+      return ConfigController._configFile.identity.mid;
+
     //Go to the firendFolder, and get the friendConfig file where the mid is set
     let friendConfig = ConfigController.loadFriendConfig(friendFolder);
     if (friendConfig == null) {
@@ -79,14 +84,14 @@ export default class Referencer {
     return friendConfig.identity.mid;
   };
 
-  static makeSelfFriendFolderId (): string {
+  static makeSelfFriendFolderId(): string {
     // Generate the folderName to be shared to friends
     // Takes the last 6 characters of the MID and stick them at the back of the "myName" defined in the config
     let mid = ConfigController._configFile.identity.mid;
     let friendId = mid.substr(mid.length - 6);
     let folderId = ConfigController._configFile.share.myName + "-" + friendId;
     return folderId;
-  };
+  }
 
   /*  return "i" + (await Referencer.makeLocalIid(friendId));
   };
