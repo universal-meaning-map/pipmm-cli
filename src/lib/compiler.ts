@@ -12,15 +12,22 @@ import ConfigController from "./configController";
 
 let notesRepo: string;
 
+
 export default class Compiler {
+  static  compileArefs : boolean;
+
   static compileAll = async (
     _ipmmRepo: string,
     _notesRepo: string
   ): Promise<void> => {
     notesRepo = _notesRepo;
 
+    if(ConfigController._configFile.interplanetaryText.compileArefs)
+      Compiler.compileArefs = true;
+
     let files = await fs.readdir(notesRepo);
     files = Utils.filterByExtensions(files, [".md"]);
+
 
     for (let fileName of files) {
       const foamId = Utils.removeFileExtension(fileName);
@@ -39,6 +46,7 @@ export default class Compiler {
     _fileName: string
   ): Promise<Res> => {
     notesRepo = _notesRepo;
+    Compiler.compileArefs = true;
 
     const foamId = Utils.removeFileExtension(_fileName);
     return await Compiler.makeNote(foamId, false, true);
@@ -185,7 +193,7 @@ export default class Compiler {
       //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
 
       if (
-        ConfigController._configFile.interplanetaryText.compileArefs &&
+        Compiler.compileArefs &&
         !isType
       ) {
         //itereate through the note properties values and compile the referenced notes
