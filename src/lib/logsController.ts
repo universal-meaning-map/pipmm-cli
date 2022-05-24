@@ -62,7 +62,7 @@ export default class LogsController {
         console.log("   " + JSON.stringify(logs[i].info) + "\n");
     }
     if (logs.length == 0) console.log("\nSuccess! No errors were found");
-    else console.log("\nUse 'ipmm log <errorIndex>' to see more details");
+    else console.log("\nUse 'pipmm log <errorIndex>' to see more details");
   };
 
   static logSummary = (logs: ErrorContext[]) => {
