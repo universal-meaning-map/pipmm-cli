@@ -3,7 +3,10 @@ import * as fs from "fs";
 import { NoteWrap } from "./ipmm";
 import Referencer from "./referencer";
 import { promises as fsPromises, readFile } from "fs";
-import ConfigController, { ExportTemplate } from "./configController";
+import ConfigController, {
+  ExportTemplate,
+  PublishExportRun,
+} from "./configController";
 import Compiler from "./compiler";
 import InterplanetaryText from "./interplanetaryText";
 import axios from "axios";
@@ -18,42 +21,20 @@ export default class Publisher {
 
     let iid = await Referencer.makeIid(foamId);
 
-    let subjectTiid = await Referencer.makeIid(
-      ConfigController._configFile.publish.buttonDown.subjectProperty
-    );
-
-    //subject
-    let subjectExpr = Referencer.makeExpr(iid, subjectTiid);
-    let subjectExportTemplate = Publisher.getExportTemplate(
-      ConfigController._configFile.publish.buttonDown.subjectExportTemplate
-    );
-    let subject = InterplanetaryText.transclude(
-      subjectExpr,
-      subjectExportTemplate!,
+    let subject = await Publisher.makePublishElement(
       iid,
-      "",
-      ""
+      ConfigController._configFile.publish.buttonDown.subject
     );
-
-    //body
-    let bodyTiid = await Referencer.makeIid(
-      ConfigController._configFile.publish.buttonDown.bodyProperty
-    );
-    let bodyExpr = Referencer.makeExpr(iid, bodyTiid);
-    let bodyExportTemplate = Publisher.getExportTemplate(
-      ConfigController._configFile.publish.buttonDown.bodyExportTemplate
-    );
-    let body = InterplanetaryText.transclude(
-      bodyExpr,
-      bodyExportTemplate!,
+    let body = await Publisher.makePublishElement(
       iid,
-      "",
-      ""
+      ConfigController._configFile.publish.buttonDown.body
     );
 
-    if(!subject || !body){
-        console.log("Either the subject or the body did not produce a valid output");
-        return;
+    if (!subject || !body) {
+      console.log(
+        "Either the subject or the body did not produce a valid output"
+      );
+      return;
     }
 
     const email = {
@@ -62,6 +43,35 @@ export default class Publisher {
     };
 
     this.sendButtonDownRequest("https://api.buttondown.email/v1/drafts", email);
+  }
+
+  static async makePublishElement(
+    iid: string,
+    elementConfig: PublishExportRun[]
+  ) {
+    let element = "";
+
+    for (let runConfig of elementConfig) {
+      element = element + (await Publisher.makePublishRun(iid, runConfig));
+    }
+    return element;
+  }
+
+  static async makePublishRun(iid: string, runConfig: PublishExportRun) {
+    let tiid = await Referencer.makeIid(runConfig.property);
+    let expr = Referencer.makeExpr(iid, tiid);
+    let exportTemplate = Publisher.getExportTemplate(
+      runConfig.exportTemplateId
+    );
+    let outuput = InterplanetaryText.transclude(
+      expr,
+      exportTemplate!,
+      iid,
+      "",
+      ""
+    );
+
+    return outuput;
   }
 
   static sendButtonDownRequest(endpoint: string, obj: any) {

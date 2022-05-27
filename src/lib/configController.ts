@@ -97,10 +97,27 @@ export default class ConfigController {
       publish: {
         buttonDown: {
           apiKey: "",
-          subjectProperty: "xavi-YAxr3c/prop-name-1612697362",
+          subject: [
+            {
+              property: "xavi-YAxr3c/prop-name-1612697362",
+              exportTemplateId: "txt",
+            },
+          ],
+          body: [
+            {
+              property: "xavi-YAxr3c/prop-name-1612697362",
+              exportTemplateId: "md",
+            },
+            {
+              property: "xavi-YAxr3c/prop-view-1612698885",
+              exportTemplateId: "md",
+            },
+          ],
+          /* subjectProperty: "xavi-YAxr3c/prop-name-1612697362",
           subjectExportTemplate: "txt",
           bodyProperty: "xavi-YAxr3c/prop-view-1612698885",
           bodyExportTemplate: "md",
+          */
         },
       },
 
@@ -216,10 +233,12 @@ interface ConfigFile {
   publish: {
     buttonDown: {
       apiKey: string;
-      subjectProperty: string;
-      subjectExportTemplate: string;
-      bodyProperty: string;
-      bodyExportTemplate: string;
+      body: PublishExportRun[];
+      subject: PublishExportRun[];
+      //subjectProperty: string;
+      //subjectExportTemplate: string;
+      //bodyProperty: string;
+      //bodyExportTemplate: string;
     };
   };
   share: {
@@ -231,6 +250,11 @@ export interface ExportTemplate {
   exportId: string;
   aref: string;
   arefNotFound: string;
+}
+
+export interface PublishExportRun {
+  property: string;
+  exportTemplateId: string;
 }
 
 interface FriendConfig {
