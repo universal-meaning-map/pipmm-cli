@@ -60,6 +60,11 @@ export default class Referencer {
     return trunkated;
   };
 
+  static getLocalIidFromIid(iid: string): string {
+    return iid.slice(-8);
+  }
+  
+
   static makeIdObj = async (): Promise<ipfs.PeerId.JSONPeerId> => {
     const id = await ipfs.PeerId.create({ bits: 2048, keyType: "Ed25519" });
     const idObj = id.toJSON();
