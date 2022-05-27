@@ -3,7 +3,13 @@ import { Res } from "./errorController";
 import { ExportTemplate } from "./configController";
 
 export default class InterplanetaryText {
-  static transclude = (aref: string, exportTemplate:ExportTemplate,requesterIid:string, v1:string, v2:string): string => {
+  static transclude = (
+    aref: string,
+    exportTemplate: ExportTemplate,
+    requesterIid: string,
+    v1: string,
+    v2: string
+  ): string => {
     let runs = aref.split("/");
     let iid = runs[0];
     if (runs.length <= 1) {
@@ -24,27 +30,38 @@ export default class InterplanetaryText {
     let type = Referencer.iidToNoteWrap.get(tiid);
 
     let ipt = note?.block.get(tiid);
+
+    let templateVariables = {
+      transclusion: ipt,
+      iid: iid,
+      localIid:Referencer.getLocalIidFromIid(iid),
+      requesterIid: requesterIid,
+      v1: v1,
+      v2: v2,
+    };
+
     if (!ipt) {
       Res.error(
         "Unable to find property " + tiid + " in note " + iid,
         Res.saveError,
         note
       );
-      //What to replace it with?
+
+      return InterplanetaryText.buildStringTemplate(
+        exportTemplate.arefNotFound,
+        templateVariables
+      );
     }
 
     //We check what type it is (interplanetary-text, string or something else)
     if (type?.block.has("constrains")) {
       let constrains = type?.block.get("constrains");
       if (constrains[0] != Referencer.basicTypeInterplanetaryText) {
-       // let linkTemplate ="[{transclusion}](https://xavivives.com/#?expr=%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3ck7dwg62a%22,%22{iid}%22%5D%5D%5D)";
-       return InterplanetaryText.buildStringTemplate(exportTemplate.aref, {
-          transclusion: ipt,
-          iid: iid,
-          requesterIid: requesterIid,
-          v1:v1,
-          v2:v2
-        });
+        // let linkTemplate ="[{transclusion}](https://xavivives.com/#?expr=%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3ck7dwg62a%22,%22{iid}%22%5D%5D%5D)";
+        return InterplanetaryText.buildStringTemplate(
+          exportTemplate.aref,
+          templateVariables
+        );
       }
     }
 
@@ -56,7 +73,15 @@ export default class InterplanetaryText {
           let expr = JSON.parse(run);
           if (expr.length == 1) {
             //static transclusion
-            compiled.push(InterplanetaryText.transclude(expr[0],exportTemplate,requesterIid,v1,v2));
+            compiled.push(
+              InterplanetaryText.transclude(
+                expr[0],
+                exportTemplate,
+                requesterIid,
+                v1,
+                v2
+              )
+            );
           } else if (expr.length > 1) {
             //dynamic transclusion
             Res.error(
