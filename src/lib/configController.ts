@@ -93,6 +93,17 @@ export default class ConfigController {
           },
         ],
       },
+
+      publish: {
+        buttonDown: {
+          apiKey: "",
+          subjectProperty: "xavi-YAxr3c/prop-name-1612697362",
+          subjectExportTemplate: "txt",
+          bodyProperty: "xavi-YAxr3c/prop-view-1612698885",
+          bodyExportTemplate: "md",
+        },
+      },
+
       share: {
         myName: "myName",
       },
@@ -201,6 +212,15 @@ interface ConfigFile {
   };
   export: {
     stringTemplates: ExportTemplate[];
+  };
+  publish: {
+    buttonDown: {
+      apiKey: string;
+      subjectProperty: string;
+      subjectExportTemplate: string;
+      bodyProperty: string;
+      bodyExportTemplate: string;
+    };
   };
   share: {
     myName: string;
