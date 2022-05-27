@@ -3,6 +3,7 @@ import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
 import ErrorController from "../lib/errorController";
 import Publisher from "../lib/publisher";
+import LogsController from "../lib/logsController";
 
 export default class PublishCommand extends Command {
   static description =
@@ -45,8 +46,9 @@ export default class PublishCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-    Publisher.toButtonDown(args.fileName);
+    await Publisher.toButtonDown(args.fileName);
 
     ErrorController.saveLogs();
+    LogsController.logSummary(ErrorController.savedErrors);
   }
 }
