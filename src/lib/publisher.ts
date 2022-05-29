@@ -12,6 +12,28 @@ import InterplanetaryText from "./interplanetaryText";
 import axios from "axios";
 
 export default class Publisher {
+  static async toTelegram(foamId: string) {
+    const res = await Compiler.compileFile(
+      ConfigController._configFile.resources.ipmmRepo,
+      ConfigController._configFile.resources.notesRepo,
+      foamId
+    );
+
+    let iid = await Referencer.makeIid(foamId);
+
+    let body = await Publisher.makePublishElement(
+      iid,
+      ConfigController._configFile.publish.telegram.body
+    );
+
+    if (!body) {
+      console.log("Telegram body did not produce a valid output");
+      return;
+    }
+
+    Publisher.sendTelegramRequest(body);
+  }
+
   static async toButtonDown(foamId: string) {
     const res = await Compiler.compileFile(
       ConfigController._configFile.resources.ipmmRepo,
@@ -88,6 +110,32 @@ export default class Publisher {
 
     axios
       .post(endpoint, obj, config)
+      .then(function (response) {
+        console.log(response.data);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+  }
+
+  static async sendTelegramRequest(body: string) {
+    const endpoint =
+      "https://api.telegram.org/bot" +
+      ConfigController._configFile.publish.telegram.apiKey +
+      "/sendMessage";
+    const obj = {
+      params: {
+        chat_id: ConfigController._configFile.publish.telegram.channelUserName,
+        text: body,
+      },
+    };
+
+    axios
+      .post(endpoint, {
+        chat_id: ConfigController._configFile.publish.telegram.channelUserName,
+        text: body,
+        parse_mode: "Markdown",
+      })
       .then(function (response) {
         console.log(response.data);
       })

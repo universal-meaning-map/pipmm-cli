@@ -113,11 +113,20 @@ export default class ConfigController {
               exportTemplateId: "md",
             },
           ],
-          /* subjectProperty: "xavi-YAxr3c/prop-name-1612697362",
-          subjectExportTemplate: "txt",
-          bodyProperty: "xavi-YAxr3c/prop-view-1612698885",
-          bodyExportTemplate: "md",
-          */
+        },
+        telegram: {
+          apiKey: "",
+          channelUserName: "",
+          body: [
+            {
+              property: "xavi-YAxr3c/prop-name-1612697362",
+              exportTemplateId: "txt",
+            },
+            {
+              property: "xavi-YAxr3c/prop-view-1612698885",
+              exportTemplateId: "txt",
+            },
+          ],
         },
       },
 
@@ -235,10 +244,11 @@ interface ConfigFile {
       apiKey: string;
       body: PublishExportRun[];
       subject: PublishExportRun[];
-      //subjectProperty: string;
-      //subjectExportTemplate: string;
-      //bodyProperty: string;
-      //bodyExportTemplate: string;
+    };
+    telegram: {
+      apiKey: string;
+      channelUserName: string;
+      body: PublishExportRun[];
     };
   };
   share: {

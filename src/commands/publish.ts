@@ -46,7 +46,8 @@ export default class PublishCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-    await Publisher.toButtonDown(args.fileName);
+    //await Publisher.toButtonDown(args.fileName);
+    await Publisher.toTelegram(args.fileName);
 
     ErrorController.saveLogs();
     LogsController.logSummary(ErrorController.savedErrors);
