@@ -10,8 +10,31 @@ import ConfigController, {
 import Compiler from "./compiler";
 import InterplanetaryText from "./interplanetaryText";
 import axios from "axios";
+import Chunker from "./chunker";
 
 export default class Publisher {
+  static async toTwitter(foamId: string) {
+    const res = await Compiler.compileFile(
+      ConfigController._configFile.resources.ipmmRepo,
+      ConfigController._configFile.resources.notesRepo,
+      foamId
+    );
+
+    let iid = await Referencer.makeIid(foamId);
+
+    let body = await Publisher.makePublishElement(
+      iid,
+      ConfigController._configFile.publish.twitter.body
+    );
+
+    if (!body) {
+      console.log("Twitter body did not produce a valid output");
+      return;
+    }
+
+    Publisher.sendTwitterRequest(body);
+  }
+
   static async toTelegram(foamId: string) {
     const res = await Compiler.compileFile(
       ConfigController._configFile.resources.ipmmRepo,
@@ -31,7 +54,17 @@ export default class Publisher {
       return;
     }
 
-    Publisher.sendTelegramRequest(body);
+    let chunks = Chunker.chunkItAll(body, 1000);
+    /*
+    for (let c of cs) {
+      console.log(c.length);
+      console.log(c);
+      console.log("---");
+    }
+*/
+    for (let c of chunks) {
+      await Publisher.sendTelegramRequest(c);
+    }
   }
 
   static async toButtonDown(foamId: string) {
@@ -96,7 +129,9 @@ export default class Publisher {
     return outuput;
   }
 
-  static sendButtonDownRequest(endpoint: string, obj: any) {
+ 
+
+  static async sendButtonDownRequest(endpoint: string, obj: any) {
     const config = {
       headers: {
         "Content-Type": "application/json",
@@ -108,13 +143,45 @@ export default class Publisher {
         "Token " + ConfigController._configFile.publish.buttonDown.apiKey,
     };
 
-    axios
+    await axios
       .post(endpoint, obj, config)
       .then(function (response) {
         console.log(response.data);
       })
       .catch(function (error) {
-        console.log(error);
+        Publisher.handleAxiosError(error);
+      });
+  }
+
+  static async sendTwitterRequest(body: string) {
+    //WIP
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    axios.defaults.headers.common = {
+      Authorization:
+        "OAuth " + ConfigController._configFile.publish.buttonDown.apiKey,
+    };
+    const endpoint =
+      "https://api.twitter.com/2/tweets" +
+      ConfigController._configFile.publish.telegram.apiKey +
+      "/sendMessage";
+
+    await axios
+      .post(
+        endpoint,
+        {
+          text: body,
+        },
+        config
+      )
+      .then(function (response) {
+        console.log(response.data);
+      })
+      .catch(function (error) {
+        Publisher.handleAxiosError(error);
       });
   }
 
@@ -123,14 +190,8 @@ export default class Publisher {
       "https://api.telegram.org/bot" +
       ConfigController._configFile.publish.telegram.apiKey +
       "/sendMessage";
-    const obj = {
-      params: {
-        chat_id: ConfigController._configFile.publish.telegram.channelUserName,
-        text: body,
-      },
-    };
 
-    axios
+    await axios
       .post(endpoint, {
         chat_id: ConfigController._configFile.publish.telegram.channelUserName,
         text: body,
@@ -140,7 +201,7 @@ export default class Publisher {
         console.log(response.data);
       })
       .catch(function (error) {
-        console.log(error);
+        Publisher.handleAxiosError(error);
       });
   }
 
@@ -163,5 +224,20 @@ export default class Publisher {
     );
     console.log("Available exportIds: " + existingExportIds.join(", "));
     return null;
+  }
+
+  static handleAxiosError(error: any) {
+    if (error.response) {
+      // Request made and server responded
+      console.log(error.response.data);
+      console.log(error.response.status);
+      console.log(error.response.headers);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.log(error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.log("Error", error.message);
+    }
   }
 }

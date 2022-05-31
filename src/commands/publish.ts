@@ -48,6 +48,7 @@ export default class PublishCommand extends Command {
 
     //await Publisher.toButtonDown(args.fileName);
     await Publisher.toTelegram(args.fileName);
+   // await Publisher.toTwitter(args.fileName);
 
     ErrorController.saveLogs();
     LogsController.logSummary(ErrorController.savedErrors);

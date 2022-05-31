@@ -128,6 +128,19 @@ export default class ConfigController {
             },
           ],
         },
+        twitter: {
+          apiKey: "",
+          body: [
+            {
+              property: "xavi-YAxr3c/prop-name-1612697362",
+              exportTemplateId: "txt",
+            },
+            {
+              property: "xavi-YAxr3c/prop-view-1612698885",
+              exportTemplateId: "txt",
+            },
+          ],
+        },
       },
 
       share: {
@@ -248,6 +261,10 @@ interface ConfigFile {
     telegram: {
       apiKey: string;
       channelUserName: string;
+      body: PublishExportRun[];
+    };
+    twitter: {
+      apiKey: string;
       body: PublishExportRun[];
     };
   };
