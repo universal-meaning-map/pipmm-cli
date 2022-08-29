@@ -18,7 +18,7 @@ export default class ConfigController {
         return true;
       } catch (e) {
         console.log("Failed to parse config file:" + e);
-        return false;``
+        return false;
       }
     } else {
       console.log("No config file exists at " + ConfigController.configPath);
@@ -52,6 +52,9 @@ export default class ConfigController {
         logs: Utils.resolveHome(foamRepo + "/.pipmm/logs.json"),
         localFilter: Utils.resolveHome(foamRepo + "/.pipmm/localFilter.json"),
         remoteFilter: Utils.resolveHome(foamRepo + "/.pipmm/remoteFilter.json"),
+        arefLinkVisibilityFilter: Utils.resolveHome(
+          foamRepo + "/.pipmm/arefLinkVisibilityFilter.json"
+        ),
       },
       network: {
         websocketsPort: 34343,
@@ -228,6 +231,7 @@ interface ConfigFile {
     logs: string;
     localFilter: string;
     remoteFilter: string;
+    arefLinkVisibilityFilter: string;
   };
   network: {
     websocketsPort: number;
