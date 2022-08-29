@@ -29,9 +29,15 @@ export default class PublishCommand extends Command {
 
   static args = [
     {
+      name: "platform",
+      required: true,
+      description: "One of the platform ids used in the config.json/publish",
+      hidden: false,
+    },
+    {
       name: "fileName",
-      required: false,
-      description: "File name within the Foam root directory to import ",
+      required: true,
+      description: "File name within the repository root directory to import ",
       hidden: false,
     },
   ];
@@ -46,9 +52,21 @@ export default class PublishCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-    //await Publisher.toButtonDown(args.fileName);
-    await Publisher.toTelegram(args.fileName);
-   // await Publisher.toTwitter(args.fileName);
+    if (args.platform == "buttondown") {
+      await Publisher.toButtonDown(args.fileName);
+    } else if (args.platform == "twitter") {
+      await Publisher.toTwitter(args.fileName);
+    } else if (args.platform == "telegram") {
+      await Publisher.toTelegram(args.fileName);
+    } else {
+      console.log(
+        "There is no platform with the id of '" + args.platform + "'"
+      );
+      console.log(
+        "Currently available plaforms are: buttondown, twitter and telegram"
+      );
+      return;
+    }
 
     ErrorController.saveLogs();
     LogsController.logSummary(ErrorController.savedErrors);
