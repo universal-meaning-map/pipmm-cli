@@ -118,7 +118,7 @@ export default class Publisher {
     let exportTemplate = Publisher.getExportTemplate(
       runConfig.exportTemplateId
     );
-    let outuput = InterplanetaryText.transclude(
+    let outuput = await InterplanetaryText.transclude(
       expr,
       exportTemplate!,
       iid,
@@ -128,8 +128,6 @@ export default class Publisher {
 
     return outuput;
   }
-
- 
 
   static async sendButtonDownRequest(endpoint: string, obj: any) {
     const config = {

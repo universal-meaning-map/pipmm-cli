@@ -1,15 +1,18 @@
 import Referencer from "./referencer";
 import { Res } from "./errorController";
-import { ExportTemplate } from "./configController";
+import ConfigController, { ExportTemplate } from "./configController";
+import Filter from "./filterController";
+import { NoteWrap } from "./ipmm";
+import Utils from "./utils";
 
 export default class InterplanetaryText {
-  static transclude = (
+  static transclude = async (
     aref: string,
     exportTemplate: ExportTemplate,
     requesterIid: string,
     v1: string,
     v2: string
-  ): string => {
+  ): Promise<string> => {
     let runs = aref.split("/");
     let iid = runs[0];
     if (runs.length <= 1) {
@@ -34,7 +37,7 @@ export default class InterplanetaryText {
     let templateVariables = {
       transclusion: ipt,
       iid: iid,
-      localIid:Referencer.getLocalIidFromIid(iid),
+      localIid: Referencer.getLocalIidFromIid(iid),
       requesterIid: requesterIid,
       v1: v1,
       v2: v2,
@@ -58,10 +61,23 @@ export default class InterplanetaryText {
       let constrains = type?.block.get("constrains");
       if (constrains[0] != Referencer.basicTypeInterplanetaryText) {
         // let linkTemplate ="[{transclusion}](https://xavivives.com/#?expr=%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3ck7dwg62a%22,%22{iid}%22%5D%5D%5D)";
-        return InterplanetaryText.buildStringTemplate(
-          exportTemplate.aref,
-          templateVariables
-        );
+
+        if (
+          note != undefined &&
+          (await InterplanetaryText.passesLinkFilter(note))
+        ) {
+          console.log("filter passed💧");
+          return InterplanetaryText.buildStringTemplate(
+            "{transclusion}",
+            templateVariables
+          );
+        } else {
+          console.log("filter failed💄");
+          return InterplanetaryText.buildStringTemplate(
+            exportTemplate.aref,
+            templateVariables
+          );
+        }
       }
     }
 
@@ -74,7 +90,7 @@ export default class InterplanetaryText {
           if (expr.length == 1) {
             //static transclusion
             compiled.push(
-              InterplanetaryText.transclude(
+              await InterplanetaryText.transclude(
                 expr[0],
                 exportTemplate,
                 requesterIid,
@@ -103,6 +119,14 @@ export default class InterplanetaryText {
     var format = require("string-template");
     let link = format(template, vars);
     return link;
+  };
+
+  static passesLinkFilter = async (note: NoteWrap): Promise<Boolean> => {
+    let filterJson = Utils.getFile(
+      ConfigController._configFile.resources.arefLinkVisibilityFilter
+    );
+    let filter = JSON.parse(filterJson);
+    return !(await Filter.eval(filter, note));
   };
 }
 // Format using an object hash with keys matching [0-9a-zA-Z]+
