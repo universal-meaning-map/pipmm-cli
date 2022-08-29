@@ -108,12 +108,13 @@ export default class WatchController {
     if (this.bridgeConnected) {
       this.webSocket.send(iid);
     } else {
-      console.log(
+      /*console.log(
         "Can't connecto to client. Try to reload http://localhost:" +
           ConfigController._configFile.network.localClientPort +
           "/#bridgePort=" +
           ConfigController._configFile.network.websocketsPort
       );
+      */
     }
   };
 
@@ -180,6 +181,7 @@ export default class WatchController {
       );
       return;
     }
+    console.log("💧 " + foamId + " compiled correctly to " + note.iid);
     await this.updateServer(note);
     await this.notifyClient(note.iid);
   };

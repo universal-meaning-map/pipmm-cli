@@ -18,7 +18,7 @@ export default class ConfigController {
         return true;
       } catch (e) {
         console.log("Failed to parse config file:" + e);
-        return false;
+        return false;``
       }
     } else {
       console.log("No config file exists at " + ConfigController.configPath);

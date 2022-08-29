@@ -1,8 +1,11 @@
 {
     "defaultExpr": "%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22%2C%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22%2C%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cwx4lcc2a%22%5D%5D%5D",
-    "remoteServer":"https://ipfoam-server-dc89h.ondigitalocean.app/iids/",
-    "title":"Xavi's Abstractions",
-    "transclusionPropertiesPriority":["i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cqz3qlkca", "defaultName"],
-    "openAbstractionsInTransform":"i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua"
+    "remoteServer": "https://ipfoam-server-dc89h.ondigitalocean.app/iids/",
+    "title": "Xavi's Abstractions",
+    "transclusionPropertiesPriority": [
+        "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cqz3qlkca",
+        "defaultName"
+    ],
+    "openAbstractionsInTransform": "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua",
+    "filterTransclusionLinks": true
 }
-
