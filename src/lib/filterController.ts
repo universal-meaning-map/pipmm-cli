@@ -27,34 +27,32 @@ export default class Filter {
       }
     }
 
-
-    filtered = await  Filter.addAlwaysCompileNotes(filtered);
+    filtered = await Filter.addAlwaysCompileNotes(filtered);
 
     return filtered;
   };
 
-  
   static addAlwaysCompileNotes = async (
-    notesInput: Map<string, NoteWrap>,
-    
+    notesInput: Map<string, NoteWrap>
   ): Promise<Map<string, NoteWrap>> => {
-    
     for (let foamId of ConfigController._configFile.misc.alwaysCompile) {
-      let iid = await Referencer.makeIid(foamId)
+      let iid = await Referencer.makeIid(foamId);
       let noteWrap = Referencer.iidToNoteWrap.get(iid);
-      if(noteWrap){
-        notesInput.set(iid,noteWrap);
-      }
-      else{
-        console.log("Unable to find "+foamId+" when adding 'always compile' notes to the filtered ones");
+      if (noteWrap) {
+        notesInput.set(iid, noteWrap);
+      } else {
+        console.log(
+          "Unable to find " +
+            foamId +
+            " when adding 'always compile' notes to the filtered ones"
+        );
       }
     }
 
     return notesInput;
   };
-  
 
-  static eval = async (element: any, note: NoteWrap): Promise<Boolean> => {
+  static eval = async (element: any, note: NoteWrap): Promise<boolean> => {
     try {
       if (Utils.isObject(element)) {
         //NO FILTER
@@ -63,7 +61,7 @@ export default class Filter {
         }
         //AND
         if (Filter.AND in element) {
-          let ands: Boolean[] = [];
+          let ands: boolean[] = [];
           for (let e of element[Filter.AND]) {
             ands.push(await Filter.eval(e, note));
           }
@@ -71,7 +69,7 @@ export default class Filter {
         }
         //OR
         if (Filter.OR in element) {
-          let ors: Boolean[] = [];
+          let ors: boolean[] = [];
           for (let e of element[Filter.OR]) {
             ors.push(await Filter.eval(e, note));
           }
@@ -96,7 +94,7 @@ export default class Filter {
   static matchesCondition = async (
     fc: FilterCondition,
     note: NoteWrap
-  ): Promise<Boolean> => {
+  ): Promise<boolean> => {
     let noteValue = null;
     let tiid = await Referencer.makeIid(fc.tiid);
     if (note.block.has(tiid)) {
@@ -126,7 +124,7 @@ export default class Filter {
     noteValue: string,
     filterValue: string,
     type: IpmmType
-  ): Boolean {
+  ): boolean {
     //GENERICS
     if (condition == Filter.IS_EMPTY) {
       if (noteValue == null) {
@@ -192,7 +190,7 @@ export default class Filter {
       }
     }
 
-    //BOOLEAN
+    //boolean
     else if (type.constrains[0] == Referencer.basicTypeBoolean) {
       //IS EQUAL
       if (condition == Filter.IS_EQUAL) {

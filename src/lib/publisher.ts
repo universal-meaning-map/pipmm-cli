@@ -118,10 +118,12 @@ export default class Publisher {
     let exportTemplate = Publisher.getExportTemplate(
       runConfig.exportTemplateId
     );
+    let filterArefLinks = true;
     let outuput = await InterplanetaryText.transclude(
       expr,
       exportTemplate!,
       iid,
+      filterArefLinks,
       "",
       ""
     );

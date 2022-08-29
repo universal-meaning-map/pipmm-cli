@@ -36,6 +36,14 @@ export default class ExportCommand extends Command {
     },
 
     {
+      name: "filterArefLinks",
+      required: true,
+      description:
+        "If the  Aref note passes the arefLinkVisibilityFilter defined in the config.json it will be rendered as aref, otherwise it will be transcluded as plain text ",
+      hidden: false,
+    },
+
+    {
       name: "v1",
       required: false,
       description: "value that will replace the  string-template {v1}",
@@ -104,6 +112,7 @@ export default class ExportCommand extends Command {
         expr,
         exportTemplate!,
         iid,
+        args.filterArefLinks,
         args.v1,
         args.v2
       );
