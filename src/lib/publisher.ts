@@ -32,7 +32,14 @@ export default class Publisher {
       return;
     }
 
-    Publisher.sendTwitterRequest(body);
+    let chunks = Chunker.chunkItAll(body, 280);
+
+    for (let c of chunks) {
+      console.log(c);
+      console.log("\n");
+    }
+
+    // Publisher.sendTwitterRequest(body);
   }
 
   static async toTelegram(foamId: string) {
@@ -54,7 +61,7 @@ export default class Publisher {
       return;
     }
 
-    let chunks = Chunker.chunkItAll(body, 1000);
+    let chunks = Chunker.chunkItAll(body, 10000);
     /*
     for (let c of cs) {
       console.log(c.length);
@@ -62,12 +69,15 @@ export default class Publisher {
       console.log("---");
     }
 */
+    console.log(chunks);
     for (let c of chunks) {
+      //console.log(c);
+      //console.log("/n");
       await Publisher.sendTelegramRequest(c);
     }
   }
 
-  static async toButtonDown(foamId: string) {
+  static async toButtondown(foamId: string) {
     const res = await Compiler.compileFile(
       ConfigController._configFile.resources.ipmmRepo,
       ConfigController._configFile.resources.notesRepo,
@@ -78,11 +88,11 @@ export default class Publisher {
 
     let subject = await Publisher.makePublishElement(
       iid,
-      ConfigController._configFile.publish.buttonDown.subject
+      ConfigController._configFile.publish.buttondown.subject
     );
     let body = await Publisher.makePublishElement(
       iid,
-      ConfigController._configFile.publish.buttonDown.body
+      ConfigController._configFile.publish.buttondown.body
     );
 
     if (!subject || !body) {
@@ -97,7 +107,11 @@ export default class Publisher {
       body: body,
     };
 
-    this.sendButtonDownRequest("https://api.buttondown.email/v1/drafts", email);
+    console.log(subject);
+    console.log("\n\n");
+    console.log(body);
+    // API access is now a paid feature
+    //this.sendButtonDownRequest("https://api.buttondown.email/v1/emails", email);
   }
 
   static async makePublishElement(
@@ -140,7 +154,7 @@ export default class Publisher {
 
     axios.defaults.headers.common = {
       Authorization:
-        "Token " + ConfigController._configFile.publish.buttonDown.apiKey,
+        "Token " + ConfigController._configFile.publish.buttondown.apiKey,
     };
 
     await axios
@@ -162,7 +176,7 @@ export default class Publisher {
     };
     axios.defaults.headers.common = {
       Authorization:
-        "OAuth " + ConfigController._configFile.publish.buttonDown.apiKey,
+        "OAuth " + ConfigController._configFile.publish.buttondown.apiKey,
     };
     const endpoint =
       "https://api.twitter.com/2/tweets" +

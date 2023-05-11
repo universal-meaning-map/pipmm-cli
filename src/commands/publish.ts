@@ -53,7 +53,7 @@ export default class PublishCommand extends Command {
     if (!ConfigController.load(workingPath)) return;
 
     if (args.platform == "buttondown") {
-      await Publisher.toButtonDown(args.fileName);
+      await Publisher.toButtondown(args.fileName);
     } else if (args.platform == "twitter") {
       await Publisher.toTwitter(args.fileName);
     } else if (args.platform == "telegram") {

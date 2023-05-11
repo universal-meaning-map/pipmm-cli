@@ -62,18 +62,18 @@ export default class InterplanetaryText {
       let constrains = type?.block.get("constrains");
       if (constrains[0] != Referencer.basicTypeInterplanetaryText) {
         // let linkTemplate ="[{transclusion}](https://xavivives.com/#?expr=%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,%5B%5B%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3ck7dwg62a%22,%22{iid}%22%5D%5D%5D)";
-        if (
-          filterArefLinks == true &&
+        let passesLinkFilter =
           note != undefined &&
-          (await InterplanetaryText.passesLinkFilter(note)) == true
-        ) {
+          (await InterplanetaryText.passesLinkFilter(note));
+
+        if (filterArefLinks && passesLinkFilter) {
           //console.log("filter passed💧");
           return InterplanetaryText.buildStringTemplate(
             "{transclusion}",
             templateVariables
           );
         } else {
-          //console.log("filter failed💄");
+          // console.log("filter failed💄");
           return InterplanetaryText.buildStringTemplate(
             exportTemplate.aref,
             templateVariables

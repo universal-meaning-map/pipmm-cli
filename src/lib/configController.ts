@@ -52,6 +52,7 @@ export default class ConfigController {
         logs: Utils.resolveHome(foamRepo + "/.pipmm/logs.json"),
         localFilter: Utils.resolveHome(foamRepo + "/.pipmm/localFilter.json"),
         remoteFilter: Utils.resolveHome(foamRepo + "/.pipmm/remoteFilter.json"),
+        botFilter: Utils.resolveHome(foamRepo + "/.pipmm/botFilter.json"),
         arefLinkVisibilityFilter: Utils.resolveHome(
           foamRepo + "/.pipmm/arefLinkVisibilityFilter.json"
         ),
@@ -98,7 +99,7 @@ export default class ConfigController {
       },
 
       publish: {
-        buttonDown: {
+        buttondown: {
           apiKey: "",
           subject: [
             {
@@ -145,6 +146,11 @@ export default class ConfigController {
           ],
         },
       },
+      llm: {
+        openAiApiKey: "",
+        pineConeApiKey: "",
+        pineConeEnvironment: "",
+      },
 
       share: {
         myName: "myName",
@@ -178,11 +184,21 @@ export default class ConfigController {
   }
 
   static get remoteFilterPath(): string {
+    if (ConfigController._configFile.resources.remoteFilter == undefined)
+      console.log("resources.remoteFilter in config.json is not defined");
     return ConfigController._configFile.resources.remoteFilter;
   }
 
   static get localFilterPath(): string {
+    if (ConfigController._configFile.resources.localFilter == undefined)
+      console.log("resources.localFilter in config.json is not defined");
     return ConfigController._configFile.resources.localFilter;
+  }
+
+  static get botFilterPath(): string {
+    if (ConfigController._configFile.resources.botFilter == undefined)
+      console.log("resources.botFilter in config.json is not defined");
+    return ConfigController._configFile.resources.botFilter;
   }
 
   private static save() {
@@ -231,6 +247,7 @@ interface ConfigFile {
     logs: string;
     localFilter: string;
     remoteFilter: string;
+    botFilter: string;
     arefLinkVisibilityFilter: string;
   };
   network: {
@@ -257,7 +274,7 @@ interface ConfigFile {
     stringTemplates: ExportTemplate[];
   };
   publish: {
-    buttonDown: {
+    buttondown: {
       apiKey: string;
       body: PublishExportRun[];
       subject: PublishExportRun[];
@@ -271,6 +288,11 @@ interface ConfigFile {
       apiKey: string;
       body: PublishExportRun[];
     };
+  };
+  llm: {
+    openAiApiKey: string;
+    pineConeApiKey: string;
+    pineConeEnvironment: string;
   };
   share: {
     myName: string;
