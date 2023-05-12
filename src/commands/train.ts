@@ -89,8 +89,8 @@ export default class TrainCommand extends Command {
 
     console.log("Splitting text...");
     const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1500,
-      chunkOverlap: 400,
+      chunkSize: 400,
+      chunkOverlap: 0,
       separators: ["\n\n", "\n", " ", ""],
     });
 
@@ -123,9 +123,6 @@ export default class TrainCommand extends Command {
     );
     // Save the vector store to a directory
     await vectorStore.save(ConfigController._configFile.llm.vectorStorePath);
-    //Try search
-    //const results = await vectorStore.similaritySearch("love", 5);
-    //console.log(results);
 
     console.log("Success!");
   }
