@@ -3,13 +3,15 @@ import ConfigController, {
   ExportTemplate,
   PublishExportRun,
 } from "../lib/configController";
-import axios from "axios";
 import Referencer from "../lib/referencer";
 import Compiler from "../lib/compiler";
 import Utils from "../lib/utils";
 import Filter from "../lib/filterController";
 import Publisher from "../lib/publisher";
-import InterplanetaryText from "../lib/interplanetaryText";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { Document } from "langchain/document";
+import { HNSWLib } from "langchain/vectorstores/hnswlib";
 
 export default class TrainCommand extends Command {
   static description =
@@ -45,10 +47,8 @@ export default class TrainCommand extends Command {
 
     //Filter
     let jsonFilter = Utils.getFile(ConfigController.botFilterPath);
-    console.log(jsonFilter);
-    console.log("a");
     let filter = JSON.parse(jsonFilter);
-    console.log("Applying filter:\n" + jsonFilter);
+    console.log("Applying filter:\n" + ConfigController.botFilterPath);
 
     let filteredRepo = await Filter.filter(repo, filter);
     console.log("Total abstractions: " + repo.size);
@@ -59,12 +59,12 @@ export default class TrainCommand extends Command {
         "%"
     );
 
-    console.log("Uploading...");
-    // Export
+    // Export with transclusion from pipmm compilation
+    const PIR_IID = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
 
-    const PIR_IID = 
-      "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3chsme72ka";
-
+    console.log("Transcluding...");
+    const docs = [];
     for (let [iid, note] of filteredRepo.entries()) {
       // console.log(iid);
       let config = {
@@ -74,26 +74,59 @@ export default class TrainCommand extends Command {
       };
 
       let out = await Publisher.makePublishRun(iid, config);
-      let exportObj = {
-        iid: iid,
-        pir: note.block.get(PIR_IID),
-        content: out,
-        time: Date.now(),
-      };
-      console.log(exportObj);
-      //console.log(note.block);
+
+      const doc = new Document({
+        pageContent: out,
+        metadata: {
+          iid: iid,
+          name: note.block.get(NAME_IID),
+          pir: note.block.get(PIR_IID),
+          time: Date.now(),
+        },
+      });
+      docs.push(doc);
     }
+
+    console.log("Splitting text...");
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1500,
+      chunkOverlap: 400,
+      separators: ["\n\n", "\n", " ", ""],
+    });
+
+    const texts = [];
+    const metadatas = [];
+
+    for (const doc of docs) {
+      const docTexts = await textSplitter.splitText(doc.pageContent);
+      for (const text of docTexts) {
+        texts.push(text);
+        metadatas.push(doc.metadata);
+      }
+    }
+
+    console.log("Generating embeddings...");
+    const embeddingsObject = new OpenAIEmbeddings({
+      verbose: true,
+      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
+    });
+
+    const vectorStore = await HNSWLib.fromTexts(
+      texts,
+      metadatas,
+      embeddingsObject
+    );
+
+    console.log(
+      "Storing embeddings into " +
+        ConfigController._configFile.llm.vectorStorePath
+    );
+    // Save the vector store to a directory
+    await vectorStore.save(ConfigController._configFile.llm.vectorStorePath);
+    //Try search
+    //const results = await vectorStore.similaritySearch("love", 5);
+    //console.log(results);
+
+    console.log("Success!");
   }
-  /*
-
-    // Upload
-    let endpoint = "";
-    const res = await axios.put(endpoint, Utils.notesWrapToObjs(filteredRepo));
-
-    if (res.data) {
-      console.log(res.data);
-    } else {
-      console.log(res);
-    }
-    */
 }

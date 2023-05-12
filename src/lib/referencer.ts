@@ -11,6 +11,7 @@ export default class Referencer {
   static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
   static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
   static readonly PROP_NAME_FOAMID = "prop-name-1612697362";
+  static readonly PROP_PIR_FOAMID = "prop-pir-1643007904";
   //static readonly SELF_FRIEND_ID = "x";
 
   static readonly basicTypeInterplanetaryText = "interplanetary-text";
@@ -63,7 +64,6 @@ export default class Referencer {
   static getLocalIidFromIid(iid: string): string {
     return iid.slice(-8);
   }
-  
 
   static makeIdObj = async (): Promise<ipfs.PeerId.JSONPeerId> => {
     const id = await ipfs.PeerId.create({ bits: 2048, keyType: "Ed25519" });

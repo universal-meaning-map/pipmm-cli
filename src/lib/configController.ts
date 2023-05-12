@@ -148,8 +148,7 @@ export default class ConfigController {
       },
       llm: {
         openAiApiKey: "",
-        pineConeApiKey: "",
-        pineConeEnvironment: "",
+        vectorStorePath: "",
       },
 
       share: {
@@ -291,8 +290,7 @@ interface ConfigFile {
   };
   llm: {
     openAiApiKey: string;
-    pineConeApiKey: string;
-    pineConeEnvironment: string;
+    vectorStorePath: string;
   };
   share: {
     myName: string;
