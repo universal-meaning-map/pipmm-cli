@@ -8,7 +8,10 @@ import Compiler from "../lib/compiler";
 import Utils from "../lib/utils";
 import Filter from "../lib/filterController";
 import Publisher from "../lib/publisher";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import {
+  CharacterTextSplitter,
+  RecursiveCharacterTextSplitter,
+} from "langchain/text_splitter";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
 import { HNSWLib } from "langchain/vectorstores/hnswlib";
@@ -88,11 +91,18 @@ export default class TrainCommand extends Command {
     }
 
     console.log("Splitting text...");
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 400,
-      chunkOverlap: 0,
-      separators: ["\n\n", "\n", " ", ""],
+    const textSplitter = new CharacterTextSplitter({
+      chunkSize: ConfigController._configFile.llm.chunkSize,
+      chunkOverlap: ConfigController._configFile.llm.chunkOverlap,
+      separator: "\n\n\n",
     });
+    /*
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: ConfigController._configFile.llm.chunkSize,
+      chunkOverlap: ConfigController._configFile.llm.chunkOverlap,
+      separators: ["\n\n\n", "\n\n", "\n", " ", ""],
+    });
+    */
 
     const texts = [];
     const metadatas = [];

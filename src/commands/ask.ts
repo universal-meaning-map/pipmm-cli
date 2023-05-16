@@ -6,6 +6,7 @@ import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { RetrievalQAChain, loadSummarizationChain } from "langchain/chains";
 import { loadQAStuffChain, loadQAMapReduceChain } from "langchain/chains";
 import { LLMChain } from "langchain/chains";
+import { Document } from "langchain/document";
 
 import {
   ChatPromptTemplate,
@@ -15,6 +16,7 @@ import {
 } from "langchain/prompts";
 
 import { OpenAI } from "langchain/llms/openai";
+import { prompt } from "cli-ux/lib/prompt";
 
 export default class AskCommand extends Command {
   static description =
@@ -60,49 +62,88 @@ export default class AskCommand extends Command {
       embeddingsObject
     );
 
-    const results = await vectorStore.similaritySearch(args.question, 100);
-    //console.log(results);
+    const maxCharactersInDoc =
+      ConfigController._configFile.llm.chunkSize +
+      ConfigController._configFile.llm.chunkOverlap * 2;
+    const openAITokenPerCharacter = 0.25;
+    const openAIMaxTokens = 4000;
+    const maxDocsToRetrieve =
+      openAIMaxTokens / (maxCharactersInDoc * openAITokenPerCharacter);
+
+    // similarity search
+    const outSearch = await vectorStore.similaritySearchWithScore(
+      args.question,
+      maxDocsToRetrieve
+    );
+
+    //filter by relevance
+    function searchScoreFilter(
+      res: [Document<Record<string, any>>, number]
+    ): boolean {
+      if (res[1] < 0.17) return true;
+      return false;
+    }
+
+    const outScoreFitlered = outSearch.filter(searchScoreFilter);
+
+    //map into a simpler object without similarity score
+    const outSimpler = outScoreFitlered.map((obj) => {
+      return obj[0];
+    });
+
+    // filter by metadata
+
+    function pirFilter(doc: Document<Record<string, any>>): boolean {
+      if (doc.metadata.pir > 0.6) return true;
+      return false;
+    }
+
+    const outMetadataFiltered = outSimpler.filter(pirFilter);
+
+    console.log(outMetadataFiltered);
+
+    // TODO filter repeated content
+    // These are not because of trans-sub-abstraction-block but direct prop-view transclusions
+
+    // Build context
 
     let context = "";
-    results.forEach((r) => {
+    outMetadataFiltered.forEach((r) => {
       context = context + r.pageContent + "\n\n";
     });
 
-    const template = `Below, there are two sections: 'Rules' and 'Context'. Rules are a list of guidelines you will use to respond. 'Context' is all the data that you will base your respond on.
-      Rules:
-      - My name is {myName}, you will impersonate me.
-      - Write an article based on my understanding of {mu} based on the context below.
-      - If the context does not give enough details, kindly say that I haven't thought that much about {mu}
-      - Do not leave out important details.
-      - Be clear and concise.
-      - Use examples and analogies if possible.
-      - Format the text nicely.
-      - Replace words that sound strange to more commonly used synonyms.
-       \n\nContext:\n{context}"`;
+    const template = `Below, there are two sections: 'RULES' and 'CONTEXT'. RULES are a list of guidelines you will use to respond. CONTEXT is all the data that you will base your respond on.
+    RULES:
+    - CONTEX represents my understanding of {mu}.
+    - Rewrite CONTEXT as an article about {mu}.
+    \n\nCONTEXT:\n{context}"`;
 
     const promptTemplate = new PromptTemplate({
       template,
-      inputVariables: ["mu", "context"],
+      inputVariables: ["mu", "context", "myName"],
     });
 
-    // We can use the `format` method to format the template with the given input values.
-    /* const prompt = await promptTemplate.format({
-      mu: args.question,
-      context: context,
-    });*/
-
-    const model = new OpenAI({
-      modelName: "text-davinci-003",
-      temperature: 0,
-      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
-    });
-
-    const chain = new LLMChain({ llm: model, prompt: promptTemplate });
-    const res = await chain.call({
+    const promptInput = {
       mu: args.question,
       context: context,
       myName: ConfigController._configFile.share.myName,
+    };
+
+    const prompt = await promptTemplate.format(promptInput);
+
+    console.log(prompt);
+    return;
+
+    const model = new OpenAI({
+      temperature: 0,
+      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
     });
+    const tokens = await model.generate([prompt]);
+    console.log(tokens);
+
+    const chain = new LLMChain({ llm: model, prompt: promptTemplate });
+
+    const res = await chain.call(promptInput);
     console.log(res);
 
     /*

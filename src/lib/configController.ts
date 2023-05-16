@@ -149,6 +149,8 @@ export default class ConfigController {
       llm: {
         openAiApiKey: "",
         vectorStorePath: "",
+        chunkSize: 1000,
+        chunkOverlap: 400,
       },
 
       share: {
@@ -291,6 +293,8 @@ interface ConfigFile {
   llm: {
     openAiApiKey: string;
     vectorStorePath: string;
+    chunkSize: number;
+    chunkOverlap: number;
   };
   share: {
     myName: string;
