@@ -15,6 +15,7 @@ import {
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
 import { HNSWLib } from "langchain/vectorstores/hnswlib";
+import { NoteWrap } from "../lib/ipmm";
 
 export default class TrainCommand extends Command {
   static description =
@@ -61,14 +62,34 @@ export default class TrainCommand extends Command {
         Math.round(((filteredRepo.size * 100) / repo.size) * 100) / 100 +
         "%"
     );
+    // Name transform
 
-    // Export with transclusion from pipmm compilation
+    console.log("Renaming...");
     const PIR_IID = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
     const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
 
+    function rename(
+      notes: Map<string, NoteWrap>,
+      joinCharacter: string
+    ): Map<string, NoteWrap> {
+      // let renamed: Map<string, NoteWrap> = new Map();
+      for (let [iid, note] of notes.entries()) {
+        if (note.block.has(NAME_IID)) {
+          let name: string = note.block.get(NAME_IID);
+          let newName = name.split(" ").join(joinCharacter);
+          note.block.set(NAME_IID, newName);
+        }
+      }
+      return notes;
+    }
+
+    const renamedRepo = rename(filteredRepo, " ");
+
+    // Transclude
+
     console.log("Transcluding...");
     const docs = [];
-    for (let [iid, note] of filteredRepo.entries()) {
+    for (let [iid, note] of renamedRepo.entries()) {
       // console.log(iid);
       let config = {
         // property: "xavi-YAxr3c/prop-name-1612697362",

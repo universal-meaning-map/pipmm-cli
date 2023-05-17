@@ -7,6 +7,7 @@ import { RetrievalQAChain, loadSummarizationChain } from "langchain/chains";
 import { loadQAStuffChain, loadQAMapReduceChain } from "langchain/chains";
 import { LLMChain } from "langchain/chains";
 import { Document } from "langchain/document";
+const util = require("util");
 
 import {
   ChatPromptTemplate,
@@ -62,29 +63,51 @@ export default class AskCommand extends Command {
       embeddingsObject
     );
 
-    const maxCharactersInDoc =
-      ConfigController._configFile.llm.chunkSize +
-      ConfigController._configFile.llm.chunkOverlap * 2;
-    const openAITokenPerCharacter = 0.25;
+    const avgCharactersInDoc = 200;
+    const openAITokenPerChar = 0.25;
     const openAIMaxTokens = 4000;
     const maxDocsToRetrieve =
-      openAIMaxTokens / (maxCharactersInDoc * openAITokenPerCharacter);
+      openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
 
+    const iDontKnowTemplate = `Rephrase: "I don't know what you're talking about."`;
+
+    const template = `
+RULES:
+- CONTEX represents my personal  understanding of {mu}.
+- Rewrite CONTEXT as an article about {mu}.
+- Reply that you don't know if CONTEXT does not have enough details to write an article.
+\n\nCONTEXT:\n###{context}###
+\n\nARTICLE or REPLY:`;
+
+    const promptChars = template.length + args.question;
     // similarity search
     const outSearch = await vectorStore.similaritySearchWithScore(
       args.question,
       maxDocsToRetrieve
     );
 
+    const directScore = 0.167;
+    const minScore = 0.19;
+
     //filter by relevance
     function searchScoreFilter(
       res: [Document<Record<string, any>>, number]
     ): boolean {
-      if (res[1] < 0.17) return true;
+      if (res[1] < minScore) return true;
       return false;
     }
 
     const outScoreFitlered = outSearch.filter(searchScoreFilter);
+    console.log(
+      "Max. docs:" +
+        maxDocsToRetrieve +
+        " Filter score:" +
+        minScore +
+        "Found docs:" +
+        outScoreFitlered.length
+    );
+
+    console.dir(outScoreFitlered, { depth: null });
 
     //map into a simpler object without similarity score
     const outSimpler = outScoreFitlered.map((obj) => {
@@ -100,7 +123,28 @@ export default class AskCommand extends Command {
 
     const outMetadataFiltered = outSimpler.filter(pirFilter);
 
-    console.log(outMetadataFiltered);
+    //filter by tokens usage
+    let accumulatedChars = promptChars;
+
+    const outTokenFiltered = outMetadataFiltered;
+    for (let i = 0; i < outMetadataFiltered.length; i++) {
+      accumulatedChars += outMetadataFiltered[i].pageContent.length;
+      if (accumulatedChars * openAITokenPerChar > openAIMaxTokens) {
+        outTokenFiltered.splice(i);
+        return;
+      }
+    }
+
+    console.log("Keeping " + outTokenFiltered.length + " results");
+    console.log(
+      "Aproximate token usage: " + accumulatedChars * openAITokenPerChar
+    );
+    console.log(
+      "Average text length: " +
+        (accumulatedChars - promptChars) / outTokenFiltered.length
+    );
+
+    //console.log(outMetadataFiltered);
 
     // TODO filter repeated content
     // These are not because of trans-sub-abstraction-block but direct prop-view transclusions
@@ -108,18 +152,18 @@ export default class AskCommand extends Command {
     // Build context
 
     let context = "";
-    outMetadataFiltered.forEach((r) => {
-      context = context + r.pageContent + "\n\n";
+    outTokenFiltered.forEach((r) => {
+      context = context + r.pageContent + "\n";
     });
 
-    const template = `Below, there are two sections: 'RULES' and 'CONTEXT'. RULES are a list of guidelines you will use to respond. CONTEXT is all the data that you will base your respond on.
-    RULES:
-    - CONTEX represents my understanding of {mu}.
-    - Rewrite CONTEXT as an article about {mu}.
-    \n\nCONTEXT:\n{context}"`;
+    let finalTemplate = template;
+
+    if (context.length <= 200) {
+      finalTemplate = iDontKnowTemplate;
+    }
 
     const promptTemplate = new PromptTemplate({
-      template,
+      template: finalTemplate,
       inputVariables: ["mu", "context", "myName"],
     });
 
@@ -131,15 +175,15 @@ export default class AskCommand extends Command {
 
     const prompt = await promptTemplate.format(promptInput);
 
-    console.log(prompt);
-    return;
+    console.dir(prompt, { depth: null });
 
     const model = new OpenAI({
       temperature: 0,
       openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
     });
-    const tokens = await model.generate([prompt]);
-    console.log(tokens);
+
+    /*const tokens = await model.generate([prompt]);
+    console.log(tokens);*/
 
     const chain = new LLMChain({ llm: model, prompt: promptTemplate });
 
