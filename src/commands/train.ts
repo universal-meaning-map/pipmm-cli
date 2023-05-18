@@ -76,14 +76,15 @@ export default class TrainCommand extends Command {
       for (let [iid, note] of notes.entries()) {
         if (note.block.has(NAME_IID)) {
           let name: string = note.block.get(NAME_IID);
-          let newName = name.split(" ").join(joinCharacter);
+          //let newName = name.split(" ").join(joinCharacter);
+          let newName = Referencer.getLocalIidFromIid(iid);
           note.block.set(NAME_IID, newName);
         }
       }
       return notes;
     }
 
-    const renamedRepo = rename(filteredRepo, " ");
+    const renamedRepo = rename(filteredRepo, "-");
 
     // Transclude
 

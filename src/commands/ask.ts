@@ -18,6 +18,7 @@ import {
 
 import { OpenAI } from "langchain/llms/openai";
 import { prompt } from "cli-ux/lib/prompt";
+import { strict } from "assert";
 
 export default class AskCommand extends Command {
   static description =
@@ -66,34 +67,109 @@ export default class AskCommand extends Command {
     const avgCharactersInDoc = 200;
     const openAITokenPerChar = 0.25;
     const openAIMaxTokens = 4000;
-    const maxDocsToRetrieve =
-      openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
+    const maxDocsToRetrieve = 40; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
 
     const iDontKnowTemplate = `Rephrase: "I don't know what you're talking about."`;
+    const completitionChars = 1000;
 
-    const template = `
-RULES:
-- CONTEX represents my personal  understanding of {mu}.
-- Rewrite CONTEXT as an article about {mu}.
-- Reply that you don't know if CONTEXT does not have enough details to write an article.
-\n\nCONTEXT:\n###{context}###
-\n\nARTICLE or REPLY:`;
+    const rewriteTemplate = `
+You are a technical writer
+Rewrite text to explain "{mu}"
+\n\nContext:\n###\n{context}\n###
+Rewrite:`;
 
-    const promptChars = template.length + args.question;
+    const identifyTemplate = `Based on the following text, what concepts necessary to understand {mu}
+    CONTEXT:\n###\n{context}
+    Concepts:
+    -`;
+
+    let template = rewriteTemplate;
+
+    const promptChars = template.length + args.question.length;
     // similarity search
-    const outSearch = await vectorStore.similaritySearchWithScore(
+    let outSearch = await vectorStore.similaritySearchWithScore(
       args.question,
       maxDocsToRetrieve
     );
 
-    const directScore = 0.167;
-    const minScore = 0.19;
+    const strictScore = 0.15;
+    const extendedContextScore = 0.17;
+    const fullContextScore = 0.19;
+
+    const minSearchScore = strict;
+
+    function mapRange(
+      value: number,
+      fromMin: number,
+      fromMax: number,
+      toMin: number,
+      toMax: number
+    ): number {
+      // Normalize the value within the source range
+      const normalizedValue = (value - fromMin) / (fromMax - fromMin);
+      // Map the normalized value to the target range
+      const mappedValue = normalizedValue * (toMax - toMin) + toMin;
+
+      return mappedValue;
+    }
+
+    const multipleOccurancePenalty = 0.8;
+
+    function hasMultipleOccurances(
+      text: string,
+      searchString: string
+    ): boolean {
+      const regex = new RegExp(searchString, "g");
+      const matches = text.match(regex);
+      const occurrences = matches ? matches.length : 0;
+      if (occurrences > 1) return true;
+    }
+
+    const maxLengthPenalty = 0.9; //applies on top of the multipe occurances penalty
+
+    function getLengthPenalty(corpus: string): number {
+      const maxLength = 200; // Maximum length considered for scoring
+      const length = Math.min(corpus.length, maxLength); // Limit the length to maxLength
+      const score1 = 1 - Math.exp(-length / maxLength);
+      const score = mapRange(score1, 0, 1 - Math.exp(-1), maxLengthPenalty, 1);
+      return score;
+    }
+
+    function getSemanticSearchCompensationPenalty(
+      corpus: string,
+      searchString: string
+    ): number {
+      //semantic search gives a similiratity score too high when:
+      //The search word appears multiple times
+      //The text is short
+      let penalty = 1;
+      if (hasMultipleOccurances(corpus, searchString))
+        penalty = maxLengthPenalty * getLengthPenalty(searchString);
+      return penalty;
+    }
+
+    //Add confidence score and normalized similiratiy score
+    outSearch = outSearch.map((obj) => {
+      let normalizedSimiliratityScore = mapRange(obj[1], 0.1, 0.2, 1, 0);
+      let similartySearchCompensation = getSemanticSearchCompensationPenalty(
+        obj[0].pageContent,
+        args.question
+      );
+      let confidenceScore =
+        normalizedSimiliratityScore *
+        obj[0].metadata.pir *
+        similartySearchCompensation;
+      obj[0].metadata.similarity = normalizedSimiliratityScore;
+      obj[0].metadata.similartySearchCompensation = obj[0].metadata.confidence =
+        confidenceScore;
+      return obj;
+    });
 
     //filter by relevance
     function searchScoreFilter(
       res: [Document<Record<string, any>>, number]
     ): boolean {
-      if (res[1] < minScore) return true;
+      if (res[1] < strictScore) return true;
       return false;
     }
 
@@ -102,42 +178,56 @@ RULES:
       "Max. docs:" +
         maxDocsToRetrieve +
         " Filter score:" +
-        minScore +
+        minSearchScore +
         "Found docs:" +
         outScoreFitlered.length
     );
-
-    console.dir(outScoreFitlered, { depth: null });
 
     //map into a simpler object without similarity score
     const outSimpler = outScoreFitlered.map((obj) => {
       return obj[0];
     });
 
+    //sort by confidence
+
+    outSimpler.sort(
+      (docA, docB) => docB.metadata.confidence - docA.metadata.confidence
+    );
+
+    console.dir(outSimpler, { depth: null });
+
     // filter by metadata
 
-    function pirFilter(doc: Document<Record<string, any>>): boolean {
-      if (doc.metadata.pir > 0.6) return true;
+    function confidenceFilter(doc: Document<Record<string, any>>): boolean {
+      if (doc.metadata.confidence > 0.45) return true;
       return false;
     }
 
-    const outMetadataFiltered = outSimpler.filter(pirFilter);
+    const outMetadataFiltered = outSimpler.filter(confidenceFilter);
 
     //filter by tokens usage
     let accumulatedChars = promptChars;
 
     const outTokenFiltered = outMetadataFiltered;
+
     for (let i = 0; i < outMetadataFiltered.length; i++) {
       accumulatedChars += outMetadataFiltered[i].pageContent.length;
-      if (accumulatedChars * openAITokenPerChar > openAIMaxTokens) {
+      if (
+        accumulatedChars * openAITokenPerChar >
+        openAIMaxTokens - completitionChars * openAITokenPerChar
+      ) {
         outTokenFiltered.splice(i);
-        return;
+        break;
       }
     }
 
     console.log("Keeping " + outTokenFiltered.length + " results");
     console.log(
-      "Aproximate token usage: " + accumulatedChars * openAITokenPerChar
+      "Aproximate promp tokens: " + accumulatedChars * openAITokenPerChar
+    );
+    console.log(
+      "Aproximate completition tokens left: " +
+        (openAIMaxTokens - accumulatedChars * openAITokenPerChar)
     );
     console.log(
       "Average text length: " +
@@ -179,11 +269,17 @@ RULES:
 
     const model = new OpenAI({
       temperature: 0,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      topP: 1,
+      maxTokens: -1,
       openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
     });
 
-    /*const tokens = await model.generate([prompt]);
-    console.log(tokens);*/
+    /*
+    const tokens = await model.generate([prompt]);
+    console.log(tokens);
+*/
 
     const chain = new LLMChain({ llm: model, prompt: promptTemplate });
 
