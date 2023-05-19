@@ -63,14 +63,14 @@ export default class AskCommand extends Command {
 
     const openAITokenPerChar = 0.25;
     const openAIMaxTokens = 4000;
-    const maxDocsToRetrieve = 40; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
+    const maxDocsToRetrieve = 20; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
     const completitionChars = 1000;
 
     const rewriteRequest: llmRequest = {
       nameId: "rewrite",
       temperature: 0,
       minCompletitionChars: 1000, //minimum chars saved for response
-      minSimilarityScore: 0.17,
+      minSimilarityScore: 0,
       minConfidenceScore: 0.5,
       template: `
       You are a technical writer
@@ -114,8 +114,8 @@ export default class AskCommand extends Command {
       //The search word appears multiple times
       //The text is short
       */
-    const multipleOccurancePenalty = 0.8;
-    const minLengthPenalty = 0.9; //applies on top of the multipe occurances penalty
+    const multipleOccurancePenalty = 0.85;
+    const minLengthPenalty = 0.75; //applies on top of the multipe occurances penalty
 
     function getLengthPenalty(corpus: string): number {
       const maxLength = 200; // Maximum length considered for scoring
@@ -131,7 +131,7 @@ export default class AskCommand extends Command {
       return score;
     }
 
-    function getSemantcSearchCompensation(
+    function getSemantcSearchCompensationPenalty(
       corpus: string,
       searchString: string
     ): number {
@@ -142,55 +142,78 @@ export default class AskCommand extends Command {
     }
 
     function getConfidenceScore(similarityScore: number, pir: number) {
-      return similarityScore * pir;
+      const accuracyPenalty = Utils.mapRange(pir, 0.5, 0.9, 0.7, 1);
+      return similarityScore * accuracyPenalty;
     }
 
     //Calculate confidence score
     //Add confidence score and normalized similiratiy score to metadata
+    const maxSearchScore = 0.14; // below that will be 1 when normaliezd
+    const acceptableSearchScore = 0.19; //0.5 when normalized
+    const minSearchScore = acceptableSearchScore * 2 - maxSearchScore; //above that will be zero wehn normalized
+
     outSearch = outSearch.map((obj) => {
-      const similarityScore = obj[1];
-      const compensation = getSemantcSearchCompensation(
+      const cappedSearchSimiliarityScore = Math.max(
+        Math.min(obj[1], minSearchScore),
+        maxSearchScore
+      );
+
+      const inverseSearchScore = Utils.mapRange(
+        cappedSearchSimiliarityScore,
+        maxSearchScore,
+        minSearchScore,
+        1,
+        0
+      );
+
+      const compensation = getSemantcSearchCompensationPenalty(
         obj[0].pageContent,
         args.question
       );
-      const similarityCompensatedScore = similarityScore * compensation;
+      const similarityScore = inverseSearchScore * compensation;
 
+      /*
       let normalizedSimiliratityScore = Utils.mapRange(
-        similarityCompensatedScore,
+        similarityScore,
         0.1,
         0.2,
         1,
         0
       );
+      */
 
-      obj[0].metadata.originalScore = similarityScore;
-      obj[0].metadata.lengthy = getLengthPenalty(obj[0].pageContent);
+      obj[0].metadata.originalScore = obj[1];
+      obj[0].metadata.capped = cappedSearchSimiliarityScore;
+      obj[0].metadata.inverseScore = inverseSearchScore;
       obj[0].metadata.occurrance = Utils.hasMultipleOccurances(
         obj[0].pageContent,
         args.question
       );
+      obj[0].metadata.lengthy = getLengthPenalty(obj[0].pageContent);
       obj[0].metadata.compensation = compensation;
 
-      obj[0].metadata.similarity = normalizedSimiliratityScore;
+      obj[0].metadata.similarity = similarityScore;
       obj[0].metadata.confidenceScore = getConfidenceScore(
-        normalizedSimiliratityScore,
+        similarityScore,
         obj[0].metadata.pir
       );
       return obj;
     });
 
     //filter by relevance
+    /*
     function searchScoreFilter(
       res: [Document<Record<string, any>>, number]
     ): boolean {
       if (res[1] < request.minSimilarityScore) return true;
       return false;
     }
+    */
 
-    const outScoreFitlered = outSearch.filter(searchScoreFilter);
+    //const outScoreFitlered = outSearch.filter(searchScoreFilter);
 
     //map into a simpler object without similarity score
-    const outSimpler = outScoreFitlered.map((obj) => {
+    const outSimpler = outSearch.map((obj) => {
       return obj[0];
     });
 
@@ -207,8 +230,10 @@ export default class AskCommand extends Command {
         " Confidence score:" +
         request.minConfidenceScore +
         "Found docs:" +
-        outScoreFitlered.length
+        outSearch.length
     );
+
+    return;
 
     // filter by metadata
 
