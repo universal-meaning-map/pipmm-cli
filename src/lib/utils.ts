@@ -95,4 +95,30 @@ export default class Utils {
       json
     );
   }
+
+  static mapRange = function (
+    value: number,
+    fromMin: number,
+    fromMax: number,
+    toMin: number,
+    toMax: number
+  ): number {
+    // Normalize the value within the source range
+    const normalizedValue = (value - fromMin) / (fromMax - fromMin);
+    // Map the normalized value to the target range
+    const mappedValue = normalizedValue * (toMax - toMin) + toMin;
+
+    return mappedValue;
+  };
+
+  static hasMultipleOccurances = function (
+    corpus: string,
+    text: string
+  ): boolean {
+    const regex = new RegExp(text, "g");
+    const matches = corpus.match(regex);
+    const occurrences = matches ? matches.length : 0;
+    if (occurrences > 1) return true;
+    return false;
+  };
 }

@@ -3,22 +3,19 @@ import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { HNSWLib } from "langchain/vectorstores/hnswlib";
-import { RetrievalQAChain, loadSummarizationChain } from "langchain/chains";
-import { loadQAStuffChain, loadQAMapReduceChain } from "langchain/chains";
 import { LLMChain } from "langchain/chains";
 import { Document } from "langchain/document";
-const util = require("util");
-
-import {
-  ChatPromptTemplate,
-  HumanMessagePromptTemplate,
-  PromptTemplate,
-  SystemMessagePromptTemplate,
-} from "langchain/prompts";
-
+import { PromptTemplate } from "langchain/prompts";
 import { OpenAI } from "langchain/llms/openai";
-import { prompt } from "cli-ux/lib/prompt";
-import { strict } from "assert";
+
+interface llmRequest {
+  nameId: string; //identifier of the request template
+  temperature: number; //model temperature
+  template: string; //langchain prompt template
+  minCompletitionChars: number; //minimum chars saved for response
+  minSimilarityScore: number; //0-1, usually between 0.15 and 0.2
+  minConfidenceScore: number; //0-1, confidence filter
+}
 
 export default class AskCommand extends Command {
   static description =
@@ -39,7 +36,7 @@ export default class AskCommand extends Command {
     {
       name: "question",
       required: true,
-      description: "What do you want to ask xabot?",
+      description: "What to ask to the author of the repo",
       hidden: false,
     },
   ];
@@ -64,104 +61,121 @@ export default class AskCommand extends Command {
       embeddingsObject
     );
 
-    const avgCharactersInDoc = 200;
     const openAITokenPerChar = 0.25;
     const openAIMaxTokens = 4000;
     const maxDocsToRetrieve = 40; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
-
-    const iDontKnowTemplate = `Rephrase: "I don't know what you're talking about."`;
     const completitionChars = 1000;
 
-    const rewriteTemplate = `
-You are a technical writer
-Rewrite text to explain "{mu}"
-\n\nContext:\n###\n{context}\n###
-Rewrite:`;
+    const rewriteRequest: llmRequest = {
+      nameId: "rewrite",
+      temperature: 0,
+      minCompletitionChars: 1000, //minimum chars saved for response
+      minSimilarityScore: 0.17,
+      minConfidenceScore: 0.5,
+      template: `
+      You are a technical writer
+      Rewrite text to explain "{mu}"
+      \n\nContext:\n###\n{context}\n###
+      Rewrite:`,
+    };
 
-    const identifyTemplate = `Based on the following text, what concepts necessary to understand {mu}
-    CONTEXT:\n###\n{context}
-    Concepts:
-    -`;
+    const identifyRequest: llmRequest = {
+      nameId: "identify",
+      temperature: 0,
+      minCompletitionChars: 500, //minimum chars saved for response
+      minSimilarityScore: 0.17,
+      minConfidenceScore: 0.5,
+      template: `What concepts in the text are uncommon and fundamental to understand {mu}
+      CONTEXT:\n###\n{context}
+      Concepts:
+      -`,
+    };
 
-    let template = rewriteTemplate;
+    const dontKnowRequest: llmRequest = {
+      nameId: "dontKnow",
+      temperature: 0.7,
+      minCompletitionChars: 250, //minimum chars saved for response
+      minSimilarityScore: 0,
+      minConfidenceScore: 0,
+      template: `Rephrase: "I don't know what you're talking about."`,
+    };
 
-    const promptChars = template.length + args.question.length;
+    let request = rewriteRequest;
+
     // similarity search
     let outSearch = await vectorStore.similaritySearchWithScore(
       args.question,
       maxDocsToRetrieve
     );
 
-    const strictScore = 0.15;
-    const extendedContextScore = 0.17;
-    const fullContextScore = 0.19;
-
-    const minSearchScore = strict;
-
-    function mapRange(
-      value: number,
-      fromMin: number,
-      fromMax: number,
-      toMin: number,
-      toMax: number
-    ): number {
-      // Normalize the value within the source range
-      const normalizedValue = (value - fromMin) / (fromMax - fromMin);
-      // Map the normalized value to the target range
-      const mappedValue = normalizedValue * (toMax - toMin) + toMin;
-
-      return mappedValue;
-    }
-
+    //Semantic similiartiy normalization
+    /*
+    Compensate semantic search with OpenAI embeddings gives a higher score than desired if
+      //The search word appears multiple times
+      //The text is short
+      */
     const multipleOccurancePenalty = 0.8;
-
-    function hasMultipleOccurances(
-      text: string,
-      searchString: string
-    ): boolean {
-      const regex = new RegExp(searchString, "g");
-      const matches = text.match(regex);
-      const occurrences = matches ? matches.length : 0;
-      if (occurrences > 1) return true;
-    }
-
-    const maxLengthPenalty = 0.9; //applies on top of the multipe occurances penalty
+    const minLengthPenalty = 0.9; //applies on top of the multipe occurances penalty
 
     function getLengthPenalty(corpus: string): number {
       const maxLength = 200; // Maximum length considered for scoring
       const length = Math.min(corpus.length, maxLength); // Limit the length to maxLength
-      const score1 = 1 - Math.exp(-length / maxLength);
-      const score = mapRange(score1, 0, 1 - Math.exp(-1), maxLengthPenalty, 1);
+      const logScore = 1 - Math.exp(-length / maxLength); // it has a logarithmic score. It accelerates the shorter the text is
+      const score = Utils.mapRange(
+        logScore,
+        0,
+        1 - Math.exp(-1),
+        minLengthPenalty,
+        1
+      ); //Normalized  to 0-1
       return score;
     }
 
-    function getSemanticSearchCompensationPenalty(
+    function getSemantcSearchCompensation(
       corpus: string,
       searchString: string
     ): number {
-      //semantic search gives a similiratity score too high when:
-      //The search word appears multiple times
-      //The text is short
       let penalty = 1;
-      if (hasMultipleOccurances(corpus, searchString))
-        penalty = maxLengthPenalty * getLengthPenalty(searchString);
+      if (Utils.hasMultipleOccurances(corpus, searchString))
+        penalty = multipleOccurancePenalty * getLengthPenalty(searchString);
       return penalty;
     }
 
-    //Add confidence score and normalized similiratiy score
+    function getConfidenceScore(similarityScore: number, pir: number) {
+      return similarityScore * pir;
+    }
+
+    //Calculate confidence score
+    //Add confidence score and normalized similiratiy score to metadata
     outSearch = outSearch.map((obj) => {
-      let normalizedSimiliratityScore = mapRange(obj[1], 0.1, 0.2, 1, 0);
-      let similartySearchCompensation = getSemanticSearchCompensationPenalty(
+      const similarityScore = obj[1];
+      const compensation = getSemantcSearchCompensation(
         obj[0].pageContent,
         args.question
       );
-      let confidenceScore =
-        normalizedSimiliratityScore *
-        obj[0].metadata.pir *
-        similartySearchCompensation;
+      const similarityCompensatedScore = similarityScore * compensation;
+
+      let normalizedSimiliratityScore = Utils.mapRange(
+        similarityCompensatedScore,
+        0.1,
+        0.2,
+        1,
+        0
+      );
+
+      obj[0].metadata.originalScore = similarityScore;
+      obj[0].metadata.lengthy = getLengthPenalty(obj[0].pageContent);
+      obj[0].metadata.occurrance = Utils.hasMultipleOccurances(
+        obj[0].pageContent,
+        args.question
+      );
+      obj[0].metadata.compensation = compensation;
+
       obj[0].metadata.similarity = normalizedSimiliratityScore;
-      obj[0].metadata.similartySearchCompensation = obj[0].metadata.confidence =
-        confidenceScore;
+      obj[0].metadata.confidenceScore = getConfidenceScore(
+        normalizedSimiliratityScore,
+        obj[0].metadata.pir
+      );
       return obj;
     });
 
@@ -169,19 +183,11 @@ Rewrite:`;
     function searchScoreFilter(
       res: [Document<Record<string, any>>, number]
     ): boolean {
-      if (res[1] < strictScore) return true;
+      if (res[1] < request.minSimilarityScore) return true;
       return false;
     }
 
     const outScoreFitlered = outSearch.filter(searchScoreFilter);
-    console.log(
-      "Max. docs:" +
-        maxDocsToRetrieve +
-        " Filter score:" +
-        minSearchScore +
-        "Found docs:" +
-        outScoreFitlered.length
-    );
 
     //map into a simpler object without similarity score
     const outSimpler = outScoreFitlered.map((obj) => {
@@ -195,17 +201,26 @@ Rewrite:`;
     );
 
     console.dir(outSimpler, { depth: null });
+    console.log(
+      "Max. docs:" +
+        maxDocsToRetrieve +
+        " Confidence score:" +
+        request.minConfidenceScore +
+        "Found docs:" +
+        outScoreFitlered.length
+    );
 
     // filter by metadata
 
     function confidenceFilter(doc: Document<Record<string, any>>): boolean {
-      if (doc.metadata.confidence > 0.45) return true;
+      if (doc.metadata.confidence > request.minConfidenceScore) return true;
       return false;
     }
 
     const outMetadataFiltered = outSimpler.filter(confidenceFilter);
 
     //filter by tokens usage
+    const promptChars = request.template.length + args.question.length;
     let accumulatedChars = promptChars;
 
     const outTokenFiltered = outMetadataFiltered;
@@ -246,14 +261,12 @@ Rewrite:`;
       context = context + r.pageContent + "\n";
     });
 
-    let finalTemplate = template;
-
     if (context.length <= 200) {
-      finalTemplate = iDontKnowTemplate;
+      request = dontKnowRequest;
     }
 
     const promptTemplate = new PromptTemplate({
-      template: finalTemplate,
+      template: request.template,
       inputVariables: ["mu", "context", "myName"],
     });
 
@@ -268,7 +281,7 @@ Rewrite:`;
     console.dir(prompt, { depth: null });
 
     const model = new OpenAI({
-      temperature: 0,
+      temperature: request.temperature,
       frequencyPenalty: 0,
       presencePenalty: 0,
       topP: 1,
