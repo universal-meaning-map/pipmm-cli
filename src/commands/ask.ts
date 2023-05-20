@@ -7,8 +7,9 @@ import { LLMChain } from "langchain/chains";
 import { Document } from "langchain/document";
 import { PromptTemplate } from "langchain/prompts";
 import { OpenAI } from "langchain/llms/openai";
+import Finder from "../lib/semanticSearch";
 
-interface llmRequest {
+interface LlmRequest {
   nameId: string; //identifier of the request template
   temperature: number; //model temperature
   template: string; //langchain prompt template
@@ -66,7 +67,7 @@ export default class AskCommand extends Command {
     const maxDocsToRetrieve = 20; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
     const completitionChars = 1000;
 
-    const rewriteRequest: llmRequest = {
+    const rewriteRequest: LlmRequest = {
       nameId: "rewrite",
       temperature: 0,
       minCompletitionChars: 1000, //minimum chars saved for response
@@ -79,7 +80,7 @@ export default class AskCommand extends Command {
       Rewrite:`,
     };
 
-    const identifyRequest: llmRequest = {
+    const identifyRequest: LlmRequest = {
       nameId: "identify",
       temperature: 0,
       minCompletitionChars: 500, //minimum chars saved for response
@@ -91,7 +92,7 @@ export default class AskCommand extends Command {
       -`,
     };
 
-    const dontKnowRequest: llmRequest = {
+    const dontKnowRequest: LlmRequest = {
       nameId: "dontKnow",
       temperature: 0.7,
       minCompletitionChars: 250, //minimum chars saved for response
@@ -102,138 +103,9 @@ export default class AskCommand extends Command {
 
     let request = rewriteRequest;
 
-    // similarity search
-    let outSearch = await vectorStore.similaritySearchWithScore(
-      args.question,
-      maxDocsToRetrieve
-    );
+    const results = await Finder.semantic(args.question);
 
-    //Semantic similiartiy normalization
-    /*
-    Compensate semantic search with OpenAI embeddings gives a higher score than desired if
-      //The search word appears multiple times
-      //The text is short
-      */
-    const multipleOccurancePenalty = 0.85;
-    const minLengthPenalty = 0.75; //applies on top of the multipe occurances penalty
-
-    function getLengthPenalty(corpus: string): number {
-      const maxLength = 200; // Maximum length considered for scoring
-      const length = Math.min(corpus.length, maxLength); // Limit the length to maxLength
-      const logScore = 1 - Math.exp(-length / maxLength); // it has a logarithmic score. It accelerates the shorter the text is
-      const score = Utils.mapRange(
-        logScore,
-        0,
-        1 - Math.exp(-1),
-        minLengthPenalty,
-        1
-      ); //Normalized  to 0-1
-      return score;
-    }
-
-    function getSemantcSearchCompensationPenalty(
-      corpus: string,
-      searchString: string
-    ): number {
-      let penalty = 1;
-      if (Utils.hasMultipleOccurances(corpus, searchString))
-        penalty = multipleOccurancePenalty * getLengthPenalty(searchString);
-      return penalty;
-    }
-
-    function getConfidenceScore(similarityScore: number, pir: number) {
-      const accuracyPenalty = Utils.mapRange(pir, 0.5, 0.9, 0.7, 1);
-      return similarityScore * accuracyPenalty;
-    }
-
-    //Calculate confidence score
-    //Add confidence score and normalized similiratiy score to metadata
-    const maxSearchScore = 0.14; // below that will be 1 when normaliezd
-    const acceptableSearchScore = 0.19; //0.5 when normalized
-    const minSearchScore = acceptableSearchScore * 2 - maxSearchScore; //above that will be zero wehn normalized
-
-    outSearch = outSearch.map((obj) => {
-      const cappedSearchSimiliarityScore = Math.max(
-        Math.min(obj[1], minSearchScore),
-        maxSearchScore
-      );
-
-      const inverseSearchScore = Utils.mapRange(
-        cappedSearchSimiliarityScore,
-        maxSearchScore,
-        minSearchScore,
-        1,
-        0
-      );
-
-      const compensation = getSemantcSearchCompensationPenalty(
-        obj[0].pageContent,
-        args.question
-      );
-      const similarityScore = inverseSearchScore * compensation;
-
-      /*
-      let normalizedSimiliratityScore = Utils.mapRange(
-        similarityScore,
-        0.1,
-        0.2,
-        1,
-        0
-      );
-      */
-
-      obj[0].metadata.originalScore = obj[1];
-      obj[0].metadata.capped = cappedSearchSimiliarityScore;
-      obj[0].metadata.inverseScore = inverseSearchScore;
-      obj[0].metadata.occurrance = Utils.hasMultipleOccurances(
-        obj[0].pageContent,
-        args.question
-      );
-      obj[0].metadata.lengthy = getLengthPenalty(obj[0].pageContent);
-      obj[0].metadata.compensation = compensation;
-
-      obj[0].metadata.similarity = similarityScore;
-      obj[0].metadata.confidenceScore = getConfidenceScore(
-        similarityScore,
-        obj[0].metadata.pir
-      );
-      return obj;
-    });
-
-    //filter by relevance
-    /*
-    function searchScoreFilter(
-      res: [Document<Record<string, any>>, number]
-    ): boolean {
-      if (res[1] < request.minSimilarityScore) return true;
-      return false;
-    }
-    */
-
-    //const outScoreFitlered = outSearch.filter(searchScoreFilter);
-
-    //map into a simpler object without similarity score
-    const outSimpler = outSearch.map((obj) => {
-      return obj[0];
-    });
-
-    //sort by confidence
-
-    outSimpler.sort(
-      (docA, docB) => docB.metadata.confidence - docA.metadata.confidence
-    );
-
-    console.dir(outSimpler, { depth: null });
-    console.log(
-      "Max. docs:" +
-        maxDocsToRetrieve +
-        " Confidence score:" +
-        request.minConfidenceScore +
-        "Found docs:" +
-        outSearch.length
-    );
-
-    return;
+    console.dir(results, { depth: null });
 
     // filter by metadata
 
@@ -242,16 +114,17 @@ export default class AskCommand extends Command {
       return false;
     }
 
-    const outMetadataFiltered = outSimpler.filter(confidenceFilter);
+    const resultsFiltered = results.filter(confidenceFilter);
+    console.log(resultsFiltered.length);
 
     //filter by tokens usage
     const promptChars = request.template.length + args.question.length;
     let accumulatedChars = promptChars;
 
-    const outTokenFiltered = outMetadataFiltered;
+    const outTokenFiltered = resultsFiltered;
 
-    for (let i = 0; i < outMetadataFiltered.length; i++) {
-      accumulatedChars += outMetadataFiltered[i].pageContent.length;
+    for (let i = 0; i < resultsFiltered.length; i++) {
+      accumulatedChars += resultsFiltered[i].pageContent.length;
       if (
         accumulatedChars * openAITokenPerChar >
         openAIMaxTokens - completitionChars * openAITokenPerChar
