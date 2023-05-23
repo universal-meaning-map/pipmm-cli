@@ -76,8 +76,8 @@ export default class TrainCommand extends Command {
       for (let [iid, note] of notes.entries()) {
         if (note.block.has(NAME_IID)) {
           let name: string = note.block.get(NAME_IID);
-          //let newName = name.split(" ").join(joinCharacter);
-          let newName = Referencer.getLocalIidFromIid(iid);
+          let newName = name.split(" ").join(joinCharacter);
+          //let newName = Referencer.getLocalIidFromIid(iid); //use iid
           note.block.set(NAME_IID, newName);
         }
       }
@@ -93,7 +93,6 @@ export default class TrainCommand extends Command {
     for (let [iid, note] of renamedRepo.entries()) {
       // console.log(iid);
       let config = {
-        // property: "xavi-YAxr3c/prop-name-1612697362",
         property: "xavi-YAxr3c/prop-view-1612698885",
         exportTemplateId: "txt",
       };
@@ -114,17 +113,10 @@ export default class TrainCommand extends Command {
 
     console.log("Splitting text...");
     const textSplitter = new CharacterTextSplitter({
-      chunkSize: ConfigController._configFile.llm.chunkSize,
-      chunkOverlap: ConfigController._configFile.llm.chunkOverlap,
-      separator: "\n\n\n",
+      chunkSize: 1, //ConfigController._configFile.llm.chunkSize,
+      chunkOverlap: 0, // ConfigController._configFile.llm.chunkOverlap,
+      separator: Referencer.selfDescribingSemanticUntiSeparator,
     });
-    /*
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: ConfigController._configFile.llm.chunkSize,
-      chunkOverlap: ConfigController._configFile.llm.chunkOverlap,
-      separators: ["\n\n\n", "\n\n", "\n", " ", ""],
-    });
-    */
 
     const texts = [];
     const metadatas = [];

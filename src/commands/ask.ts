@@ -7,16 +7,10 @@ import { LLMChain } from "langchain/chains";
 import { Document } from "langchain/document";
 import { PromptTemplate } from "langchain/prompts";
 import { OpenAI } from "langchain/llms/openai";
-import Finder from "../lib/semanticSearch";
-
-interface LlmRequest {
-  nameId: string; //identifier of the request template
-  temperature: number; //model temperature
-  template: string; //langchain prompt template
-  minCompletitionChars: number; //minimum chars saved for response
-  minSimilarityScore: number; //0-1, usually between 0.15 and 0.2
-  minConfidenceScore: number; //0-1, confidence filter
-}
+import SemanticSearch from "../lib/semanticSearch";
+import DirectSearch from "../lib/directSearch";
+import Compiler from "../lib/compiler";
+import { LlmRequest } from "../lib/llm";
 
 export default class AskCommand extends Command {
   static description =
@@ -56,11 +50,6 @@ export default class AskCommand extends Command {
       verbose: true,
       openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
     });
-
-    const vectorStore = await HNSWLib.load(
-      ConfigController._configFile.llm.vectorStorePath,
-      embeddingsObject
-    );
 
     const openAITokenPerChar = 0.25;
     const openAIMaxTokens = 4000;
@@ -103,7 +92,18 @@ export default class AskCommand extends Command {
 
     let request = rewriteRequest;
 
-    const results = await Finder.semantic(args.question);
+    // Compile
+    await Compiler.compileAll(
+      ConfigController.ipmmRepoPath,
+      ConfigController.foamRepoPath
+    );
+
+    const directResults = await DirectSearch.getBacklinkChunks(args.question);
+    console.log(directResults);
+
+    return;
+
+    const results = await SemanticSearch.search(args.question);
 
     console.dir(results, { depth: null });
 

@@ -4,14 +4,14 @@ import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
 
-export default class Finder {
-  static semantic = async (
+export default class SemanticSearch {
+  static search = async (
     searchText: string,
     maxDocsToRetrieve: number = 50
   ): Promise<Document<Record<string, any>>[]> => {
     const embeddingsObject = new OpenAIEmbeddings({
       verbose: true,
-      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
+      openAIApiKey: ConfigController._configFile.llm.openAiApiKey, // why is this required
     });
 
     const vectorStore = await HNSWLib.load(

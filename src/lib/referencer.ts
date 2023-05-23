@@ -24,6 +24,8 @@ export default class Referencer {
   static readonly basicTypeUrl = "url";
   static readonly basicTypeNumber = "number";
 
+  static readonly selfDescribingSemanticUntiSeparator = "\n\n\n";
+
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
   static iidToNoteWrap: Map<string, NoteWrap> = new Map();
