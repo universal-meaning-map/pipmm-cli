@@ -3,6 +3,8 @@ import Utils from "./utils";
 import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
+import { LLM } from "langchain/dist/llms/base";
+import { getConfidenceScore } from "./llm";
 
 export default class SemanticSearch {
   static search = async (
@@ -33,7 +35,7 @@ export default class SemanticSearch {
     const multipleOccurancePenalty = 0.85;
     const minLengthPenalty = 0.75; //applies on top of the multipe occurances penalty
 
-    function getLengthPenalty(corpus: string): number {
+    function getShortLengthPenalty(corpus: string): number {
       const maxLength = 200; // Maximum length considered for scoring
       const length = Math.min(corpus.length, maxLength); // Limit the length to maxLength
       const logScore = 1 - Math.exp(-length / maxLength); // it has a logarithmic score. It accelerates the shorter the text is
@@ -53,14 +55,10 @@ export default class SemanticSearch {
     ): number {
       let penalty = 1;
       if (Utils.hasMultipleOccurances(corpus, searchString))
-        penalty = multipleOccurancePenalty * getLengthPenalty(searchString);
+        penalty = multipleOccurancePenalty * getShortLengthPenalty(searchString);
       return penalty;
     }
 
-    function getConfidenceScore(similarityScore: number, pir: number) {
-      const accuracyPenalty = Utils.mapRange(pir, 0.5, 0.9, 0.7, 1);
-      return similarityScore * accuracyPenalty;
-    }
 
     //Calculate confidence score
     //Add confidence score and normalized similiratiy score to metadata

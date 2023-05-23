@@ -5,7 +5,8 @@ import Referencer from "./referencer";
 import Utils from "./utils";
 import { Document } from "langchain/document";
 import { LLM } from "langchain/dist/llms/base";
-import { DocumentMetadata } from "./llm";
+import { getConfidenceScore } from "./llm";
+import SemanticSearch from "./semanticSearch";
 
 export default class DirectSearch {
   static getViewByFoamId = async (foamId: string): Promise<string> => {
@@ -23,7 +24,35 @@ export default class DirectSearch {
     return out;
   };
 
-  static getBacklinkChunks = async (
+  static assumeIid = async (text: string): Promise<string> => {
+    let notes = Referencer.iidToNoteWrap;
+    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+    let potentials = [];
+
+    for (let [iid, note] of notes.entries()) {
+      if (note.block.has(propNameIId)) {
+        let name = note.block.get(propNameIId);
+        //exact name
+        if (name == text) {
+          return note.iid;
+        }
+        //TODO: semantic search over name and synonims.
+      }
+    }
+
+    let res = await SemanticSearch.search(text);
+    console.log(res);
+    console.log(res[0].metadata.name);
+    if (res[0].metadata.confidence > 0.7) return res[0].metadata.iid;
+    return "";
+  };
+
+  static getLongtLengthPenalty(corpus: string): number {
+    const score = Utils.mapRange(corpus.length, 200, 450, 1, 0.7);
+    return score;
+  }
+
+  static getBacklinkDocs = async (
     backLinkIid: string
   ): Promise<Document<Record<string, any>>[]> => {
     let config = {
@@ -70,20 +99,31 @@ export default class DirectSearch {
           for (let i = 0; i < indexesWithIid.length; i++) {
             let chunk = compiledChunks[indexesWithIid[i]];
             // let doc :  Document<Record<string, DocumentMetadata>> = {
+            let relevance = backLinkIid == note.iid ? 1 : 0.8;
+
             let doc: Document<Record<string, any>> = {
               pageContent: chunk,
               metadata: {
                 iid: note.iid,
                 name: note.block.get(propNameIId),
                 pir: note.block.get(propPirIId),
-                confidence: 1,
+                pentalty: DirectSearch.getLongtLengthPenalty(chunk),
+                confidence: getConfidenceScore(
+                  relevance * DirectSearch.getLongtLengthPenalty(chunk),
+                  note.block.get(propPirIId)
+                ),
               },
             };
+            // console.log(doc);
             docs.push(doc);
           }
         }
       }
     }
+    docs.sort(
+      (docA, docB) => docB.metadata.confidence - docA.metadata.confidence
+    );
+
     return docs;
   };
 }

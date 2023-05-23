@@ -54,19 +54,21 @@ export default class AskCommand extends Command {
     const openAITokenPerChar = 0.25;
     const openAIMaxTokens = 4000;
     const maxDocsToRetrieve = 20; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
-    const completitionChars = 1000;
 
     const rewriteRequest: LlmRequest = {
       nameId: "rewrite",
       temperature: 0,
-      minCompletitionChars: 1000, //minimum chars saved for response
+      minCompletitionChars: 2000, //minimum chars saved for response
       minSimilarityScore: 0,
       minConfidenceScore: 0.5,
       template: `
-      You are a technical writer
-      Rewrite text to explain "{mu}"
-      \n\nContext:\n###\n{context}\n###
-      Rewrite:`,
+You are a being ask your personal perspective about {mu} 
+Rewrite text to explain what "{mu}" means to you.
+Be concise, write in first person.
+Do not use imperative language.
+Make extensive use of paragraphs.
+\n\nContext:\n###\n{context}\n###
+Rewrite:`,
     };
 
     const identifyRequest: LlmRequest = {
@@ -98,14 +100,20 @@ export default class AskCommand extends Command {
       ConfigController.foamRepoPath
     );
 
-    const directResults = await DirectSearch.getBacklinkChunks(args.question);
-    console.log(directResults);
+    let mu = args.question;
 
-    return;
+    const assumedId = await DirectSearch.assumeIid(mu);
 
-    const results = await SemanticSearch.search(args.question);
+    let results: Document<Record<string, any>>[] = [];
+    if (assumedId) {
+      results = await DirectSearch.getBacklinkDocs(assumedId);
+    } else {
+      results = await SemanticSearch.search(mu);
+    }
 
     console.dir(results, { depth: null });
+    if (assumedId) console.log(" Doing reverse direct search");
+    else console.log("Doing semantic serach");
 
     // filter by metadata
 
@@ -115,26 +123,27 @@ export default class AskCommand extends Command {
     }
 
     const resultsFiltered = results.filter(confidenceFilter);
-    console.log(resultsFiltered.length);
+    console.log(resultsFiltered);
 
     //filter by tokens usage
-    const promptChars = request.template.length + args.question.length;
-    let accumulatedChars = promptChars;
+    const promptChars = request.template.length + mu.length;
+    const minCompletitionTokens =
+      request.minCompletitionChars * openAITokenPerChar;
 
-    const outTokenFiltered = resultsFiltered;
+    let accumulatedChars = promptChars;
 
     for (let i = 0; i < resultsFiltered.length; i++) {
       accumulatedChars += resultsFiltered[i].pageContent.length;
       if (
-        accumulatedChars * openAITokenPerChar >
-        openAIMaxTokens - completitionChars * openAITokenPerChar
+        accumulatedChars * openAITokenPerChar >=
+        openAIMaxTokens - minCompletitionTokens
       ) {
-        outTokenFiltered.splice(i);
+        resultsFiltered.splice(i - 1);
         break;
       }
     }
 
-    console.log("Keeping " + outTokenFiltered.length + " results");
+    console.log("Keeping " + resultsFiltered.length + " results");
     console.log(
       "Aproximate promp tokens: " + accumulatedChars * openAITokenPerChar
     );
@@ -144,10 +153,8 @@ export default class AskCommand extends Command {
     );
     console.log(
       "Average text length: " +
-        (accumulatedChars - promptChars) / outTokenFiltered.length
+        (accumulatedChars - promptChars) / resultsFiltered.length
     );
-
-    //console.log(outMetadataFiltered);
 
     // TODO filter repeated content
     // These are not because of trans-sub-abstraction-block but direct prop-view transclusions
@@ -155,7 +162,7 @@ export default class AskCommand extends Command {
     // Build context
 
     let context = "";
-    outTokenFiltered.forEach((r) => {
+    resultsFiltered.forEach((r) => {
       context = context + r.pageContent + "\n";
     });
 
@@ -169,7 +176,7 @@ export default class AskCommand extends Command {
     });
 
     const promptInput = {
-      mu: args.question,
+      mu: mu,
       context: context,
       myName: ConfigController._configFile.share.myName,
     };
@@ -201,7 +208,7 @@ export default class AskCommand extends Command {
     const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
     const res = await chain.call({
       input_documents: vectorStore.asRetriever(),
-      question: args.question,
+      question: mu,
     });
     */
   }
