@@ -29,7 +29,7 @@ export interface SearchRequest {
 }
 
 export function getConfidenceScore(relevance: number, pir: number) {
-  const accuracyPenalty = Utils.mapRange(pir, 0.5, 0.9, 0.7, 1);
+  const accuracyPenalty = Utils.mapRange(pir, 0.5, 0.9, 0.8, 1);
   return relevance * accuracyPenalty;
 }
 
@@ -221,25 +221,31 @@ export async function prepareContext(
     //to parallelize
     const name = question.concepts[i].name;
     let results: Document<Record<string, any>>[] = [];
-    const assumedId = await DirectSearch.assumeIid(name);
-    if (assumedId) {
-      results = await DirectSearch.getBacklinkDocs(assumedId);
-    } else {
-      results = await SemanticSearch.search(name);
+    const muWithSameName = await DirectSearch.findMuWithSameName(name);
+    if (muWithSameName) {
+      //console.log(" Doing reverse direct search for " + name);
+      results.push(...(await DirectSearch.getBacklinkDocs(muWithSameName)));
+      console.log(results);
     }
+    //console.log("Doing semantic serac for " + name);
+    results.push(...(await SemanticSearch.search(name)));
+
+    results.sort(
+      (docA, docB) => docB.metadata.confidence - docA.metadata.confidence
+    );
+
     const resultsFiltered = results.filter(confidenceFilter);
 
     const maxTokens = question.concepts[i].weight * maxContextTokens;
 
+    //console.log(resultsFiltered);
     const prunedDocs = pruneDocs(resultsFiltered, maxTokens);
 
     prunedDocs.forEach((r) => {
       context = context + r.pageContent + "\n";
     });
 
-    if (assumedId) console.log(" Doing reverse direct search for " + name);
-    else console.log("Doing semantic serac for " + name);
-    console.log(context);
+    console.log("\nContext for " + name + ":\n" + context);
   }
   return context;
 }

@@ -22,7 +22,7 @@ export default class DirectSearch {
     return out;
   };
 
-  static assumeIid = async (text: string): Promise<string> => {
+  static findMuWithSameName = async (text: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
     let potentials = [];
@@ -46,7 +46,10 @@ export default class DirectSearch {
   };
 
   static getLongtLengthPenalty(corpus: string): number {
-    const score = Utils.mapRange(corpus.length, 200, 450, 1, 0.7);
+    const score = Math.min(
+      Math.max(Utils.mapRange(corpus.length, 200, 400, 1, 0.8), 0.8),
+      1
+    );
     return score;
   }
 
@@ -60,6 +63,8 @@ export default class DirectSearch {
     };
 
     let notes = Referencer.iidToNoteWrap;
+
+    //Needs filtering!
 
     const textSplitter = new CharacterTextSplitter({
       chunkSize: 1,
@@ -77,10 +82,7 @@ export default class DirectSearch {
 
         if (view.includes(backLinkIid)) {
           console.log("has iid: " + note.block.get(propNameIId));
-          // const consoleLog= console.log;
-          // console.log = ()=>{};
           const chunks = await textSplitter.splitText(view);
-          // console.log = consoleLog;
           let indexesWithIid = [];
           //search chunks in IPT
           for (let idx = 0; idx < chunks.length; idx++) {
@@ -92,7 +94,6 @@ export default class DirectSearch {
           //get the same chunks in the compiled text
           let compiled = await Publisher.makePublishRun(note.iid, config);
           const compiledChunks = await textSplitter.splitText(compiled);
-          let texts = [];
 
           for (let i = 0; i < indexesWithIid.length; i++) {
             let chunk = compiledChunks[indexesWithIid[i]];
@@ -106,6 +107,7 @@ export default class DirectSearch {
                 name: note.block.get(propNameIId),
                 pir: note.block.get(propPirIId),
                 pentalty: DirectSearch.getLongtLengthPenalty(chunk),
+                relevance: relevance,
                 confidence: getConfidenceScore(
                   relevance * DirectSearch.getLongtLengthPenalty(chunk),
                   note.block.get(propPirIId)
