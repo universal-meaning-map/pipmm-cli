@@ -15,8 +15,12 @@ import {
   QuestionCat,
   SearchRequest,
   callLlm,
+  confidenceFilter,
   dontKnowRequest,
+  openAIMaxTokens,
+  openAITokenPerChar,
   prepareContext,
+  pruneDocs,
   questionRequest,
   rewriteRequest,
   semanticSearch,
@@ -75,35 +79,20 @@ export default class AskCommand extends Command {
 
     const question: QuestionCat = Utils.yamlToJsObject(String(questionRes));
 
+    const promptTokens =
+      (llmRequest.template.length + mu.length) * openAITokenPerChar; //this is not correct
+    const maxContextTokens =
+      openAIMaxTokens - llmRequest.minCompletitionChars - promptTokens;
+
+    const context = await prepareContext(question, maxContextTokens);
+
     llmRequest = rewriteRequest;
-    const assumedId = await DirectSearch.assumeIid(mu);
-
-    let results: Document<Record<string, any>>[] = [];
-    if (assumedId) {
-      results = await DirectSearch.getBacklinkDocs(assumedId);
-    } else {
-      results = await SemanticSearch.search(mu);
-    }
-
-    console.dir(results, { depth: null });
-    if (assumedId) console.log(" Doing reverse direct search");
-    else console.log("Doing semantic serach");
-
-    function confidenceFilter(doc: Document<Record<string, any>>): boolean {
-      if (doc.metadata.confidence > semanticSearch.minConfidenceScore)
-        return true;
-      return false;
-    }
-
-    const resultsFiltered = results.filter(confidenceFilter);
-    console.log(resultsFiltered);
-
-    const context = await prepareContext(resultsFiltered, llmRequest, mu);
 
     if (context.length <= 200) {
       llmRequest = dontKnowRequest;
     }
 
-    return callLlm(llmRequest, mu, context);
+    const out = await callLlm(llmRequest, mu, context);
+    console.log(out);
   }
 }

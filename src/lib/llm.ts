@@ -11,6 +11,9 @@ import SemanticSearch from "../lib/semanticSearch";
 import DirectSearch from "../lib/directSearch";
 import Compiler from "../lib/compiler";
 
+export const openAITokenPerChar = 0.25;
+export const openAIMaxTokens = 4000;
+
 export interface LlmRequest {
   nameId: string; //identifier of the request template
   temperature: number; //model temperature
@@ -186,9 +189,8 @@ export async function callLlm(
     myName: ConfigController._configFile.share.myName,
   };
 
-  // const prompt = await promptTemplate.format(promptInput);
-
-  // console.dir(prompt, { depth: null });
+  const prompt = await promptTemplate.format(promptInput);
+  console.dir(prompt, { depth: null });
 
   const model = new OpenAI({
     temperature: llmRequest.temperature,
@@ -211,52 +213,53 @@ export async function callLlm(
 }
 
 export async function prepareContext(
-  docs: Document<Record<string, any>>[],
-  llmRequest: LlmRequest,
-  mu: string
+  question: QuestionCat,
+  maxContextTokens: number
 ): Promise<string> {
+  let context = "";
+  for (let i = 0; i < question.concepts.length; i++) {
+    //to parallelize
+    const name = question.concepts[i].name;
+    let results: Document<Record<string, any>>[] = [];
+    const assumedId = await DirectSearch.assumeIid(name);
+    if (assumedId) {
+      results = await DirectSearch.getBacklinkDocs(assumedId);
+    } else {
+      results = await SemanticSearch.search(name);
+    }
+    const resultsFiltered = results.filter(confidenceFilter);
+
+    const maxTokens = question.concepts[i].weight * maxContextTokens;
+
+    const prunedDocs = pruneDocs(resultsFiltered, maxTokens);
+
+    prunedDocs.forEach((r) => {
+      context = context + r.pageContent + "\n";
+    });
+
+    if (assumedId) console.log(" Doing reverse direct search for " + name);
+    else console.log("Doing semantic serac for " + name);
+    console.log(context);
+  }
+  return context;
+}
+
+export function pruneDocs(
+  docs: Document<Record<string, any>>[],
+  maxTokens: number
+) {
   const openAITokenPerChar = 0.25;
-  const openAIMaxTokens = 4000;
-  const maxDocsToRetrieve = 20; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
-
-  const promptChars = llmRequest.template.length + mu.length;
-  const minCompletitionTokens =
-    llmRequest.minCompletitionChars * openAITokenPerChar;
-
-  let accumulatedChars = promptChars;
-
+  let accumulatedChars = 0;
   for (let i = 0; i < docs.length; i++) {
     accumulatedChars += docs[i].pageContent.length;
-    if (
-      accumulatedChars * openAITokenPerChar >=
-      openAIMaxTokens - minCompletitionTokens
-    ) {
-      docs.splice(i - 1);
-      break;
+    if (accumulatedChars * openAITokenPerChar >= maxTokens) {
+      return docs.splice(i - 1);
     }
   }
+  return docs;
+}
 
-  console.log("Keeping " + docs.length + " results");
-  console.log(
-    "Aproximate promp tokens: " + accumulatedChars * openAITokenPerChar
-  );
-  console.log(
-    "Aproximate completition tokens left: " +
-      (openAIMaxTokens - accumulatedChars * openAITokenPerChar)
-  );
-  console.log(
-    "Average text length: " + (accumulatedChars - promptChars) / docs.length
-  );
-
-  // TODO filter repeated content
-  // These are not because of trans-sub-abstraction-block but direct prop-view transclusions
-
-  // Build context
-
-  let context = "";
-  docs.forEach((r) => {
-    context = context + r.pageContent + "\n";
-  });
-
-  return context;
+export function confidenceFilter(doc: Document<Record<string, any>>): boolean {
+  if (doc.metadata.confidence > semanticSearch.minConfidenceScore) return true;
+  return false;
 }
