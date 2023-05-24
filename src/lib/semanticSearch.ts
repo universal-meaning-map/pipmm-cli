@@ -4,7 +4,7 @@ import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
 import { LLM } from "langchain/dist/llms/base";
-import { getConfidenceScore } from "./llm";
+import { callLlm, getConfidenceScore } from "./llm";
 
 export default class SemanticSearch {
   static search = async (
@@ -55,10 +55,10 @@ export default class SemanticSearch {
     ): number {
       let penalty = 1;
       if (Utils.hasMultipleOccurances(corpus, searchString))
-        penalty = multipleOccurancePenalty * getShortLengthPenalty(searchString);
+        penalty =
+          multipleOccurancePenalty * getShortLengthPenalty(searchString);
       return penalty;
     }
-
 
     //Calculate confidence score
     //Add confidence score and normalized similiratiy score to metadata

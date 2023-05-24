@@ -10,7 +10,17 @@ import { OpenAI } from "langchain/llms/openai";
 import SemanticSearch from "../lib/semanticSearch";
 import DirectSearch from "../lib/directSearch";
 import Compiler from "../lib/compiler";
-import { LlmRequest } from "../lib/llm";
+import {
+  LlmRequest,
+  QuestionCat,
+  SearchRequest,
+  callLlm,
+  dontKnowRequest,
+  prepareContext,
+  questionRequest,
+  rewriteRequest,
+  semanticSearch,
+} from "../lib/llm";
 
 export default class AskCommand extends Command {
   static description =
@@ -51,49 +61,7 @@ export default class AskCommand extends Command {
       openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
     });
 
-    const openAITokenPerChar = 0.25;
-    const openAIMaxTokens = 4000;
-    const maxDocsToRetrieve = 20; //openAIMaxTokens / (avgCharactersInDoc * openAITokenPerChar);
-
-    const rewriteRequest: LlmRequest = {
-      nameId: "rewrite",
-      temperature: 0,
-      minCompletitionChars: 2000, //minimum chars saved for response
-      minSimilarityScore: 0,
-      minConfidenceScore: 0.5,
-      template: `
-You are a being ask your personal perspective about {mu} 
-Rewrite text to explain what "{mu}" means to you.
-Be concise, write in first person.
-Do not use imperative language.
-Make extensive use of paragraphs.
-\n\nContext:\n###\n{context}\n###
-Rewrite:`,
-    };
-
-    const identifyRequest: LlmRequest = {
-      nameId: "identify",
-      temperature: 0,
-      minCompletitionChars: 500, //minimum chars saved for response
-      minSimilarityScore: 0.17,
-      minConfidenceScore: 0.5,
-      template: `What concepts in the text are uncommon and fundamental to understand {mu}
-      CONTEXT:\n###\n{context}
-      Concepts:
-      -`,
-    };
-
-    const dontKnowRequest: LlmRequest = {
-      nameId: "dontKnow",
-      temperature: 0.7,
-      minCompletitionChars: 250, //minimum chars saved for response
-      minSimilarityScore: 0,
-      minConfidenceScore: 0,
-      template: `Rephrase: "I don't know what you're talking about."`,
-    };
-
-    let request = rewriteRequest;
-
+    let llmRequest = questionRequest;
     // Compile
     await Compiler.compileAll(
       ConfigController.ipmmRepoPath,
@@ -102,6 +70,12 @@ Rewrite:`,
 
     let mu = args.question;
 
+    const questionRes = await callLlm(questionRequest, args.question, "");
+    console.log(questionRes);
+
+    const question: QuestionCat = Utils.yamlToJsObject(String(questionRes));
+
+    llmRequest = rewriteRequest;
     const assumedId = await DirectSearch.assumeIid(mu);
 
     let results: Document<Record<string, any>>[] = [];
@@ -115,101 +89,21 @@ Rewrite:`,
     if (assumedId) console.log(" Doing reverse direct search");
     else console.log("Doing semantic serach");
 
-    // filter by metadata
-
     function confidenceFilter(doc: Document<Record<string, any>>): boolean {
-      if (doc.metadata.confidence > request.minConfidenceScore) return true;
+      if (doc.metadata.confidence > semanticSearch.minConfidenceScore)
+        return true;
       return false;
     }
 
     const resultsFiltered = results.filter(confidenceFilter);
     console.log(resultsFiltered);
 
-    //filter by tokens usage
-    const promptChars = request.template.length + mu.length;
-    const minCompletitionTokens =
-      request.minCompletitionChars * openAITokenPerChar;
-
-    let accumulatedChars = promptChars;
-
-    for (let i = 0; i < resultsFiltered.length; i++) {
-      accumulatedChars += resultsFiltered[i].pageContent.length;
-      if (
-        accumulatedChars * openAITokenPerChar >=
-        openAIMaxTokens - minCompletitionTokens
-      ) {
-        resultsFiltered.splice(i - 1);
-        break;
-      }
-    }
-
-    console.log("Keeping " + resultsFiltered.length + " results");
-    console.log(
-      "Aproximate promp tokens: " + accumulatedChars * openAITokenPerChar
-    );
-    console.log(
-      "Aproximate completition tokens left: " +
-        (openAIMaxTokens - accumulatedChars * openAITokenPerChar)
-    );
-    console.log(
-      "Average text length: " +
-        (accumulatedChars - promptChars) / resultsFiltered.length
-    );
-
-    // TODO filter repeated content
-    // These are not because of trans-sub-abstraction-block but direct prop-view transclusions
-
-    // Build context
-
-    let context = "";
-    resultsFiltered.forEach((r) => {
-      context = context + r.pageContent + "\n";
-    });
+    const context = await prepareContext(resultsFiltered, llmRequest, mu);
 
     if (context.length <= 200) {
-      request = dontKnowRequest;
+      llmRequest = dontKnowRequest;
     }
 
-    const promptTemplate = new PromptTemplate({
-      template: request.template,
-      inputVariables: ["mu", "context", "myName"],
-    });
-
-    const promptInput = {
-      mu: mu,
-      context: context,
-      myName: ConfigController._configFile.share.myName,
-    };
-
-    const prompt = await promptTemplate.format(promptInput);
-
-    console.dir(prompt, { depth: null });
-
-    const model = new OpenAI({
-      temperature: request.temperature,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      topP: 1,
-      maxTokens: -1,
-      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
-    });
-
-    /*
-    const tokens = await model.generate([prompt]);
-    console.log(tokens);
-*/
-
-    const chain = new LLMChain({ llm: model, prompt: promptTemplate });
-
-    const res = await chain.call(promptInput);
-    console.log(res);
-
-    /*
-    const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
-    const res = await chain.call({
-      input_documents: vectorStore.asRetriever(),
-      question: mu,
-    });
-    */
+    return callLlm(llmRequest, mu, context);
   }
 }

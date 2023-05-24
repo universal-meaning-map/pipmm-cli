@@ -4,6 +4,8 @@ import { NoteWrap } from "./ipmm";
 import Referencer from "./referencer";
 import { promises as fsPromises, readFile } from "fs";
 import ConfigController from "./configController";
+import { parse, stringify } from "yaml";
+
 
 export default class Utils {
   static resolveHome = (filepath: string) => {
@@ -121,4 +123,15 @@ export default class Utils {
     if (occurrences > 1) return true;
     return false;
   };
+
+  static yamlToJsObject = function (yamlString: string): any {
+    try {
+      const parsedObject = parse(yamlString);
+      return parsedObject;
+    } catch (error) {
+      console.error("Error parsing YAML:", error);
+      return null;
+    }
+  }
+
 }
