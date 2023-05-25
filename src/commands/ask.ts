@@ -2,28 +2,16 @@ import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { HNSWLib } from "langchain/vectorstores/hnswlib";
-import { LLMChain } from "langchain/chains";
-import { Document } from "langchain/document";
-import { PromptTemplate } from "langchain/prompts";
-import { OpenAI } from "langchain/llms/openai";
-import SemanticSearch from "../lib/semanticSearch";
-import DirectSearch from "../lib/directSearch";
 import Compiler from "../lib/compiler";
 import {
-  LlmRequest,
   QuestionCat,
-  SearchRequest,
   callLlm,
-  confidenceFilter,
   dontKnowRequest,
   openAIMaxTokens,
   openAITokenPerChar,
   prepareContext,
-  pruneDocs,
   questionRequest,
-  rewriteRequest,
-  semanticSearch,
+  friendlyPersonalReply,
 } from "../lib/llm";
 
 export default class AskCommand extends Command {
@@ -86,12 +74,11 @@ export default class AskCommand extends Command {
 
     const context = await prepareContext(question, maxContextTokens);
 
-    llmRequest = rewriteRequest;
+    llmRequest = friendlyPersonalReply;
 
     if (context.length <= 200) {
       llmRequest = dontKnowRequest;
     }
-
     const out = await callLlm(llmRequest, mu, context);
     console.log(out);
   }

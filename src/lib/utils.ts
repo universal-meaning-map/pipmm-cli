@@ -6,7 +6,6 @@ import { promises as fsPromises, readFile } from "fs";
 import ConfigController from "./configController";
 import { parse, stringify } from "yaml";
 
-
 export default class Utils {
   static resolveHome = (filepath: string) => {
     if (filepath[0] === "~") {
@@ -132,6 +131,9 @@ export default class Utils {
       console.error("Error parsing YAML:", error);
       return null;
     }
-  }
+  };
 
+  static capitalizeFirstLetter = function (str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 }

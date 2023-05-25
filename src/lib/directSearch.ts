@@ -3,7 +3,7 @@ import Publisher from "./publisher";
 import Referencer from "./referencer";
 import Utils from "./utils";
 import { Document } from "langchain/document";
-import { getConfidenceScore } from "./llm";
+import { getConfidenceScore, sortDocsByConfidence } from "./llm";
 import SemanticSearch from "./semanticSearch";
 
 export default class DirectSearch {
@@ -45,9 +45,9 @@ export default class DirectSearch {
     return "";
   };
 
-  static getLongtLengthPenalty(corpus: string): number {
+  static getLongLengthPenalty(corpus: string): number {
     const score = Math.min(
-      Math.max(Utils.mapRange(corpus.length, 200, 400, 1, 0.8), 0.8),
+      Math.max(Utils.mapRange(corpus.length, 0, 600, 1, 0.65), 0.65),
       1
     );
     return score;
@@ -98,7 +98,7 @@ export default class DirectSearch {
           for (let i = 0; i < indexesWithIid.length; i++) {
             let chunk = compiledChunks[indexesWithIid[i]];
             // let doc :  Document<Record<string, DocumentMetadata>> = {
-            let relevance = backLinkIid == note.iid ? 1 : 0.8;
+            let relevance = backLinkIid == note.iid ? 1 : 0.7; //penalty is high as semantic search will compensate for it.
 
             let doc: Document<Record<string, any>> = {
               pageContent: chunk,
@@ -106,10 +106,10 @@ export default class DirectSearch {
                 iid: note.iid,
                 name: note.block.get(propNameIId),
                 pir: note.block.get(propPirIId),
-                pentalty: DirectSearch.getLongtLengthPenalty(chunk),
+                pentalty: DirectSearch.getLongLengthPenalty(chunk),
                 relevance: relevance,
                 confidence: getConfidenceScore(
-                  relevance * DirectSearch.getLongtLengthPenalty(chunk),
+                  relevance * DirectSearch.getLongLengthPenalty(chunk),
                   note.block.get(propPirIId)
                 ),
               },
@@ -120,9 +120,8 @@ export default class DirectSearch {
         }
       }
     }
-    docs.sort(
-      (docA, docB) => docB.metadata.confidence - docA.metadata.confidence
-    );
+
+    docs = sortDocsByConfidence(docs);
 
     return docs;
   };

@@ -73,22 +73,34 @@ export const dontKnowRequest: LlmRequest = {
   temperature: 0.7,
   minCompletitionChars: 250, //minimum chars saved for response
 
-  template: `Rephrase: "I don't know what you're talking about."`,
+  template: `
+  Simple rephrase of: "I don't know what you're talking about, can you remind me what are we talking about?"`,
 };
 
-export const rewriteRequest: LlmRequest = {
+export const friendlyPersonalReply: LlmRequest = {
   nameId: "rewrite",
   temperature: 0,
   minCompletitionChars: 2000, //minimum chars saved for response
 
   template: `
-You are a being ask your personal perspective about {mu} 
-Rewrite text to explain what "{mu}" means to you.
-Be concise, write in first person.
+You are {myName}, a professional technical writter with a very unique perspective.
+You are having a friendly conversation with a friend.
+You are a being ask your personal perspective about {mu}.
+Be concise.
+Write in first person.
 Do not use imperative language.
-Make extensive use of paragraphs.º
-\n\nContext:\n###\n{context}\n###
-Rewrite:`,
+Make extensive use of paragraphs.
+If a complicated concept is mentioned, explain its meaning, followed by the complicated word in parenthensis.
+###
+Your thoughts on {mu}:
+{context}
+###
+Friend: Hi {myName}! Is lovely to see you!
+You: Likewise! I'm super happy to hear from you! ^^
+Friend: Me too :)
+You: What can I do for you?
+Friend: {mu}
+You:`,
 };
 
 export const questionRequest: LlmRequest = {
@@ -186,7 +198,9 @@ export async function callLlm(
   const promptInput = {
     mu: mu,
     context: context,
-    myName: ConfigController._configFile.share.myName,
+    myName: Utils.capitalizeFirstLetter(
+      ConfigController._configFile.share.myName
+    ),
   };
 
   const prompt = await promptTemplate.format(promptInput);
@@ -230,27 +244,27 @@ export async function prepareContext(
     //console.log("Doing semantic serac for " + name);
     results.push(...(await SemanticSearch.search(name)));
 
-    results.sort(
-      (docA, docB) => docB.metadata.confidence - docA.metadata.confidence
-    );
+    results = sortDocsByConfidence(results);
 
     const resultsFiltered = results.filter(confidenceFilter);
 
     const maxTokens = question.concepts[i].weight * maxContextTokens;
 
-    //console.log(resultsFiltered);
-    const prunedDocs = pruneDocs(resultsFiltered, maxTokens);
+    console.log(resultsFiltered);
+    const prunedDocs = pruneDocsForTokens(resultsFiltered, maxTokens);
+
+    //console.log(pruneDocsForTokens);
 
     prunedDocs.forEach((r) => {
       context = context + r.pageContent + "\n";
     });
 
-    console.log("\nContext for " + name + ":\n" + context);
+    // console.log("\nContext for " + name + ":\n" + context);
   }
   return context;
 }
 
-export function pruneDocs(
+export function pruneDocsForTokens(
   docs: Document<Record<string, any>>[],
   maxTokens: number
 ) {
@@ -259,13 +273,31 @@ export function pruneDocs(
   for (let i = 0; i < docs.length; i++) {
     accumulatedChars += docs[i].pageContent.length;
     if (accumulatedChars * openAITokenPerChar >= maxTokens) {
-      return docs.splice(i - 1);
+      docs.splice(i - 1);
+      return docs;
     }
   }
+  return docs;
+}
+
+export function sortDocsByConfidence(docs: Document<Record<string, any>>[]) {
+  docs.sort(
+    (docA, docB) => docB.metadata.confidence - docA.metadata.confidence
+  );
   return docs;
 }
 
 export function confidenceFilter(doc: Document<Record<string, any>>): boolean {
   if (doc.metadata.confidence > semanticSearch.minConfidenceScore) return true;
   return false;
+}
+
+export function logDocsWithHigherConfidenceLast(
+  docs: Document<Record<string, any>>[]
+) {
+  docs.sort(
+    (docA, docB) => docA.metadata.confidence - docB.metadata.confidence
+  );
+
+  console.log(docs);
 }
