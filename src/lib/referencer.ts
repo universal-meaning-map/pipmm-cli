@@ -29,6 +29,7 @@ export default class Referencer {
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
   static iidToNoteWrap: Map<string, NoteWrap> = new Map();
+  static iidToFoamId: Map<string, string> = new Map();
 
   static miidSeparatorToken = "";
 

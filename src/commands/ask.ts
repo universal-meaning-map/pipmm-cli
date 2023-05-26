@@ -9,13 +9,17 @@ import {
   dontKnowRequest,
   openAIMaxTokens,
   openAITokenPerChar,
-  prepareContext,
+  getContextDocs,
   questionRequest,
   friendlyPersonalReply,
   technicalRequest,
-  textToIPT,
+  textToIptFromList,
+  buildContextPromptFromDocs,
+  getDocsNameIidMap,
+  textToFoamText,
 } from "../lib/llm";
 import { request } from "http";
+import Referencer from "../lib/referencer";
 
 export default class AskCommand extends Command {
   static description =
@@ -63,6 +67,7 @@ export default class AskCommand extends Command {
       ConfigController.foamRepoPath
     );
 
+
     let mu = args.question;
 
     const questionRes = await callLlm(questionRequest, args.question, "");
@@ -80,29 +85,19 @@ export default class AskCommand extends Command {
     const maxContextTokens =
       openAIMaxTokens - llmRequest.minCompletitionChars - promptTokens;
 
-    const context = await prepareContext(question, maxContextTokens);
+    const contextDocs = await getContextDocs(question, maxContextTokens);
+    const contextPrompt = buildContextPromptFromDocs(contextDocs);
 
-    if (context.length <= 200) {
+    if (contextPrompt.length <= 200) {
       llmRequest = dontKnowRequest;
     }
-    const out = await callLlm(llmRequest, mu, context);
+    const out = await callLlm(llmRequest, mu, contextPrompt);
 
-    const muosIids = [
-      {
-        name: "minformation computation hypothesis",
-        iid: "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3czw2tgsoq",
-      },
-      {
-        name: "minformation",
-        iid: "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cxhm6fu5a",
-      },
-      {
-        name: "input information",
-        iid: "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cvznzroxa",
-      },
-    ];
+    const usedDocsNameIidMap = getDocsNameIidMap(contextDocs);
 
-    const ipt = await textToIPT(out, muosIids);
+    const ipt = await textToIptFromList(out, usedDocsNameIidMap);
+    const foamText =  textToFoamText(out, usedDocsNameIidMap, Referencer.iidToFoamId);
     console.log(ipt);
+    console.log(foamText);
   }
 }

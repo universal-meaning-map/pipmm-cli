@@ -15,7 +15,7 @@ export default class SemanticSearch {
     searchText: string,
     indexedFoamProperty: string,
     namesWithHyphen: boolean,
-    maxDocsToRetrieve: number = 50
+    maxDocsToRetrieve: number = 100
   ): Promise<Document<Record<string, any>>[]> => {
     const embeddingsObject = new OpenAIEmbeddings({
       verbose: true,

@@ -1,21 +1,10 @@
 import { Command, flags } from "@oclif/command";
-import ConfigController, {
-  ExportTemplate,
-  PublishExportRun,
-} from "../lib/configController";
+import ConfigController from "../lib/configController";
 import Referencer from "../lib/referencer";
 import Compiler from "../lib/compiler";
 import Utils from "../lib/utils";
 import Filter from "../lib/filterController";
-import Publisher from "../lib/publisher";
-import { CharacterTextSplitter } from "langchain/text_splitter";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { Document } from "langchain/document";
-import { HNSWLib } from "langchain/vectorstores/hnswlib";
-import { NoteWrap } from "../lib/ipmm";
-import Tokenizer from "../lib/tokenizer";
 import SemanticSearch from "../lib/semanticSearch";
-import { boolean } from "@oclif/command/lib/flags";
 
 export default class TrainCommand extends Command {
   static description =
@@ -71,7 +60,6 @@ export default class TrainCommand extends Command {
     );
     // Name transform
 
-    let namesWithHyphen = true;
     await SemanticSearch.index(
       filteredRepo,
       Referencer.PROP_VIEW_FOAMID,

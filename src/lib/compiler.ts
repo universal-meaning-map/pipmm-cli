@@ -189,6 +189,7 @@ export default class Compiler {
 
       const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
       Referencer.iidToNoteWrap.set(iid, noteWrap);
+      Referencer.iidToFoamId.set(iid,foamId)
 
       //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
 

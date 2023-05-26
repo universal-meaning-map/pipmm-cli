@@ -239,57 +239,70 @@ export async function callLlm(
   return res.text;
 }
 
-export async function prepareContext(
+export async function getContextDocs(
   question: QuestionCat,
   maxContextTokens: number
-): Promise<string> {
-  let context = "";
+): Promise<Document<Record<string, any>>[]> {
+  let contextDocs: Document<Record<string, any>>[] = [];
   for (let i = 0; i < question.concepts.length; i++) {
     //to parallelize
+    let conceptDocs: Document<Record<string, any>>[] = [];
     const name = question.concepts[i].name;
-    let results: Document<Record<string, any>>[] = [];
     let namesWithHyphen = false;
     if (question.tone == "technical") namesWithHyphen = true;
 
     const muIidWithSameName = await DirectSearch.getIidByName(name);
     if (muIidWithSameName) {
-      console.log("Doing reverse direct search for " + name);
-      results.push(
+      conceptDocs.push(
         ...(await DirectSearch.getBacklinkDocs(
           muIidWithSameName,
           namesWithHyphen
         ))
       );
     }
-    console.log("Doing semantic serach for " + name);
-    const maxDocs = 5;
-    results.push(
+
+    conceptDocs.push(
       ...(await SemanticSearch.search(
         name,
         Referencer.PROP_VIEW_FOAMID,
-        namesWithHyphen,
-        maxContextTokens
+        namesWithHyphen
       ))
     );
 
-    results = sortDocsByConfidence(results);
-
-    const resultsFiltered = results.filter(confidenceFilter);
+    // Todo: Eliminate duplicates
 
     const maxTokens = question.concepts[i].weight * maxContextTokens;
-
-    console.log(resultsFiltered);
-    const prunedDocs = pruneDocsForTokens(resultsFiltered, maxTokens);
-
-    //console.log(pruneDocsForTokens);
-
-    prunedDocs.forEach((r) => {
-      context = context + r.pageContent + "\n###\n";
-    });
-
-    // console.log("\nContext for " + name + ":\n" + context);
+    conceptDocs = sortDocsByConfidence(conceptDocs);
+    conceptDocs.filter(confidenceFilter);
+    conceptDocs = pruneDocsForTokens(conceptDocs, maxTokens);
+    contextDocs.push(...conceptDocs);
   }
+  return contextDocs;
+}
+
+export function getDocsNameIidMap(
+  docs: Document<Record<string, any>>[]
+): Map<string, string> {
+  const nameToIid = new Map<string, string>();
+  docs.forEach((doc) => {
+    if (!nameToIid.has(doc.metadata.name)) {
+      nameToIid.set(doc.metadata.name, doc.metadata.iid);
+    }
+  });
+  return nameToIid;
+}
+
+export function buildContextPromptFromDocs(
+  contextDocs: Document<Record<string, any>>[]
+): string {
+  let context = "";
+
+  contextDocs.forEach((r) => {
+    context = context + r.pageContent + "\n###\n";
+  });
+
   return context;
+  // console.log("\nContext for " + name + ":\n" + context);
 }
 
 export function pruneDocsForTokens(
@@ -330,21 +343,35 @@ export function logDocsWithHigherConfidenceLast(
   console.log(docs);
 }
 
-export async function textToIPT(
+export async function textToIptFromList(
   corpus: string,
-  muoNames: { name: string; iid: string }[]
+  nameToIidMap: Map<string, string> //name, iid
 ): Promise<string[]> {
   //muoNames.sort longest to shoretes
   const nameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-  muoNames.forEach((muo) => {
+  for (const [name, iid] of nameToIidMap) {
     corpus = corpus.replaceAll(
-      muo.name,
-      Tokenizer.splitToken + makeAref(muo.iid, nameIId) + Tokenizer.splitToken
+      name,
+      Tokenizer.splitToken + makeAref(iid, nameIId) + Tokenizer.splitToken
     );
-  });
+  }
   return corpus.split(Tokenizer.splitToken);
 }
 
 export function makeAref(iid: string, transclusionPropIid: string): string {
   return '["' + iid + "/" + transclusionPropIid + '"]';
+}
+
+export function textToFoamText(
+  corpus: string,
+  nameToIidMap: Map<string, string>, //name, iid
+  iidToFoamId: Map<string, string> //iid, foamId
+): string {
+  //muoNames.sort longest to shoretes
+
+  for (const [name, iid] of nameToIidMap) {
+    console.log(name);
+    corpus = corpus.replaceAll(name, "[[" + iidToFoamId.get(iid) + "]]");
+  }
+  return corpus;
 }
