@@ -3,19 +3,20 @@ import Utils from "./utils";
 import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
+import { LLM } from "langchain/dist/llms/base";
+import { callLlm, getConfidenceScore } from "./llm";
 import { NoteWrap } from "./ipmm";
 import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
 import Publisher from "./publisher";
 import { CharacterTextSplitter } from "langchain/text_splitter";
-import { getConfidenceScore } from "./llm";
 
 export default class SemanticSearch {
   static search = async (
     searchText: string,
     indexedFoamProperty: string,
     namesWithHyphen: boolean,
-    maxDocsToRetrieve: number = 100
+    maxDocsToRetrieve: number = 50
   ): Promise<Document<Record<string, any>>[]> => {
     const embeddingsObject = new OpenAIEmbeddings({
       verbose: true,
@@ -147,13 +148,17 @@ export default class SemanticSearch {
     for (let [iid, note] of notes.entries()) {
       if (note.block.has(NAME_IID)) {
         let name: string = note.block.get(NAME_IID);
-        let newName = name.split(" ").join(joinCharacter);
+        let newName = SemanticSearch.rename(name, joinCharacter);
         //let newName = Referencer.getLocalIidFromIid(iid); //use iid
         note.block.set(NAME_IID, newName);
       }
     }
     return notes;
   };
+
+  static rename(name: string, joinCharacter: string) {
+    return name.split(" ").join(joinCharacter);
+  }
 
   static index = async (
     repo: Map<string, NoteWrap>,

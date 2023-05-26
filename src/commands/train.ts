@@ -65,10 +65,10 @@ export default class TrainCommand extends Command {
       Referencer.PROP_VIEW_FOAMID,
       flags.indexWithHyphen
     );
-    await SemanticSearch.index(
+    /*await SemanticSearch.index(
       filteredRepo,
       Referencer.PROP_NAME_FOAMID,
       flags.indexWithHyphen
-    );
+    );*/
   }
 }

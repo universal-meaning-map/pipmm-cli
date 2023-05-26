@@ -9,12 +9,12 @@ import Tokenizer from "./tokenizer";
 import IpmmType from "./ipmmType";
 import Referencer from "./referencer";
 import ConfigController from "./configController";
+import SemanticSearch from "./semanticSearch";
 
 let notesRepo: string;
 
-
 export default class Compiler {
-  static  compileArefs : boolean;
+  static compileArefs: boolean;
 
   static compileAll = async (
     _ipmmRepo: string,
@@ -22,12 +22,11 @@ export default class Compiler {
   ): Promise<void> => {
     notesRepo = _notesRepo;
 
-    if(ConfigController._configFile.interplanetaryText.compileArefs)
+    if (ConfigController._configFile.interplanetaryText.compileArefs)
       Compiler.compileArefs = true;
 
     let files = await fs.readdir(notesRepo);
     files = Utils.filterByExtensions(files, [".md"]);
-
 
     for (let fileName of files) {
       const foamId = Utils.removeFileExtension(fileName);
@@ -92,7 +91,8 @@ export default class Compiler {
       //CHECK IF IS A TYPE
       let isType = false;
       let propTypeFoamId = Referencer.updaterFoamIdWithFriendFolder(
-        Referencer.PROP_TYPE_FOAMID, requesterFoamId
+        Referencer.PROP_TYPE_FOAMID,
+        requesterFoamId
       );
       if (
         frontMatter.data[Referencer.PROP_TYPE_FOAMID] ||
@@ -161,7 +161,10 @@ export default class Compiler {
           let value = content.value.trim();
           if (value != "") {
             const contentProp = await Compiler.processProperty(
-              Referencer.updaterFoamIdWithFriendFolder(content.type, requesterFoamId),
+              Referencer.updaterFoamIdWithFriendFolder(
+                content.type,
+                requesterFoamId
+              ),
               value,
               foamId,
               false
@@ -189,14 +192,11 @@ export default class Compiler {
 
       const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
       Referencer.iidToNoteWrap.set(iid, noteWrap);
-      Referencer.iidToFoamId.set(iid,foamId)
+      Referencer.iidToFoamId.set(iid, foamId);
 
       //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
 
-      if (
-        Compiler.compileArefs &&
-        !isType
-      ) {
+      if (Compiler.compileArefs && !isType) {
         //itereate through the note properties values and compile the referenced notes
         //view property
         if (frontMatter.content) {
@@ -205,7 +205,8 @@ export default class Compiler {
 
           const viewProp = await Compiler.processProperty(
             Referencer.updaterFoamIdWithFriendFolder(
-              Referencer.PROP_VIEW_FOAMID,requesterFoamId
+              Referencer.PROP_VIEW_FOAMID,
+              requesterFoamId
             ),
             trimmed,
             foamId,
@@ -226,7 +227,6 @@ export default class Compiler {
       return Res.success(noteWrap);
     } catch (e) {
       return Res.error(
-        
         "Exception creating note " +
           foamId +
           " requested by " +
@@ -261,6 +261,12 @@ export default class Compiler {
     compileInterplanetaryTextArefs: boolean
     // errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
+    //indexing of name-foamId for LLM
+    if (typeFoamId == Referencer.PROP_NAME_FOAMID) {
+      Referencer.nameToFoamId.set(propertyValue, requesterFoamId);
+      Referencer.nameWithHyphenToFoamId.set(SemanticSearch.rename(propertyValue,Tokenizer.hyphenToken), requesterFoamId);
+    }
+
     const typeIId = await Referencer.makeIid(typeFoamId);
 
     //Create a Type for the propertyId if it doesn't exists yet

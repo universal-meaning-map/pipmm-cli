@@ -1,7 +1,6 @@
 import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import Compiler from "../lib/compiler";
 import {
   QuestionCat,
@@ -15,7 +14,7 @@ import {
   technicalRequest,
   textToIptFromList,
   buildContextPromptFromDocs,
-  getDocsNameIidMap,
+  getDocsNameIidList,
   textToFoamText,
 } from "../lib/llm";
 import { request } from "http";
@@ -62,7 +61,6 @@ export default class AskCommand extends Command {
       ConfigController.foamRepoPath
     );
 
-
     let mu = args.question;
 
     const questionRes = await callLlm(questionRequest, args.question, "");
@@ -88,11 +86,13 @@ export default class AskCommand extends Command {
     }
     const out = await callLlm(llmRequest, mu, contextPrompt);
 
-    const usedDocsNameIidMap = getDocsNameIidMap(contextDocs);
+    const usedDocsNameIidMap = getDocsNameIidList(contextDocs);
 
-    const ipt = await textToIptFromList(out, usedDocsNameIidMap);
-    const foamText =  textToFoamText(out, usedDocsNameIidMap, Referencer.iidToFoamId);
-    console.log(ipt);
+   
+
+    //const ipt = await textToIptFromList(out, sortedNameIId);
+    //console.log(ipt);
+    const foamText = textToFoamText(out);
     console.log(foamText);
   }
 }

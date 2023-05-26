@@ -14,9 +14,11 @@ export const openAIMaxTokens = 4000;
 
 export interface LlmRequest {
   nameId: string; //identifier of the request template
-  temperature: number; //model temperature
   template: string; //langchain prompt template
   minCompletitionChars: number; //minimum chars saved for response
+  temperature?: number; //model temperature
+  frequencyPenalty?: number;
+  presencePenalty?: number;
 }
 
 export interface SearchRequest {
@@ -102,18 +104,20 @@ You:`,
 
 export const technicalRequest: LlmRequest = {
   nameId: "rewrite",
-  temperature: 0,
+  temperature: 0.2,
+  frequencyPenalty: 0.0,
   minCompletitionChars: 1500, //minimum chars saved for response
   template: `
-  You're a technical writter.
-  You're writting the README.md for "{mu}".
-  Use Markdown syntax.
-  """
-  References {mu}:
-  {context}
-  """
-  # {mu}
-  The \`{mu}\` is`,
+You're a technical writter.
+You're writting README.md for "{mu}" using Markdown syntax.
+Use H2 and H3 headings to organize the document.
+You have beautiful, natural and pleasant style of writting.
+"""
+References {mu}:
+{context}
+"""
+# {mu}
+`,
 };
 
 export const questionRequest: LlmRequest = {
@@ -220,9 +224,13 @@ export async function callLlm(
   console.dir(prompt, { depth: null });
 
   const model = new OpenAI({
-    temperature: llmRequest.temperature,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
+    temperature: llmRequest.temperature ? llmRequest.temperature : 0,
+    frequencyPenalty: llmRequest.frequencyPenalty
+      ? llmRequest.frequencyPenalty
+      : 0,
+    presencePenalty: llmRequest.presencePenalty
+      ? llmRequest.presencePenalty
+      : 0,
     topP: 1,
     maxTokens: -1,
     openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
@@ -280,7 +288,7 @@ export async function getContextDocs(
   return contextDocs;
 }
 
-export function getDocsNameIidMap(
+export function getDocsNameIidList(
   docs: Document<Record<string, any>>[]
 ): Map<string, string> {
   const nameToIid = new Map<string, string>();
@@ -345,11 +353,11 @@ export function logDocsWithHigherConfidenceLast(
 
 export async function textToIptFromList(
   corpus: string,
-  nameToIidMap: Map<string, string> //name, iid
+  nameToIidList: [string, string][] //name, iid
 ): Promise<string[]> {
   //muoNames.sort longest to shoretes
   const nameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-  for (const [name, iid] of nameToIidMap) {
+  for (const [name, iid] of nameToIidList) {
     corpus = corpus.replaceAll(
       name,
       Tokenizer.splitToken + makeAref(iid, nameIId) + Tokenizer.splitToken
@@ -362,16 +370,13 @@ export function makeAref(iid: string, transclusionPropIid: string): string {
   return '["' + iid + "/" + transclusionPropIid + '"]';
 }
 
-export function textToFoamText(
-  corpus: string,
-  nameToIidMap: Map<string, string>, //name, iid
-  iidToFoamId: Map<string, string> //iid, foamId
-): string {
-  //muoNames.sort longest to shoretes
-
-  for (const [name, iid] of nameToIidMap) {
-    console.log(name);
-    corpus = corpus.replaceAll(name, "[[" + iidToFoamId.get(iid) + "]]");
+export function textToFoamText(corpus: string): string {
+  const sortedNameToFoamId = Array.from(Referencer.nameWithHyphenToFoamId).sort(
+    ([keyA], [keyB]) => keyB.length - keyA.length
+  );
+  for (const [name, foamId] of sortedNameToFoamId) {
+    corpus = corpus.replaceAll(" " + name, " [[" + foamId + "]]");
+    corpus = corpus.replaceAll("\n" + name, "\n[[" + foamId + "]]");
   }
   return corpus;
 }
