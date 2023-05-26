@@ -12,7 +12,10 @@ import {
   prepareContext,
   questionRequest,
   friendlyPersonalReply,
+  technicalRequest,
+  textToIPT,
 } from "../lib/llm";
+import { request } from "http";
 
 export default class AskCommand extends Command {
   static description =
@@ -66,6 +69,11 @@ export default class AskCommand extends Command {
     console.log(questionRes);
 
     const question: QuestionCat = Utils.yamlToJsObject(String(questionRes));
+    if ((question.tone = "technical")) {
+      llmRequest = technicalRequest;
+    } else {
+      llmRequest = friendlyPersonalReply;
+    }
 
     const promptTokens =
       (llmRequest.template.length + mu.length) * openAITokenPerChar; //this is not correct
@@ -74,12 +82,27 @@ export default class AskCommand extends Command {
 
     const context = await prepareContext(question, maxContextTokens);
 
-    llmRequest = friendlyPersonalReply;
-
     if (context.length <= 200) {
       llmRequest = dontKnowRequest;
     }
     const out = await callLlm(llmRequest, mu, context);
-    console.log(out);
+
+    const muosIids = [
+      {
+        name: "minformation computation hypothesis",
+        iid: "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3czw2tgsoq",
+      },
+      {
+        name: "minformation",
+        iid: "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cxhm6fu5a",
+      },
+      {
+        name: "input information",
+        iid: "i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cvznzroxa",
+      },
+    ];
+
+    const ipt = await textToIPT(out, muosIids);
+    console.log(ipt);
   }
 }

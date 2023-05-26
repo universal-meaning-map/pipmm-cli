@@ -8,14 +8,14 @@ import Compiler from "../lib/compiler";
 import Utils from "../lib/utils";
 import Filter from "../lib/filterController";
 import Publisher from "../lib/publisher";
-import {
-  CharacterTextSplitter,
-  RecursiveCharacterTextSplitter,
-} from "langchain/text_splitter";
+import { CharacterTextSplitter } from "langchain/text_splitter";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
 import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { NoteWrap } from "../lib/ipmm";
+import Tokenizer from "../lib/tokenizer";
+import SemanticSearch from "../lib/semanticSearch";
+import { boolean } from "@oclif/command/lib/flags";
 
 export default class TrainCommand extends Command {
   static description =
@@ -29,6 +29,13 @@ export default class TrainCommand extends Command {
       char: "p",
       description:
         "Executes the command relative to the specified path as oppose to the working directory",
+    }),
+
+    indexWithHyphen: flags.boolean({
+      name: "indexHypen",
+      char: "h",
+      description:
+        "Indexes view and  names on their own vector DB. Multi word names are joined with `-`",
     }),
   };
 
@@ -64,90 +71,16 @@ export default class TrainCommand extends Command {
     );
     // Name transform
 
-    console.log("Renaming...");
-    const PIR_IID = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-
-    function rename(
-      notes: Map<string, NoteWrap>,
-      joinCharacter: string
-    ): Map<string, NoteWrap> {
-      // let renamed: Map<string, NoteWrap> = new Map();
-      for (let [iid, note] of notes.entries()) {
-        if (note.block.has(NAME_IID)) {
-          let name: string = note.block.get(NAME_IID);
-          let newName = name.split(" ").join(joinCharacter);
-          //let newName = Referencer.getLocalIidFromIid(iid); //use iid
-          note.block.set(NAME_IID, newName);
-        }
-      }
-      return notes;
-    }
-
-    const renamedRepo = rename(filteredRepo, "-");
-
-    // Transclude
-
-    console.log("Transcluding...");
-    const docs = [];
-    for (let [iid, note] of renamedRepo.entries()) {
-      // console.log(iid);
-      let config = {
-        property: "xavi-YAxr3c/prop-view-1612698885",
-        exportTemplateId: "txt",
-      };
-
-      let out = await Publisher.makePublishRun(iid, config);
-
-      const doc = new Document({
-        pageContent: out,
-        metadata: {
-          iid: iid,
-          name: note.block.get(NAME_IID),
-          pir: note.block.get(PIR_IID),
-          time: Date.now(),
-        },
-      });
-      docs.push(doc);
-    }
-
-    console.log("Splitting text...");
-    const textSplitter = new CharacterTextSplitter({
-      chunkSize: 1, //ConfigController._configFile.llm.chunkSize,
-      chunkOverlap: 0, // ConfigController._configFile.llm.chunkOverlap,
-      separator: Referencer.selfDescribingSemanticUntiSeparator,
-    });
-
-    const texts = [];
-    const metadatas = [];
-
-    for (const doc of docs) {
-      const docTexts = await textSplitter.splitText(doc.pageContent);
-      for (const text of docTexts) {
-        texts.push(text);
-        metadatas.push(doc.metadata);
-      }
-    }
-
-    console.log("Generating embeddings...");
-    const embeddingsObject = new OpenAIEmbeddings({
-      verbose: true,
-      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
-    });
-
-    const vectorStore = await HNSWLib.fromTexts(
-      texts,
-      metadatas,
-      embeddingsObject
+    let namesWithHyphen = true;
+    await SemanticSearch.index(
+      filteredRepo,
+      Referencer.PROP_VIEW_FOAMID,
+      flags.indexWithHyphen
     );
-
-    console.log(
-      "Storing embeddings into " +
-        ConfigController._configFile.llm.vectorStorePath
+    await SemanticSearch.index(
+      filteredRepo,
+      Referencer.PROP_NAME_FOAMID,
+      flags.indexWithHyphen
     );
-    // Save the vector store to a directory
-    await vectorStore.save(ConfigController._configFile.llm.vectorStorePath);
-
-    console.log("Success!");
   }
 }

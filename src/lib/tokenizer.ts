@@ -6,6 +6,7 @@ import ConfigController from "./configController";
 
 export default class Tokenizer {
   static splitToken = "<split>";
+  static hyphenToken = "‐";
   static wikilinkWithTokens = /\[{2}(.*?)\]{2}/g; //matches [[ ]]
   static dynamicTransclusion = /\({2}(.*?)\){2}/g; //matches (( ))
 
@@ -133,7 +134,6 @@ export default class Tokenizer {
 
     if (runs.length == 1) {
       if (assumeAbstractionPointer) {
-
         let abstractionPointer = await Referencer.makeIid(
           Referencer.updaterFoamIdWithFriendFolder(
             ConfigController._configFile.interplanetaryText
@@ -147,7 +147,7 @@ export default class Tokenizer {
       //let tiid = await Referencer.makeIid(backRuns[0]);
       let tiid = await Referencer.makeIid(runs[1]);
       exp = exp + "/" + tiid;
-    /*  let backRuns = runs[1].split("/");
+      /*  let backRuns = runs[1].split("/");
       if (backRuns.length > 1) {
         for (let i = 1; i < backRuns.length; i++) {
           //We only assume the first property to be an iid, the rest is an IPLD path

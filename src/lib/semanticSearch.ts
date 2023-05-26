@@ -3,12 +3,18 @@ import Utils from "./utils";
 import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
-import { LLM } from "langchain/dist/llms/base";
-import { callLlm, getConfidenceScore } from "./llm";
+import { NoteWrap } from "./ipmm";
+import Referencer from "./referencer";
+import Tokenizer from "./tokenizer";
+import Publisher from "./publisher";
+import { CharacterTextSplitter } from "langchain/text_splitter";
+import { getConfidenceScore } from "./llm";
 
 export default class SemanticSearch {
   static search = async (
     searchText: string,
+    indexedFoamProperty: string,
+    namesWithHyphen: boolean,
     maxDocsToRetrieve: number = 50
   ): Promise<Document<Record<string, any>>[]> => {
     const embeddingsObject = new OpenAIEmbeddings({
@@ -16,10 +22,11 @@ export default class SemanticSearch {
       openAIApiKey: ConfigController._configFile.llm.openAiApiKey, // why is this required
     });
 
-    const vectorStore = await HNSWLib.load(
-      ConfigController._configFile.llm.vectorStorePath,
-      embeddingsObject
+    const dbPath = SemanticSearch.getVectorStorePath(
+      indexedFoamProperty,
+      namesWithHyphen
     );
+    const vectorStore = await HNSWLib.load(dbPath, embeddingsObject);
 
     // similarity search
     let outSearch = await vectorStore.similaritySearchWithScore(
@@ -98,6 +105,7 @@ export default class SemanticSearch {
       obj[0].metadata.compensation = compensation;
      */
       obj[0].metadata.similarity = similarityScore;
+      obj[0].metadata.searchOrigin = "semanticSearch";
       obj[0].metadata.confidence = getConfidenceScore(
         similarityScore,
         obj[0].metadata.pir
@@ -117,5 +125,113 @@ export default class SemanticSearch {
     );
 
     return outSimpler;
+  };
+
+  static getVectorStorePath(
+    foamIdIndexed: string,
+    namesWithHyphen: boolean
+  ): string {
+    let dbName =
+      foamIdIndexed + (namesWithHyphen ? "-withHyphen" : "withSpace");
+    const dbLocation =
+      ConfigController._configFile.llm.vectorStorePath + "/" + dbName;
+    return dbLocation;
+  }
+
+  static renameRepoNames = async (
+    notes: Map<string, NoteWrap>,
+    joinCharacter: string
+  ): Promise<Map<string, NoteWrap>> => {
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+    // let renamed: Map<string, NoteWrap> = new Map();
+    for (let [iid, note] of notes.entries()) {
+      if (note.block.has(NAME_IID)) {
+        let name: string = note.block.get(NAME_IID);
+        let newName = name.split(" ").join(joinCharacter);
+        //let newName = Referencer.getLocalIidFromIid(iid); //use iid
+        note.block.set(NAME_IID, newName);
+      }
+    }
+    return notes;
+  };
+
+  static index = async (
+    repo: Map<string, NoteWrap>,
+    foamIdPropToIndex: string,
+    namesWithHyphen: boolean
+  ) => {
+    console.log("Renaming...");
+    const PIR_IID = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+
+    if (namesWithHyphen) {
+      repo = await SemanticSearch.renameRepoNames(repo, Tokenizer.hyphenToken);
+    }
+
+    // Transclude
+
+    console.log("Transcluding...");
+    const docs = [];
+    for (let [iid, note] of repo.entries()) {
+      // console.log(iid);
+      let config = {
+        property: "xavi-YAxr3c/" + foamIdPropToIndex,
+        exportTemplateId: "txt",
+      };
+
+      let out = await Publisher.makePublishRun(iid, config);
+
+      const doc = new Document({
+        pageContent: out,
+        metadata: {
+          iid: iid,
+          name: note.block.get(NAME_IID),
+          pir: note.block.get(PIR_IID),
+          time: Date.now(),
+        },
+      });
+      docs.push(doc);
+    }
+
+    console.log("Splitting text...");
+    const textSplitter = new CharacterTextSplitter({
+      chunkSize: 1, //ConfigController._configFile.llm.chunkSize,
+      chunkOverlap: 0, // ConfigController._configFile.llm.chunkOverlap,
+      separator: Referencer.selfDescribingSemanticUntiSeparator,
+    });
+
+    const texts = [];
+    const metadatas = [];
+
+    for (const doc of docs) {
+      const docTexts = await textSplitter.splitText(doc.pageContent);
+      for (const text of docTexts) {
+        texts.push(text);
+        metadatas.push(doc.metadata);
+      }
+    }
+
+    console.log("Generating embeddings for " + foamIdPropToIndex);
+    const embeddingsObject = new OpenAIEmbeddings({
+      verbose: true,
+      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
+    });
+
+    const vectorStore = await HNSWLib.fromTexts(
+      texts,
+      metadatas,
+      embeddingsObject
+    );
+
+    // Save the vector store to a directory
+
+    const dbPath = SemanticSearch.getVectorStorePath(
+      foamIdPropToIndex,
+      namesWithHyphen
+    );
+    await vectorStore.save(dbPath);
+
+    console.log("Embddings stored at:");
+    console.log(dbPath);
   };
 }

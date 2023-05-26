@@ -1,15 +1,13 @@
 import Utils from "./utils";
-import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
-import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { LLMChain } from "langchain/chains";
 import { Document } from "langchain/document";
 import { PromptTemplate } from "langchain/prompts";
 import { OpenAI } from "langchain/llms/openai";
 import SemanticSearch from "../lib/semanticSearch";
 import DirectSearch from "../lib/directSearch";
-import Compiler from "../lib/compiler";
+import Referencer from "./referencer";
+import Tokenizer from "./tokenizer";
 
 export const openAITokenPerChar = 0.25;
 export const openAIMaxTokens = 4000;
@@ -53,7 +51,7 @@ export const resverseSearch: SearchRequest = {
 
 export const semanticSearch: SearchRequest = {
   nameId: "semanticSearch",
-  minConfidenceScore: 0.6,
+  minConfidenceScore: 0.7,
   type: "semantic",
 };
 
@@ -79,9 +77,8 @@ export const dontKnowRequest: LlmRequest = {
 
 export const friendlyPersonalReply: LlmRequest = {
   nameId: "rewrite",
-  temperature: 0,
-  minCompletitionChars: 2000, //minimum chars saved for response
-
+  temperature: 0.5,
+  minCompletitionChars: 1500, //minimum chars saved for response
   template: `
 You are {myName}, a professional technical writter with a very unique perspective.
 You are having a friendly conversation with a friend.
@@ -103,10 +100,26 @@ Friend: {mu}
 You:`,
 };
 
+export const technicalRequest: LlmRequest = {
+  nameId: "rewrite",
+  temperature: 0,
+  minCompletitionChars: 1500, //minimum chars saved for response
+  template: `
+  You're a technical writter.
+  You're writting the README.md for "{mu}".
+  Use Markdown syntax.
+  """
+  References {mu}:
+  {context}
+  """
+  # {mu}
+  The \`{mu}\` is`,
+};
+
 export const questionRequest: LlmRequest = {
   nameId: "classifyQuestion",
   temperature: 0,
-  minCompletitionChars: 1000, //minimum chars saved for response
+  minCompletitionChars: 500, //minimum chars saved for response
 
   template: `
 ###
@@ -235,14 +248,29 @@ export async function prepareContext(
     //to parallelize
     const name = question.concepts[i].name;
     let results: Document<Record<string, any>>[] = [];
-    const muWithSameName = await DirectSearch.findMuWithSameName(name);
-    if (muWithSameName) {
-      //console.log(" Doing reverse direct search for " + name);
-      results.push(...(await DirectSearch.getBacklinkDocs(muWithSameName)));
-      console.log(results);
+    let namesWithHyphen = false;
+    if (question.tone == "technical") namesWithHyphen = true;
+
+    const muIidWithSameName = await DirectSearch.getIidByName(name);
+    if (muIidWithSameName) {
+      console.log("Doing reverse direct search for " + name);
+      results.push(
+        ...(await DirectSearch.getBacklinkDocs(
+          muIidWithSameName,
+          namesWithHyphen
+        ))
+      );
     }
-    //console.log("Doing semantic serac for " + name);
-    results.push(...(await SemanticSearch.search(name)));
+    console.log("Doing semantic serach for " + name);
+    const maxDocs = 5;
+    results.push(
+      ...(await SemanticSearch.search(
+        name,
+        Referencer.PROP_VIEW_FOAMID,
+        namesWithHyphen,
+        maxContextTokens
+      ))
+    );
 
     results = sortDocsByConfidence(results);
 
@@ -256,7 +284,7 @@ export async function prepareContext(
     //console.log(pruneDocsForTokens);
 
     prunedDocs.forEach((r) => {
-      context = context + r.pageContent + "\n";
+      context = context + r.pageContent + "\n###\n";
     });
 
     // console.log("\nContext for " + name + ":\n" + context);
@@ -300,4 +328,23 @@ export function logDocsWithHigherConfidenceLast(
   );
 
   console.log(docs);
+}
+
+export async function textToIPT(
+  corpus: string,
+  muoNames: { name: string; iid: string }[]
+): Promise<string[]> {
+  //muoNames.sort longest to shoretes
+  const nameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+  muoNames.forEach((muo) => {
+    corpus = corpus.replaceAll(
+      muo.name,
+      Tokenizer.splitToken + makeAref(muo.iid, nameIId) + Tokenizer.splitToken
+    );
+  });
+  return corpus.split(Tokenizer.splitToken);
+}
+
+export function makeAref(iid: string, transclusionPropIid: string): string {
+  return '["' + iid + "/" + transclusionPropIid + '"]';
 }

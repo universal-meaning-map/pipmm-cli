@@ -5,6 +5,7 @@ import Utils from "./utils";
 import { Document } from "langchain/document";
 import { getConfidenceScore, sortDocsByConfidence } from "./llm";
 import SemanticSearch from "./semanticSearch";
+import Tokenizer from "./tokenizer";
 
 export default class DirectSearch {
   static getViewByFoamId = async (foamId: string): Promise<string> => {
@@ -22,11 +23,12 @@ export default class DirectSearch {
     return out;
   };
 
-  static findMuWithSameName = async (text: string): Promise<string> => {
+  static getIidByName = async (text: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
     let potentials = [];
 
+    //same name
     for (let [iid, note] of notes.entries()) {
       if (note.block.has(propNameIId)) {
         let name = note.block.get(propNameIId);
@@ -37,12 +39,15 @@ export default class DirectSearch {
         //TODO: semantic search over name and synonims.
       }
     }
-
+    return "";
+    /*
+    //semantically similar
     let res = await SemanticSearch.search(text);
     console.log(res);
     console.log(res[0].metadata.name);
     if (res[0].metadata.confidence > 0.7) return res[0].metadata.iid;
     return "";
+    */
   };
 
   static getLongLengthPenalty(corpus: string): number {
@@ -54,7 +59,8 @@ export default class DirectSearch {
   }
 
   static getBacklinkDocs = async (
-    backLinkIid: string
+    backLinkIid: string,
+    namesWithHyphen: boolean
   ): Promise<Document<Record<string, any>>[]> => {
     let config = {
       // property: "xavi-YAxr3c/prop-name-1612697362",
@@ -62,9 +68,11 @@ export default class DirectSearch {
       exportTemplateId: "txt",
     };
 
-    let notes = Referencer.iidToNoteWrap;
-
+    let repo = Referencer.iidToNoteWrap;
     //Needs filtering!
+    if (namesWithHyphen) {
+      repo = await SemanticSearch.renameRepoNames(repo, Tokenizer.hyphenToken);
+    }
 
     const textSplitter = new CharacterTextSplitter({
       chunkSize: 1,
@@ -76,7 +84,7 @@ export default class DirectSearch {
     let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FOAMID);
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
     let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
-    for (let [iid, note] of notes.entries()) {
+    for (let [iid, note] of repo.entries()) {
       if (note.block.has(propViewIId)) {
         let view = note.block.get(propViewIId).join(); //We make a string of the Interplanetary text
 
@@ -108,6 +116,7 @@ export default class DirectSearch {
                 pir: note.block.get(propPirIId),
                 pentalty: DirectSearch.getLongLengthPenalty(chunk),
                 relevance: relevance,
+                searchOrigin: backLinkIid == note.iid ? "direct" : "backlink",
                 confidence: getConfidenceScore(
                   relevance * DirectSearch.getLongLengthPenalty(chunk),
                   note.block.get(propPirIId)
