@@ -6,6 +6,8 @@ import { Document } from "langchain/document";
 import { getConfidenceScore, sortDocsByConfidence } from "./llm";
 import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
+import ConfigController from "./configController";
+import Filter from "./filterController";
 
 export default class DirectSearch {
   static getViewByFoamId = async (foamId: string): Promise<string> => {
@@ -69,7 +71,10 @@ export default class DirectSearch {
     };
 
     let repo = Referencer.iidToNoteWrap;
-    //Needs filtering!
+    let jsonFilter = Utils.getFile(ConfigController.botFilterPath);
+    let filter = JSON.parse(jsonFilter);
+    repo = await Filter.filter(repo, filter);
+
     if (namesWithHyphen) {
       repo = await SemanticSearch.renameRepoNames(repo, Tokenizer.hyphenToken);
     }

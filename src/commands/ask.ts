@@ -55,11 +55,6 @@ export default class AskCommand extends Command {
 
     if (!ConfigController.load(workingPath)) return;
 
-    const embeddingsObject = new OpenAIEmbeddings({
-      verbose: true,
-      openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
-    });
-
     let llmRequest = questionRequest;
     // Compile
     await Compiler.compileAll(
