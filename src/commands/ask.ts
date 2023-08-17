@@ -16,9 +16,14 @@ import {
   buildContextPromptFromDocs,
   getDocsNameIidList,
   textToFoamText,
+  friendlyRewrite as friendlyRewriteRequest,
+  outputToneType,
+  outputFormType,
 } from "../lib/llm";
 import { request } from "http";
 import Referencer from "../lib/referencer";
+import { open } from "fs";
+import DirectSearch from "../lib/directSearch";
 
 export default class AskCommand extends Command {
   static description =
@@ -32,6 +37,13 @@ export default class AskCommand extends Command {
       char: "p",
       description:
         "Executes the command relative to the specified path as oppose to the working directory",
+    }),
+
+    contextOnly: flags.boolean({
+      name: "contextOnly",
+      char: "c",
+      description:
+        "Does not make LLM requests, only returns the prompt context",
     }),
   };
 
@@ -63,35 +75,65 @@ export default class AskCommand extends Command {
 
     let mu = args.question;
 
+    let question: QuestionCat;
+
+    //Get context only
+    if (flags.contextOnly) {
+      question = {
+        concepts: [{ name: args.question, weight: 1 }],
+        tone: outputToneType.friendly,
+        form: outputFormType.rewrite,
+      };
+
+      const minConfindence = 0.69;
+
+      const contextDocs = await getContextDocs(
+        question,
+        minConfindence,
+        openAIMaxTokens
+      );
+      console.log(contextDocs);
+
+      const contextPrompt = buildContextPromptFromDocs(contextDocs);
+      console.log(contextPrompt);
+      return contextPrompt;
+    }
+
+    //Figure out request type
     const questionRes = await callLlm(questionRequest, args.question, "");
     console.log(questionRes);
 
-    const question: QuestionCat = Utils.yamlToJsObject(String(questionRes));
-    if ((question.tone = "technical")) {
+    question = Utils.yamlToJsObject(String(questionRes));
+    if (question.form == outputFormType.rewrite) {
+      llmRequest = friendlyRewriteRequest;
+    } else if (question.form == outputFormType.doc) {
       llmRequest = technicalRequest;
     } else {
       llmRequest = friendlyPersonalReply;
     }
 
+    //Token calculations
     const promptTokens =
       (llmRequest.template.length + mu.length) * openAITokenPerChar; //this is not correct
     const maxContextTokens =
       openAIMaxTokens - llmRequest.minCompletitionChars - promptTokens;
 
-    const contextDocs = await getContextDocs(question, maxContextTokens);
+    const contextDocs = await getContextDocs(question, 0.5, maxContextTokens);
     const contextPrompt = buildContextPromptFromDocs(contextDocs);
 
     if (contextPrompt.length <= 200) {
       llmRequest = dontKnowRequest;
     }
+
+    //LLM request
     const out = await callLlm(llmRequest, mu, contextPrompt);
 
+    //Translate back into format X
     const usedDocsNameIidMap = getDocsNameIidList(contextDocs);
-
-   
 
     //const ipt = await textToIptFromList(out, sortedNameIId);
     //console.log(ipt);
+
     const foamText = textToFoamText(out);
     console.log(foamText);
   }

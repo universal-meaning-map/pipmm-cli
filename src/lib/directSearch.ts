@@ -28,7 +28,6 @@ export default class DirectSearch {
   static getIidByName = async (text: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-    let potentials = [];
 
     //same name
     for (let [iid, note] of notes.entries()) {
@@ -62,7 +61,8 @@ export default class DirectSearch {
 
   static getBacklinkDocs = async (
     backLinkIid: string,
-    namesWithHyphen: boolean
+    namesWithHyphen: boolean,
+    includeBackLinks: boolean
   ): Promise<Document<Record<string, any>>[]> => {
     let config = {
       // property: "xavi-YAxr3c/prop-name-1612697362",
@@ -71,6 +71,7 @@ export default class DirectSearch {
     };
 
     let repo = Referencer.iidToNoteWrap;
+
     let jsonFilter = Utils.getFile(ConfigController.botFilterPath);
     let filter = JSON.parse(jsonFilter);
     repo = await Filter.filter(repo, filter);
@@ -89,21 +90,27 @@ export default class DirectSearch {
     let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FOAMID);
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
     let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
+
     for (let [iid, note] of repo.entries()) {
       if (note.block.has(propViewIId)) {
         let view = note.block.get(propViewIId).join(); //We make a string of the Interplanetary text
 
+        const notInterested =
+          includeBackLinks == false && backLinkIid != note.iid;
+
         if (view.includes(backLinkIid)) {
+          if (notInterested) continue;
+
           console.log("has iid: " + note.block.get(propNameIId));
           const chunks = await textSplitter.splitText(view);
           let indexesWithIid = [];
           //search chunks in IPT
+
           for (let idx = 0; idx < chunks.length; idx++) {
             if (chunks[idx].includes(backLinkIid)) {
               indexesWithIid.push(idx);
             }
           }
-
           //get the same chunks in the compiled text
           let compiled = await Publisher.makePublishRun(note.iid, config);
           const compiledChunks = await textSplitter.splitText(compiled);

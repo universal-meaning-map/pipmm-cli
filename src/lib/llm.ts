@@ -10,7 +10,7 @@ import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
 
 export const openAITokenPerChar = 0.25;
-export const openAIMaxTokens = 4000;
+export const openAIMaxTokens = 8000;
 
 export interface LlmRequest {
   nameId: string; //identifier of the request template
@@ -33,16 +33,33 @@ export function getConfidenceScore(relevance: number, pir: number) {
   return relevance * accuracyPenalty;
 }
 
+export const outputRigourType = {
+  strict: "strict",
+  soft: "soft",
+};
+
+export const outputToneType = {
+  friendly: "friendly",
+  technical: "technical",
+};
+
+export const outputFormType = {
+  chat: "chat", //soft, semantic and direct
+  doc: "doc", //strict, semantic and direct
+  rewrite: "rewrite", //strict, semantic and direct
+  compare: "compare", // either, semantic and direct
+  define: "define", //strict, diret
+};
+
 export interface ConceptCat {
   name: string;
   weight: number;
-  alt: string[];
 }
 
 export interface QuestionCat {
   concepts: ConceptCat[];
-  type: string;
   tone: string;
+  form: string;
 }
 
 export const resverseSearch: SearchRequest = {
@@ -83,6 +100,7 @@ export const friendlyPersonalReply: LlmRequest = {
   minCompletitionChars: 1500, //minimum chars saved for response
   template: `
 You are {myName}, a professional technical writter with a very unique perspective.
+Your responses are clear and direct, and you use the right amount of words to explain.
 You are having a friendly conversation with a friend.
 You are a being ask your personal perspective about {mu}.
 Be concise.
@@ -95,21 +113,36 @@ Your thoughts on {mu}:
 {context}
 ###
 Friend: Hi {myName}! Is lovely to see you!
-You: Likewise! I'm super happy to hear from you! ^^
-Friend: Me too :)
-You: What can I do for you?
+You: Likewise, what can I do for you?
 Friend: {mu}
 You:`,
+};
+
+export const friendlyRewrite: LlmRequest = {
+  nameId: "rewrite",
+  temperature: 0.3,
+  minCompletitionChars: 1500, //minimum chars saved for response
+  template: `
+You are writer with the same style than Paul Graham.
+You have a very unique perspective about {mu}.
+Do not use imperative language.
+Make extensive use of paragraphs.
+Rewrite your understanding about {mu} in a comprehensive style.
+###
+Context:
+{context}
+
+Rewrite:
+{mu} is`,
 };
 
 export const technicalRequest: LlmRequest = {
   nameId: "rewrite",
   temperature: 0.2,
-  frequencyPenalty: 0.0,
+  frequencyPenalty: 0.1,
   minCompletitionChars: 1500, //minimum chars saved for response
   template: `
-You're a technical writter.
-You're writting README.md for "{mu}" using Markdown syntax.
+You're writting README.md for "{mu}" using Markdown.
 Use H2 and H3 headings to organize the document.
 You have beautiful, natural and pleasant style of writting.
 """
@@ -127,76 +160,46 @@ export const questionRequest: LlmRequest = {
 
   template: `
 ###
-Q: "love"
+Q: "define love"
 concepts:
 - name: love
   weight: 0.9
-  alt:
-  - sentiment
-  - emotion
-  - fondneses
-  - devotion
-  - warmth
-type: explanation
-tone: technical
+tone: technical,
+form: define
 ###
 Q: "What's the difference between narrative and story?"
 concepts:
 - name: narrative
   weight: 0.5
-  alt:
-  - story
-  - tale
-  - account
-  - chronicle
 - name: story
   weight: 0.5
-  alt:
-  - narrative
-  - tale
-  - account
-  - chronicle
-type: comparison
-tone: friendly
+tone: technical
+form: compare
 ###
-Q: "What Victor thinks about presence? and expectation?"
+Q: "What do you think about presence? and expectation?"
 concepts:
 - name: presence
   weight: 0.8
-  alt:
-  - mindfulness
-  - alertness
-  - consciousness
 - name: expectation
   weight: 0.2
-  alt:
-  - belief
-  - anticipation
-type: explanation
 tone: friendly
+form: chat
 ###
-Q: "Give me a technical explanation for minformation"
+Q: "rewrite minformation in a friendly way"
 concepts:
 - name: minformation
   weight: 1
-  alt: []
-type: explanation
-tone: technical
+tone: friendly
+form: rewrite
 ###
 Q: "How is reasoning better than intelligence?"
 concepts:
 - name: reasoning
   weight: 0.6
-  alt:
-  - rationality
-  - logic
 - name: intelligence
   weight: 0.4
-  alt:
-  - cognitive prowess
-  - intellect
-type: comparison
-tone: friendly
+tone:  friendly
+form: compare
 ###
 Q: "{mu}"
 `,
@@ -232,6 +235,7 @@ export async function callLlm(
       ? llmRequest.presencePenalty
       : 0,
     topP: 1,
+    modelName: "gpt-4-0613",
     maxTokens: -1,
     openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
   });
@@ -247,8 +251,16 @@ export async function callLlm(
   return res.text;
 }
 
+export function getOutputRigourByForm(form: string): string {
+  if (form == outputFormType.doc || form == outputFormType.rewrite) {
+    return outputRigourType.strict;
+  }
+  return outputRigourType.soft;
+}
+
 export async function getContextDocs(
   question: QuestionCat,
+  minConfindence: number,
   maxContextTokens: number
 ): Promise<Document<Record<string, any>>[]> {
   let contextDocs: Document<Record<string, any>>[] = [];
@@ -257,33 +269,48 @@ export async function getContextDocs(
     let conceptDocs: Document<Record<string, any>>[] = [];
     const name = question.concepts[i].name;
     let namesWithHyphen = false;
-    if (question.tone == "technical") namesWithHyphen = true;
+    const rigour = getOutputRigourByForm(question.form);
+    if (rigour == outputRigourType.strict) namesWithHyphen = true;
+
+    let includeDirectBacklinks = true;
+    if ((question.form = outputFormType.rewrite)) {
+      includeDirectBacklinks = false;
+    }
+
+    console.log("\n\ninclude backlinks" + includeDirectBacklinks);
+    console.log("\n\nnames with hyphen " + namesWithHyphen);
 
     const muIidWithSameName = await DirectSearch.getIidByName(name);
     if (muIidWithSameName) {
       conceptDocs.push(
         ...(await DirectSearch.getBacklinkDocs(
           muIidWithSameName,
+          namesWithHyphen,
+          includeDirectBacklinks
+        ))
+      );
+    }
+    if (
+      question.form != outputFormType.define &&
+      question.form != outputFormType.rewrite
+    ) {
+      conceptDocs.push(
+        ...(await SemanticSearch.search(
+          name,
+          Referencer.PROP_VIEW_FOAMID,
           namesWithHyphen
         ))
       );
     }
 
-    conceptDocs.push(
-      ...(await SemanticSearch.search(
-        name,
-        Referencer.PROP_VIEW_FOAMID,
-        namesWithHyphen
-      ))
-    );
-
     // Todo: Eliminate duplicates
 
     const maxTokens = question.concepts[i].weight * maxContextTokens;
     conceptDocs = sortDocsByConfidence(conceptDocs);
-    conceptDocs.filter(confidenceFilter);
+    conceptDocs = filterDocsByConfindence(conceptDocs, minConfindence);
     conceptDocs = pruneDocsForTokens(conceptDocs, maxTokens);
     contextDocs.push(...conceptDocs);
+    console.log("C");
   }
   return contextDocs;
 }
@@ -336,9 +363,16 @@ export function sortDocsByConfidence(docs: Document<Record<string, any>>[]) {
   return docs;
 }
 
-export function confidenceFilter(doc: Document<Record<string, any>>): boolean {
-  if (doc.metadata.confidence > semanticSearch.minConfidenceScore) return true;
-  return false;
+export function filterDocsByConfindence(
+  docs: Document<Record<string, any>>[],
+  minConfidence: number
+) {
+  function confidenceFilter(doc: Document<Record<string, any>>): boolean {
+    if (doc.metadata.confidence > minConfidence) return true;
+    return false;
+  }
+
+  return docs.filter(confidenceFilter);
 }
 
 export function logDocsWithHigherConfidenceLast(
