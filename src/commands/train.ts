@@ -43,6 +43,9 @@ export default class TrainCommand extends Command {
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath
     );
+
+    await Utils.saveIpmmRepo();
+
     let repo = Referencer.iidToNoteWrap;
 
     //Filter

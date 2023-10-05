@@ -108,6 +108,8 @@ export default class DirectSearch {
 
           for (let idx = 0; idx < chunks.length; idx++) {
             if (chunks[idx].includes(backLinkIid)) {
+              console.log("FOUND");
+              console.log(idx);
               indexesWithIid.push(idx);
             }
           }

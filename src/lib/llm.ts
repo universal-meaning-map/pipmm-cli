@@ -85,6 +85,62 @@ export const identifyRequest: LlmRequest = {
       -`,
 };
 
+export const extensiveDefinitionRequest: LlmRequest = {
+  nameId: "extensiveDefinition",
+  temperature: 0.1,
+  minCompletitionChars: 3000, //minimum chars saved for response
+  template: `- Define what "{mu}" is.
+- Infer its meaning strictly from the provided utterances, without including external information.
+- Each bullet point is an standalone statement (intension).
+- Each statement is full comprehensive and extremely accurated and detailed, paying attention into the nuances.
+- Be technical. Preserve jargon.
+  
+Utterances:
+{context}
+      
+{mu}:`,
+};
+
+export const extensiveDefinitionRequest_: LlmRequest = {
+  nameId: "extensiveDefinition",
+  temperature: 0.3,
+  minCompletitionChars: 3000, //minimum chars saved for response
+  template: `- Define {mu} by listing its defining intensions
+- Rely strictly on the provided statements, without including external information.
+- Express what the "{mu}" is and how it how it releates to other concepts.
+- Remove intensions that are redundant. Merge similar intension into a single one.
+- Be technical. Be precise with names.
+- Be comprehensive and detailed on each intension.
+- List only intensions in which {mu} has an active role.
+- One bullet point per intension.
+
+Statements:
+{context}
+    
+{mu}:`,
+};
+
+export const inferMeaningRequest: LlmRequest = {
+  nameId: "inferMeaning",
+  temperature: 0.1,
+  minCompletitionChars: 3000, //minimum chars saved for response
+  template:
+    `- In the following occurrances an unknown term ` +
+    Tokenizer.unknownTermToken +
+    ` is used.
+- Find commonalities betwen X usage in occurance and abstract them.
+- Use one bullet point per abstraction to define what ` +
+    Tokenizer.unknownTermToken +
+    ` is.
+- Rely strictly on the provided occurrences, without including external information.
+- Be technical. Preserve used jargon. Don't start sentences with uppercase.
+  
+Ocurrances:
+{context}
+      
+Abstractions:`,
+};
+
 export const dontKnowRequest: LlmRequest = {
   nameId: "dontKnow",
   temperature: 0.7,
@@ -236,6 +292,7 @@ export async function callLlm(
       : 0,
     topP: 1,
     modelName: "gpt-4-0613",
+    //modelName: "gpt-4-32k",
     maxTokens: -1,
     openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
   });
@@ -315,6 +372,52 @@ export async function getContextDocs(
   return contextDocs;
 }
 
+export async function getContextDocsForConcept(
+  concept: string,
+  minConfindence: number,
+  searchOrigins: string[],
+  maxTokens: number
+): Promise<Document<Record<string, any>>[]> {
+  let conceptDocs: Document<Record<string, any>>[] = [];
+  const namesWithHyphen = true;
+  const includeDirectBacklinks = true;
+
+  const muIidWithSameName = await DirectSearch.getIidByName(concept);
+  console.log("IID match: " + muIidWithSameName);
+
+  // Todo search with synonim?
+
+  // IT ONLY GET BACK LINKS
+
+  if (muIidWithSameName) {
+    conceptDocs.push(
+      ...(await DirectSearch.getBacklinkDocs(
+        muIidWithSameName,
+        namesWithHyphen,
+        includeDirectBacklinks
+      ))
+    );
+  } else {
+    console.log("no exact name found for: " + concept);
+  }
+
+  conceptDocs.push(
+    ...(await SemanticSearch.search(
+      concept,
+      Referencer.PROP_VIEW_FOAMID,
+      namesWithHyphen
+    ))
+  );
+
+  // Todo: Eliminate  duplicates and give them more confidence
+  conceptDocs = sortDocsByConfidence(conceptDocs);
+  conceptDocs = filterBySearchOrigin(conceptDocs, searchOrigins);
+  //conceptDocs = filterDocsByConfindence(conceptDocs, minConfindence);
+  conceptDocs = pruneDocsForTokens(conceptDocs, maxTokens);
+  console.log(conceptDocs);
+  return conceptDocs;
+}
+
 export function getDocsNameIidList(
   docs: Document<Record<string, any>>[]
 ): Map<string, string> {
@@ -333,11 +436,17 @@ export function buildContextPromptFromDocs(
   let context = "";
 
   contextDocs.forEach((r) => {
+    const statement = {
+      s: r.pageContent,
+      r: Math.round(r.metadata.confidence * 100) / 100,
+      a: r.metadata.pir,
+    };
+    //context = context + JSON.stringify(statement, null, 2);
+
     context = context + r.pageContent + "\n###\n";
   });
 
   return context;
-  // console.log("\nContext for " + name + ":\n" + context);
 }
 
 export function pruneDocsForTokens(
@@ -373,6 +482,15 @@ export function filterDocsByConfindence(
   }
 
   return docs.filter(confidenceFilter);
+}
+
+export function filterBySearchOrigin(
+  docs: Document<Record<string, any>>[],
+  searchOrigins: string[]
+): Document<Record<string, any>>[] {
+  return docs.filter((doc) =>
+    searchOrigins.includes(doc.metadata.searchOrigin)
+  );
 }
 
 export function logDocsWithHigherConfidenceLast(
