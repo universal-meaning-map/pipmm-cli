@@ -6,8 +6,9 @@ import ConfigController from "./configController";
 
 export default class Tokenizer {
   static splitToken = "<split>";
-  static hyphenToken = "‐";
+  static hyphenToken = "-";
   static unknownTermToken = "ɑ";
+  static beginingOfStatementToken = "►";
   static wikilinkWithTokens = /\[{2}(.*?)\]{2}/g; //matches [[ ]]
   static dynamicTransclusion = /\({2}(.*?)\){2}/g; //matches (( ))
 

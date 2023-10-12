@@ -148,4 +148,61 @@ export default class DirectSearch {
 
     return docs;
   };
+
+  static getAllDocsOfIid = async (
+    iid: string,
+    namesWithHyphen: boolean
+  ): Promise<Document<Record<string, any>>[]> => {
+    let config = {
+      // property: "xavi-YAxr3c/prop-name-1612697362",
+      property: "xavi-YAxr3c/prop-view-1612698885",
+      exportTemplateId: "txt",
+    };
+
+    let repo = Referencer.iidToNoteWrap;
+    let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FOAMID);
+    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+    let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
+    let docs: Document<Record<string, any>>[] = [];
+
+    const note = repo.get(iid);
+
+    if (!note) return docs;
+
+    if (namesWithHyphen) {
+      repo = await SemanticSearch.renameRepoNames(repo, Tokenizer.hyphenToken);
+    }
+
+    const textSplitter = new CharacterTextSplitter({
+      chunkSize: 1,
+      chunkOverlap: 0,
+      separator: Referencer.selfDescribingSemanticUntiSeparator,
+    });
+
+    const compiled = await Publisher.makePublishRun(iid, config);
+    const compiledChunks = await textSplitter.splitText(compiled);
+
+    for (let i = 0; i < compiledChunks.length; i++) {
+      let chunk = compiledChunks[i];
+
+      let doc: Document<Record<string, any>> = {
+        pageContent: chunk,
+        metadata: {
+          iid: note.iid,
+          name: note.block.get(propNameIId),
+          pir: note.block.get(propPirIId),
+          pentalty: DirectSearch.getLongLengthPenalty(chunk),
+          relevance: 1,
+          searchOrigin: "direct",
+          confidence: getConfidenceScore(
+            1 * DirectSearch.getLongLengthPenalty(chunk),
+            note.block.get(propPirIId)
+          ),
+        },
+      };
+      // console.log(doc);
+      docs.push(doc);
+    }
+    return docs;
+  };
 }
