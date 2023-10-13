@@ -140,20 +140,25 @@ export default class SemanticSearch {
   }
 
   static renameRepoNames = async (
-    notes: Map<string, NoteWrap>,
+    originalNotes: Map<string, NoteWrap>,
     joinCharacter: string
   ): Promise<Map<string, NoteWrap>> => {
+    const newNotes: Map<string, NoteWrap> = new Map();
+
     const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
     // let renamed: Map<string, NoteWrap> = new Map();
-    for (let [iid, note] of notes.entries()) {
-      if (note.block.has(NAME_IID)) {
-        let name: string = note.block.get(NAME_IID);
+    for (let [iid, note] of originalNotes.entries()) {
+      const newNote = Utils.deepClone(note);
+
+      if (newNote.block.has(NAME_IID)) {
+        let name: string = newNote.block.get(NAME_IID);
         let newName = SemanticSearch.rename(name, joinCharacter);
         //let newName = Referencer.getLocalIidFromIid(iid); //use iid
-        note.block.set(NAME_IID, newName);
+        newNote.block.set(NAME_IID, newName);
       }
+      newNotes.set(iid, newNote);
     }
-    return notes;
+    return newNotes;
   };
 
   static rename(name: string, joinCharacter: string) {

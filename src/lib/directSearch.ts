@@ -27,19 +27,30 @@ export default class DirectSearch {
 
   static getIidByName = async (text: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
+    console.log("getNameBYiid");
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
 
     //same name
+    let n = 0;
+    for (let [iid, note] of notes.entries()) {
+      if (note.block.has(propNameIId)) {
+        n++;
+      }
+    }
+
     for (let [iid, note] of notes.entries()) {
       if (note.block.has(propNameIId)) {
         let name = note.block.get(propNameIId);
         //exact name
+        console.log(text + " - " + name);
         if (name == text) {
+          console.log(n);
           return note.iid;
         }
         //TODO: semantic search over name and synonims.
       }
     }
+    console.log(n);
     return "";
     /*
     //semantically similar

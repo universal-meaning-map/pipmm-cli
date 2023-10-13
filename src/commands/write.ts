@@ -71,7 +71,7 @@ export default class WriteCommand extends Command {
 
     const rootProcessing = rootKeyConcepts.map(async (concept: string) => {
       let conceptDefinition = await DefinerStore.getDefinition(
-        concept,
+        SemanticSearch.rename(concept, Tokenizer.hyphenToken),
         true,
         false,
         true,
@@ -88,7 +88,7 @@ export default class WriteCommand extends Command {
       });
     });
     console.log(allKeyConcepts);
-    console.log(allDefinitions)
+    console.log(allDefinitions);
 
     return;
 

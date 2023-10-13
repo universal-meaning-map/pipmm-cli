@@ -136,4 +136,8 @@ export default class Utils {
   static capitalizeFirstLetter = function (str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
+
+  static deepClone = function (obj: any) {
+    return JSON.parse(JSON.stringify(obj));
+  };
 }
