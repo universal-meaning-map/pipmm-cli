@@ -264,7 +264,10 @@ export default class Compiler {
     //indexing of name-foamId for LLM
     if (typeFoamId == Referencer.PROP_NAME_FOAMID) {
       Referencer.nameToFoamId.set(propertyValue, requesterFoamId);
-      Referencer.nameWithHyphenToFoamId.set(SemanticSearch.rename(propertyValue,Tokenizer.hyphenToken), requesterFoamId);
+      Referencer.nameWithHyphenToFoamId.set(
+        propertyValue.split(" ").join(Tokenizer.hyphenToken),
+        requesterFoamId
+      );
     }
 
     const typeIId = await Referencer.makeIid(typeFoamId);

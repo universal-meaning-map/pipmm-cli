@@ -7,9 +7,16 @@ import DirectSearch from "../lib/directSearch";
 import { SlowBuffer } from "buffer";
 import SemanticSearch from "../lib/semanticSearch";
 import Tokenizer from "../lib/tokenizer";
-import { openAIMaxTokens, openAITokenPerChar } from "../lib/llm";
+import {
+  SEARCH_ORIGIN_SEMANTIC,
+  filterDocsByConfindence,
+  getContextDocsForConcept,
+  openAIMaxTokens,
+  openAITokenPerChar,
+} from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import { LLM } from "langchain/dist/llms/base";
+import Referencer from "../lib/referencer";
 
 export default class WriteCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -69,9 +76,31 @@ export default class WriteCommand extends Command {
     let allKeyConcepts: string[] = [];
     let allDefinitions: Definition[] = [];
 
+    let docs = await getContextDocsForConcept(question, [
+      SEARCH_ORIGIN_SEMANTIC,
+    ]);
+
+    docs = filterDocsByConfindence(docs, 0.5);
+
+    console.log(docs);
+
+    for (let d of docs) {
+      await DefinerStore.addBackLink(d.metadata.name);
+    }
+
+    console.log("Definitions:");
+    DefinerStore.definitions.forEach((d, key) => {
+      console.log(d.nameWithHyphen + " " + d.backLinks);
+    });
+
+    console.log(Tokenizer.hyphenToken);
+    console.log("-");
+
+    return;
+
     const rootProcessing = rootKeyConcepts.map(async (concept: string) => {
       let conceptDefinition = await DefinerStore.getDefinition(
-        SemanticSearch.rename(concept, Tokenizer.hyphenToken),
+        concept.split(" ").join(Tokenizer.hyphenToken),
         true,
         false,
         true,
@@ -87,17 +116,13 @@ export default class WriteCommand extends Command {
         allKeyConcepts.push(c);
       });
     });
-    console.log(allKeyConcepts);
-    console.log(allDefinitions);
-
-    return;
 
     allKeyConcepts = [...new Set(allKeyConcepts)]; //remove duplicates
 
     const secondLayerProcessing = allKeyConcepts.map(
-      async (concept: string) => {
+      async (conceptWithHyphen: string) => {
         let conceptDefinition = await DefinerStore.getDefinition(
-          concept,
+          conceptWithHyphen,
           true,
           false,
           false,
@@ -108,13 +133,16 @@ export default class WriteCommand extends Command {
     );
     await Promise.all(secondLayerProcessing);
 
-    console.log(allDefinitions);
-    return;
-
     let numOfDefWithContent = 0;
     let definitionsContext = "";
     let defitinionsDirectContext = "";
     let definitionsCondensedContext = "";
+
+    DefinerStore.definitions.forEach((d, key) => {
+      console.log(d.nameWithHyphen + " " + d.backLinks);
+    });
+
+    return;
 
     allDefinitions.forEach((d) => {
       const defitinionText = Definer.intensionsToText(d.directIntensions);

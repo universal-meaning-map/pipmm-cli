@@ -2,6 +2,8 @@ import { Document } from "langchain/document";
 import DirectSearch from "./directSearch";
 import {
   LlmRequest,
+  SEARCH_ORIGIN_BACKLINK,
+  SEARCH_ORIGIN_DIRECT,
   buildContextPromptFromDocs,
   callLlm,
   getContextDocsForConcept,
@@ -71,9 +73,7 @@ Statements:
 
     const contextDocs = await getContextDocsForConcept(
       concept,
-      0.5, //min confidence
-      ["direct"], //searchOrigins
-      openAIMaxTokens
+      [SEARCH_ORIGIN_DIRECT] //searchOrigins
     );
 
     if (contextDocs.length == 0) return "";
@@ -108,9 +108,7 @@ ${Tokenizer.unknownTermToken}:`,
 
     const contextDocs = await getContextDocsForConcept(
       concept,
-      0.5, //min confidence
-      ["backlink"], //searchOrigins
-      openAIMaxTokens
+      [SEARCH_ORIGIN_BACKLINK] //searchOrigins
     );
 
     if (contextDocs.length == 0) {

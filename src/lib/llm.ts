@@ -11,6 +11,9 @@ import Tokenizer from "./tokenizer";
 
 export const openAITokenPerChar = 0.25;
 export const openAIMaxTokens = 8000;
+export const SEARCH_ORIGIN_DIRECT = "direct";
+export const SEARCH_ORIGIN_BACKLINK = "backlink";
+export const SEARCH_ORIGIN_SEMANTIC = "semantic";
 
 export interface LlmRequest {
   nameId: string; //identifier of the request template
@@ -205,7 +208,6 @@ Q: "{mu}"
 `,
 };
 
-
 export async function callLlm(
   llmRequest: LlmRequest,
   mu: string,
@@ -319,9 +321,7 @@ export async function getContextDocs(
 
 export async function getContextDocsForConcept(
   concept: string,
-  minConfindence: number,
-  searchOrigins: string[],
-  maxTokens: number
+  searchOrigins: string[] //direct, backlink, semantic
 ): Promise<Document<Record<string, any>>[]> {
   let conceptDocs: Document<Record<string, any>>[] = [];
   const namesWithHyphen = true;

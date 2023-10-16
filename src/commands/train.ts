@@ -5,6 +5,7 @@ import Compiler from "../lib/compiler";
 import Utils from "../lib/utils";
 import Filter from "../lib/filterController";
 import SemanticSearch from "../lib/semanticSearch";
+import Tokenizer from "../lib/tokenizer";
 
 export default class TrainCommand extends Command {
   static description =
@@ -22,9 +23,10 @@ export default class TrainCommand extends Command {
 
     indexWithHyphen: flags.boolean({
       name: "indexHypen",
-      char: "h",
+      char: "w",
       description:
-        "Indexes view and  names on their own vector DB. Multi word names are joined with `-`",
+        "Indexes view and  names on their own vector DB. Multi word names are joined with " +
+        Tokenizer.hyphenToken,
     }),
   };
 
@@ -44,9 +46,10 @@ export default class TrainCommand extends Command {
       ConfigController.foamRepoPath
     );
 
-    await Utils.saveIpmmRepo();
+    //await Utils.saveIpmmRepo();
 
     let repo = Referencer.iidToNoteWrap;
+    console.log(repo.size);
 
     //Filter
     let jsonFilter = Utils.getFile(ConfigController.botFilterPath);

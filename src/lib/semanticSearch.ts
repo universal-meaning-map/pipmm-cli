@@ -4,7 +4,7 @@ import { HNSWLib } from "langchain/vectorstores/hnswlib";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { Document } from "langchain/document";
 import { LLM } from "langchain/dist/llms/base";
-import { callLlm, getConfidenceScore } from "./llm";
+import { SEARCH_ORIGIN_SEMANTIC, callLlm, getConfidenceScore } from "./llm";
 import { NoteWrap } from "./ipmm";
 import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
@@ -106,7 +106,7 @@ export default class SemanticSearch {
       obj[0].metadata.compensation = compensation;
      */
       obj[0].metadata.similarity = similarityScore;
-      obj[0].metadata.searchOrigin = "semanticSearch";
+      obj[0].metadata.searchOrigin = SEARCH_ORIGIN_SEMANTIC;
       obj[0].metadata.confidence = getConfidenceScore(
         similarityScore,
         obj[0].metadata.pir
@@ -139,31 +139,30 @@ export default class SemanticSearch {
     return dbLocation;
   }
 
-  static renameRepoNames = async (
-    originalNotes: Map<string, NoteWrap>,
-    joinCharacter: string
+  static getRepoWithHyphenNames = async (
+    originalNotes: Map<string, NoteWrap>
   ): Promise<Map<string, NoteWrap>> => {
-    const newNotes: Map<string, NoteWrap> = new Map();
+    if (Referencer.iidToNoteWrapWithHyphen.size === 0) {
+      const newNotes: Map<string, NoteWrap> = new Map();
 
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-    // let renamed: Map<string, NoteWrap> = new Map();
-    for (let [iid, note] of originalNotes.entries()) {
-      const newNote = Utils.deepClone(note);
+      const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+      // let renamed: Map<string, NoteWrap> = new Map();
+      for (let [iid, note] of originalNotes.entries()) {
+        const newNote: NoteWrap = Utils.deepCloneNoteWrap(note);
 
-      if (newNote.block.has(NAME_IID)) {
-        let name: string = newNote.block.get(NAME_IID);
-        let newName = SemanticSearch.rename(name, joinCharacter);
-        //let newName = Referencer.getLocalIidFromIid(iid); //use iid
-        newNote.block.set(NAME_IID, newName);
+        if (newNote.block.has(NAME_IID)) {
+          let name: string = newNote.block.get(NAME_IID);
+          let newName = name.split(" ").join(Tokenizer.hyphenToken);
+          //let newName = Referencer.getLocalIidFromIid(iid); //use iid
+          newNote.block.set(NAME_IID, newName);
+        }
+        newNotes.set(iid, newNote);
       }
-      newNotes.set(iid, newNote);
+      Referencer.iidToNoteWrapWithHyphen = newNotes;
     }
-    return newNotes;
-  };
 
-  static rename(name: string, joinCharacter: string) {
-    return name.split(" ").join(joinCharacter);
-  }
+    return Referencer.iidToNoteWrapWithHyphen;
+  };
 
   static index = async (
     repo: Map<string, NoteWrap>,
@@ -175,7 +174,7 @@ export default class SemanticSearch {
     const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
 
     if (namesWithHyphen) {
-      repo = await SemanticSearch.renameRepoNames(repo, Tokenizer.hyphenToken);
+      repo = await SemanticSearch.getRepoWithHyphenNames(repo);
     }
 
     // Transclude
@@ -214,6 +213,8 @@ export default class SemanticSearch {
     const metadatas = [];
 
     for (const doc of docs) {
+      console.log();
+      console.log("Splitting " + doc.metadata.iid + " " + doc.metadata.name);
       const docTexts = await textSplitter.splitText(doc.pageContent);
       for (const text of docTexts) {
         texts.push(text);

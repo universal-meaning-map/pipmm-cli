@@ -137,7 +137,40 @@ export default class Utils {
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
-  static deepClone = function (obj: any) {
-    return JSON.parse(JSON.stringify(obj));
+  static deepCloneNoteWrap = function (noteWrap: NoteWrap): NoteWrap {
+    const clonedNoteWrap: NoteWrap = {
+      iid: noteWrap.iid,
+      cid: noteWrap.cid,
+      block: new Map(),
+    };
+
+    // Deep clone the 'block' Map
+    for (const [key, value] of noteWrap.block.entries()) {
+      clonedNoteWrap.block.set(key, Utils.deepClone(value));
+    }
+    return clonedNoteWrap;
+  };
+
+  static deepClone = function (obj: any): any {
+    if (typeof obj === "object" && obj !== null) {
+      if (obj instanceof Map) {
+        const newMap = new Map();
+        for (const [key, value] of obj.entries()) {
+          newMap.set(key, Utils.deepClone(value));
+        }
+        return newMap;
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(Utils.deepClone);
+      }
+      const newObj: Record<string, any> = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          newObj[key] = Utils.deepClone(obj[key]);
+        }
+      }
+      return newObj;
+    }
+    return obj;
   };
 }

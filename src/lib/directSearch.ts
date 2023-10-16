@@ -3,7 +3,12 @@ import Publisher from "./publisher";
 import Referencer from "./referencer";
 import Utils from "./utils";
 import { Document } from "langchain/document";
-import { getConfidenceScore, sortDocsByConfidence } from "./llm";
+import {
+  SEARCH_ORIGIN_BACKLINK,
+  SEARCH_ORIGIN_DIRECT,
+  getConfidenceScore,
+  sortDocsByConfidence,
+} from "./llm";
 import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
 import ConfigController from "./configController";
@@ -27,30 +32,19 @@ export default class DirectSearch {
 
   static getIidByName = async (text: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
-    console.log("getNameBYiid");
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-
-    //same name
-    let n = 0;
-    for (let [iid, note] of notes.entries()) {
-      if (note.block.has(propNameIId)) {
-        n++;
-      }
-    }
 
     for (let [iid, note] of notes.entries()) {
       if (note.block.has(propNameIId)) {
         let name = note.block.get(propNameIId);
         //exact name
-        console.log(text + " - " + name);
+        //console.log(name + " - " + text);
         if (name == text) {
-          console.log(n);
           return note.iid;
         }
         //TODO: semantic search over name and synonims.
       }
     }
-    console.log(n);
     return "";
     /*
     //semantically similar
@@ -88,7 +82,10 @@ export default class DirectSearch {
     repo = await Filter.filter(repo, filter);
 
     if (namesWithHyphen) {
-      repo = await SemanticSearch.renameRepoNames(repo, Tokenizer.hyphenToken);
+      repo = await SemanticSearch.getRepoWithHyphenNames(
+        repo,
+        Tokenizer.hyphenToken
+      );
     }
 
     const textSplitter = new CharacterTextSplitter({
@@ -141,7 +138,10 @@ export default class DirectSearch {
                 pir: note.block.get(propPirIId),
                 pentalty: DirectSearch.getLongLengthPenalty(chunk),
                 relevance: relevance,
-                searchOrigin: backLinkIid == note.iid ? "direct" : "backlink",
+                searchOrigin:
+                  backLinkIid == note.iid
+                    ? SEARCH_ORIGIN_DIRECT
+                    : SEARCH_ORIGIN_BACKLINK,
                 confidence: getConfidenceScore(
                   relevance * DirectSearch.getLongLengthPenalty(chunk),
                   note.block.get(propPirIId)
@@ -181,7 +181,10 @@ export default class DirectSearch {
     if (!note) return docs;
 
     if (namesWithHyphen) {
-      repo = await SemanticSearch.renameRepoNames(repo, Tokenizer.hyphenToken);
+      repo = await SemanticSearch.getRepoWithHyphenNames(
+        repo,
+        Tokenizer.hyphenToken
+      );
     }
 
     const textSplitter = new CharacterTextSplitter({

@@ -24,13 +24,15 @@ export default class DefinerStore {
     nameWithHyphen: string
   ): Promise<Definition | undefined> => {
     const name = nameWithHyphen.split(Tokenizer.hyphenToken).join(" ");
+    console.log("initDefinition");
+    console.log(nameWithHyphen + " " + name);
 
     const iid = await DirectSearch.getIidByName(name);
 
     if (iid == "") {
       return undefined;
     }
-
+    console.log("INIT " + nameWithHyphen);
     const definition: Definition = {
       name: name,
       nameWithHyphen: nameWithHyphen,
@@ -45,6 +47,7 @@ export default class DefinerStore {
   };
 
   static addBackLink = async (nameWithHyphen: string): Promise<void> => {
+    console.log("Start backlink: " + nameWithHyphen);
     const d = await DefinerStore.getDefinition(
       nameWithHyphen,
       false,
@@ -52,18 +55,14 @@ export default class DefinerStore {
       false,
       false
     );
-
     if (!d) {
-      console.log(
-        nameWithHyphen + ".  Can't be added to backlink bc doesn't exist"
-      );
+      console.log("Fail: " + nameWithHyphen);
 
       return;
     }
-
     d!.backLinks = d!.backLinks + 1;
-    console.log(nameWithHyphen + " - " + d!.backLinks);
     DefinerStore.definitions.set(d!.nameWithHyphen, d!);
+    console.log("END backlink: " + nameWithHyphen);
   };
 
   static getDefinition = async (
@@ -75,20 +74,19 @@ export default class DefinerStore {
   ): Promise<Definition | undefined> => {
     //We return it from store if exists
     let d: Definition;
+    console.log("Size:" + DefinerStore.definitions.size);
+
     if (DefinerStore.definitions.has(nameWithHyphen)) {
       d = DefinerStore.definitions.get(nameWithHyphen)!;
     } else {
       const du = await DefinerStore.initDefinition(nameWithHyphen);
 
       if (!du) {
-        console.log("FAIl");
-        console.log(nameWithHyphen);
+        console.log("Undefined: " + nameWithHyphen);
+
         return undefined;
-      } else {
-        d = du;
-        console.log("GO");
-        console.log(nameWithHyphen);
-      }
+      } else d = du;
+      console.log("Creating: " + nameWithHyphen);
     }
 
     if (needsDirect) {
@@ -124,24 +122,25 @@ export default class DefinerStore {
     }
 
     if (needsCondensedDirect) {
-      if (d.directIntensions.length > 1)
+      if (d.directIntensions.length > 0)
         d.condensedDirectIntensions =
           await Definer.getCondensedDirectIntensions(d.nameWithHyphen);
+      /*
       console.log("\n\n");
-
       console.log(d.name + "(direct)");
       console.log(d.directIntensions);
       console.log(d.name + "(condensed)");
       console.log(d.condensedDirectIntensions);
+      */
     }
     DefinerStore.definitions.set(nameWithHyphen, d);
-    console.log("CREATING: " + nameWithHyphen);
 
     //Ads backlinkls after the definition is set.
+
     if (needsKeyConcepts) {
-      d.keyConcepts.forEach((c) => {
-        DefinerStore.addBackLink(c);
-      });
+      for (let c of d.keyConcepts) {
+        await DefinerStore.addBackLink(c);
+      }
     }
     return d;
 
