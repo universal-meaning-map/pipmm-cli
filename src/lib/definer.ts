@@ -15,6 +15,7 @@ import {
 import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
+import { KeyValuePair } from "./definerStore";
 
 export default class Definer {
   static getLiteralIntensionsByIid = async (
@@ -164,6 +165,41 @@ Top words:`,
 
     let out = await callLlm(keyConceptsRequest, concept, definition);
     return out.split(", ");
+  };
+
+  static getDefinitionScoredConcepts = async (
+    concept: string,
+    definition: string
+  ): Promise<KeyValuePair[]> => {
+    const keyConceptsRequest: LlmRequest = {
+      nameId: "definitionKeyConcepts",
+      temperature: 0.0,
+      minCompletitionChars: 3000, //minimum chars saved for response
+      template: `- The following is a particular definition of "{mu}"
+- Score the top words in the definition that are prerequisits to understand "{mu}".
+    - Score from 0 to 1 based on their prerequisit-score.
+    - The prerequisit-score is higher if:
+        - It uses "${Tokenizer.hyphenToken}" (hyphen).
+        - It is rare.
+        - It is fundamental to have a comprehensive understanding of {mu}.
+        - It is technical.
+        - Are used more than once
+    - The prequisit-score is lower if:
+        - It is used as example.
+- Output a list JSON array of objects with words (k) and its prerequist-score (v).
+    - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
+    - Transform each word to its singular form.
+    - Use the format: {{"k": "apple", "v": 0.7}}
+
+Definition of "{mu}":
+{context}
+
+JSON array of words with prerequisit-score:
+[`,
+    };
+
+    let out = "[" + (await callLlm(keyConceptsRequest, concept, definition));
+    return JSON.parse(out) as KeyValuePair[];
   };
 
   static getQuestionKeyConcepts = async (

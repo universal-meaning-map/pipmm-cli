@@ -91,15 +91,12 @@ export default class DirectSearch {
         if (view.includes(backLinkIid)) {
           if (notInterested) continue;
 
-          console.log("has iid: " + note.block.get(propNameIId));
           const chunks = await textSplitter.splitText(view);
           let indexesWithIid = [];
           //search chunks in IPT
 
           for (let idx = 0; idx < chunks.length; idx++) {
             if (chunks[idx].includes(backLinkIid)) {
-              console.log("FOUND");
-              console.log(idx);
               indexesWithIid.push(idx);
             }
           }

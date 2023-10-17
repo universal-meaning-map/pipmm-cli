@@ -72,17 +72,20 @@ export default class WriteCommand extends Command {
     );
 
     const question = args.question;
-    let allKeyConcepts: string[] = [];
 
     //QUESTION
     //SHOULD this return definitions? So I have the number of backlinks
-    const inputedKeyMu: string[] = args.keyConcepts.split(", ");
+    const inputKeyMuWithoutHyphen: string[] = args.keyConcepts.split(", ");
+    const inputedKeyMu: string[] = [];
+
+    for (let mu of inputKeyMuWithoutHyphen) {
+      inputedKeyMu.push(Utils.renameToHyphen(mu));
+    }
     const questionKeyMu: string[] = await Definer.getTextKeyMeaningUnits(
       question
     );
 
     const rootKeyMu = [...new Set(inputedKeyMu.concat(questionKeyMu))]; //remove duplicates
-    let selectedKeyMu = rootKeyMu;
 
     console.log("\nInput:");
     inputedKeyMu.forEach((mu: string) => {
@@ -102,6 +105,20 @@ export default class WriteCommand extends Command {
         true,
         false
       );
+
+      /*
+      let out = await Definer.getDefinitionKeyConcepts(
+        muDefinition!.nameWithHyphen,
+        Definer.intensionsToText(muDefinition!.directIntensions)
+      );
+
+      let out2 = await Definer.getDefinitionScoredConcepts(
+        muDefinition!.nameWithHyphen,
+        Definer.intensionsToText(muDefinition!.directIntensions)
+      );
+      console.log(muDefinition!.nameWithHyphen + ":\n\n" + out + "\n\n" + out2);
+
+      */
     });
 
     await Promise.all(rootProcessing);
@@ -110,27 +127,27 @@ export default class WriteCommand extends Command {
     let allDefinitions: Definition[] = [];
     DefinerStore.definitions.forEach((d, key) => {
       allDefinitions.push(d);
-      console.log(d);
+      //console.log(d);
     });
 
-    allDefinitions.sort((a, b) => a.backLinks - b.backLinks);
+    allDefinitions.sort((a, b) => a.backLinkScore - b.backLinkScore);
 
     allDefinitions.forEach((d) => {
-      console.log(d.nameWithHyphen + " " + d.backLinks);
+      console.log(d.nameWithHyphen + " " + d.backLinkScore);
     });
     return;
 
-    return;
+    /*
 
     allDefinitions.forEach((d) => {
-      d.keyConcepts.forEach((c) => {
-        allKeyConcepts.push(c);
+      d.keyConceptsScores.forEach((c) => {
+        inputKeyMuWithoutHyphen.push(c.k);
       });
     });
 
-    allKeyConcepts = [...new Set(allKeyConcepts)]; //remove duplicates
+    inputKeyMuWithoutHyphen = [...new Set(inputKeyMuWithoutHyphen)]; //remove duplicates
 
-    const secondLayerProcessing = allKeyConcepts.map(
+    const secondLayerProcessing = inputKeyMuWithoutHyphen.map(
       async (conceptWithHyphen: string) => {
         let conceptDefinition = await DefinerStore.getDefinition(
           conceptWithHyphen,
@@ -150,7 +167,7 @@ export default class WriteCommand extends Command {
     let definitionsCondensedContext = "";
 
     DefinerStore.definitions.forEach((d, key) => {
-      console.log(d.nameWithHyphen + " " + d.backLinks);
+      console.log(d.nameWithHyphen + " " + d.backLinkScore);
     });
 
     return;
@@ -178,7 +195,7 @@ export default class WriteCommand extends Command {
     console.log(definitionsContext);
 
     //TODO!!! only replaces key concepts
-    for (let conceptWithHyphens of allKeyConcepts) {
+    for (let conceptWithHyphens of inputKeyMuWithoutHyphen) {
       let concept = Utils.renameFromHyphen(conceptWithHyphens);
       console.log(conceptWithHyphens + " --> " + concept);
 
@@ -211,7 +228,7 @@ export default class WriteCommand extends Command {
       prunedDefinitionsContext
     );
 
-    console.log(allKeyConcepts);
+    console.log(inputKeyMuWithoutHyphen);
 
     const directRemainPercentage =
       maxPromptChars / defitinionsDirectContext.length;
@@ -292,5 +309,6 @@ Pruned
 
     // const foamText = textToFoamText(out);
     // console.log(foamText);
+    */
   }
 }

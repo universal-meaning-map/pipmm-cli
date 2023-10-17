@@ -213,6 +213,7 @@ export async function callLlm(
   mu: string,
   context: string
 ): Promise<string> {
+
   const promptTemplate = new PromptTemplate({
     template: llmRequest.template,
     inputVariables: ["mu", "context", "myName"],
@@ -226,8 +227,8 @@ export async function callLlm(
     ),
   };
 
-  const prompt = await promptTemplate.format(promptInput);
-  console.dir(prompt, { depth: null });
+  //const prompt = await promptTemplate.format(promptInput);
+  //console.dir(prompt, { depth: null });
 
   const model = new OpenAI({
     temperature: llmRequest.temperature ? llmRequest.temperature : 0,
@@ -314,7 +315,6 @@ export async function getContextDocs(
     conceptDocs = filterDocsByConfindence(conceptDocs, minConfindence);
     conceptDocs = pruneDocsForTokens(conceptDocs, maxTokens);
     contextDocs.push(...conceptDocs);
-    console.log("C");
   }
   return contextDocs;
 }
