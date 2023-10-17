@@ -162,4 +162,27 @@ export default class Referencer {
 
     return foamId;
   };
+
+  static getRepoWithHyphenNames = async (): Promise<Map<string, NoteWrap>> => {
+    if (Referencer.iidToNoteWrapWithHyphen.size === 0) {
+      const newNotes: Map<string, NoteWrap> = new Map();
+
+      const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+      // let renamed: Map<string, NoteWrap> = new Map();
+      for (let [iid, note] of Referencer.iidToNoteWrap.entries()) {
+        const newNote: NoteWrap = Utils.deepCloneNoteWrap(note);
+
+        if (newNote.block.has(NAME_IID)) {
+          let name: string = newNote.block.get(NAME_IID);
+          let newName = Utils.renameToHyphen(name);
+          //let newName = Referencer.getLocalIidFromIid(iid); //use iid
+          newNote.block.set(NAME_IID, newName);
+        }
+        newNotes.set(iid, newNote);
+      }
+      Referencer.iidToNoteWrapWithHyphen = newNotes;
+    }
+
+    return Referencer.iidToNoteWrapWithHyphen;
+  };
 }

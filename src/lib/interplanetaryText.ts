@@ -4,12 +4,14 @@ import ConfigController, { ExportTemplate } from "./configController";
 import Filter from "./filterController";
 import { NoteWrap } from "./ipmm";
 import Utils from "./utils";
+import SemanticSearch from "./semanticSearch";
 
 export default class InterplanetaryText {
   static transclude = async (
     aref: string,
     exportTemplate: ExportTemplate,
     requesterIid: string,
+    namesWithHyphen: boolean,
     filterArefLinks: boolean,
     v1: string,
     v2: string
@@ -24,14 +26,19 @@ export default class InterplanetaryText {
     }
     let tiid = runs[1];
 
-    if (Referencer.iidToNoteWrap.has(tiid)) {
-      let type = Referencer.iidToNoteWrap.get(tiid);
+    let repo = Referencer.iidToNoteWrap;
+    if (namesWithHyphen) {
+      repo = await Referencer.getRepoWithHyphenNames();
+    }
+
+    if (repo.has(tiid)) {
+      let type = repo.get(tiid);
     } else {
       Res.error("Property type does not exist: " + tiid, Res.saveError);
     }
 
-    let note = Referencer.iidToNoteWrap.get(iid);
-    let type = Referencer.iidToNoteWrap.get(tiid);
+    let note = repo.get(iid);
+    let type = repo.get(tiid);
 
     let ipt = note?.block.get(tiid);
 
@@ -95,6 +102,7 @@ export default class InterplanetaryText {
                 expr[0],
                 exportTemplate,
                 requesterIid,
+                namesWithHyphen,
                 filterArefLinks,
                 v1,
                 v2

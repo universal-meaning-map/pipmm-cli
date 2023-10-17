@@ -139,31 +139,6 @@ export default class SemanticSearch {
     return dbLocation;
   }
 
-  static getRepoWithHyphenNames = async (
-    originalNotes: Map<string, NoteWrap>
-  ): Promise<Map<string, NoteWrap>> => {
-    if (Referencer.iidToNoteWrapWithHyphen.size === 0) {
-      const newNotes: Map<string, NoteWrap> = new Map();
-
-      const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-      // let renamed: Map<string, NoteWrap> = new Map();
-      for (let [iid, note] of originalNotes.entries()) {
-        const newNote: NoteWrap = Utils.deepCloneNoteWrap(note);
-
-        if (newNote.block.has(NAME_IID)) {
-          let name: string = newNote.block.get(NAME_IID);
-          let newName = Utils.renameToHyphen(name);
-          //let newName = Referencer.getLocalIidFromIid(iid); //use iid
-          newNote.block.set(NAME_IID, newName);
-        }
-        newNotes.set(iid, newNote);
-      }
-      Referencer.iidToNoteWrapWithHyphen = newNotes;
-    }
-
-    return Referencer.iidToNoteWrapWithHyphen;
-  };
-
   static index = async (
     repo: Map<string, NoteWrap>,
     foamIdPropToIndex: string,
@@ -174,7 +149,7 @@ export default class SemanticSearch {
     const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
 
     if (namesWithHyphen) {
-      repo = await SemanticSearch.getRepoWithHyphenNames(repo);
+      repo = await Referencer.getRepoWithHyphenNames();
     }
 
     // Transclude
@@ -188,7 +163,7 @@ export default class SemanticSearch {
         exportTemplateId: "txt",
       };
 
-      let out = await Publisher.makePublishRun(iid, config);
+      let out = await Publisher.makePublishRun(iid, config, namesWithHyphen);
 
       const doc = new Document({
         pageContent: out,

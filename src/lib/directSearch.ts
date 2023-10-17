@@ -15,21 +15,6 @@ import ConfigController from "./configController";
 import Filter from "./filterController";
 
 export default class DirectSearch {
-  static getViewByFoamId = async (foamId: string): Promise<string> => {
-    let iid = await Referencer.makeIid(foamId);
-
-    let config = {
-      // property: "xavi-YAxr3c/prop-name-1612697362",
-      property: "xavi-YAxr3c/prop-view-1612698885",
-      exportTemplateId: "txt",
-    };
-
-    let out = await Publisher.makePublishRun(iid, config);
-    console.log(out);
-
-    return out;
-  };
-
   static getIidByName = async (text: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
     let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
@@ -82,7 +67,7 @@ export default class DirectSearch {
     repo = await Filter.filter(repo, filter);
 
     if (namesWithHyphen) {
-      repo = await SemanticSearch.getRepoWithHyphenNames(repo);
+      repo = await Referencer.getRepoWithHyphenNames();
     }
 
     const textSplitter = new CharacterTextSplitter({
@@ -119,7 +104,11 @@ export default class DirectSearch {
             }
           }
           //get the same chunks in the compiled text
-          let compiled = await Publisher.makePublishRun(note.iid, config);
+          let compiled = await Publisher.makePublishRun(
+            note.iid,
+            config,
+            namesWithHyphen
+          );
           const compiledChunks = await textSplitter.splitText(compiled);
 
           for (let i = 0; i < indexesWithIid.length; i++) {
@@ -177,17 +166,17 @@ export default class DirectSearch {
 
     if (!note) return docs;
 
-    if (namesWithHyphen) {
-      repo = await SemanticSearch.getRepoWithHyphenNames(repo);
-    }
-
     const textSplitter = new CharacterTextSplitter({
       chunkSize: 1,
       chunkOverlap: 0,
       separator: Referencer.selfDescribingSemanticUntiSeparator,
     });
 
-    const compiled = await Publisher.makePublishRun(iid, config);
+    const compiled = await Publisher.makePublishRun(
+      iid,
+      config,
+      namesWithHyphen
+    );
     const compiledChunks = await textSplitter.splitText(compiled);
 
     for (let i = 0; i < compiledChunks.length; i++) {

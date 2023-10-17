@@ -21,10 +21,11 @@ export default class Publisher {
     );
 
     let iid = await Referencer.makeIid(foamId);
-
+    const namesWithHyphen = false;
     let body = await Publisher.makePublishElement(
       iid,
-      ConfigController._configFile.publish.twitter.body
+      ConfigController._configFile.publish.twitter.body,
+      namesWithHyphen
     );
 
     if (!body) {
@@ -50,10 +51,12 @@ export default class Publisher {
     );
 
     let iid = await Referencer.makeIid(foamId);
+    const namesWithHyphen = false;
 
     let body = await Publisher.makePublishElement(
       iid,
-      ConfigController._configFile.publish.telegram.body
+      ConfigController._configFile.publish.telegram.body,
+      namesWithHyphen
     );
 
     if (!body) {
@@ -85,14 +88,17 @@ export default class Publisher {
     );
 
     let iid = await Referencer.makeIid(foamId);
+    let namesWithHyphen = false;
 
     let subject = await Publisher.makePublishElement(
       iid,
-      ConfigController._configFile.publish.buttondown.subject
+      ConfigController._configFile.publish.buttondown.subject,
+      namesWithHyphen
     );
     let body = await Publisher.makePublishElement(
       iid,
-      ConfigController._configFile.publish.buttondown.body
+      ConfigController._configFile.publish.buttondown.body,
+      namesWithHyphen
     );
 
     if (!subject || !body) {
@@ -116,17 +122,24 @@ export default class Publisher {
 
   static async makePublishElement(
     iid: string,
-    elementConfig: PublishExportRun[]
+    elementConfig: PublishExportRun[],
+    namesWithHyphen: boolean
   ) {
     let element = "";
 
     for (let runConfig of elementConfig) {
-      element = element + (await Publisher.makePublishRun(iid, runConfig));
+      element =
+        element +
+        (await Publisher.makePublishRun(iid, runConfig, namesWithHyphen));
     }
     return element;
   }
 
-  static async makePublishRun(iid: string, runConfig: PublishExportRun) {
+  static async makePublishRun(
+    iid: string,
+    runConfig: PublishExportRun,
+    namesWithHyphen: boolean
+  ) {
     let tiid = await Referencer.makeIid(runConfig.property);
     let expr = Referencer.makeExpr(iid, tiid);
     let exportTemplate = Publisher.getExportTemplate(
@@ -137,6 +150,7 @@ export default class Publisher {
       expr,
       exportTemplate!,
       iid,
+      namesWithHyphen,
       filterArefLinks,
       "",
       ""
