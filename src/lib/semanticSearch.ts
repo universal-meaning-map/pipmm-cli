@@ -152,7 +152,7 @@ export default class SemanticSearch {
 
         if (newNote.block.has(NAME_IID)) {
           let name: string = newNote.block.get(NAME_IID);
-          let newName = name.split(" ").join(Tokenizer.hyphenToken);
+          let newName = Utils.renameToHyphen(name);
           //let newName = Referencer.getLocalIidFromIid(iid); //use iid
           newNote.block.set(NAME_IID, newName);
         }

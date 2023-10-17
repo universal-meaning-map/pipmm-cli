@@ -328,7 +328,7 @@ export async function getContextDocsForConcept(
   const includeDirectBacklinks = true;
 
   const muIidWithSameName = await DirectSearch.getIidByName(concept);
-  console.log("IID match: " + muIidWithSameName);
+  // console.log("IID match: " + muIidWithSameName);
 
   if (muIidWithSameName) {
     conceptDocs.push(
@@ -339,7 +339,7 @@ export async function getContextDocsForConcept(
       ))
     );
   } else {
-    console.log("No MU with exact name for: " + concept);
+    //  console.log("No MU with exact name for: " + concept);
   }
 
   conceptDocs.push(

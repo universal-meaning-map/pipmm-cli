@@ -72,44 +72,55 @@ export default class WriteCommand extends Command {
     );
 
     const question = args.question;
-    const rootKeyConcepts = args.keyConcepts.split(", ");
     let allKeyConcepts: string[] = [];
-    let allDefinitions: Definition[] = [];
 
-    let docs = await getContextDocsForConcept(question, [
-      SEARCH_ORIGIN_SEMANTIC,
-    ]);
+    //QUESTION
+    //SHOULD this return definitions? So I have the number of backlinks
+    const inputedKeyMu: string[] = args.keyConcepts.split(", ");
+    const questionKeyMu: string[] = await Definer.getTextKeyMeaningUnits(
+      question
+    );
 
-    docs = filterDocsByConfindence(docs, 0.5);
+    const rootKeyMu = [...new Set(inputedKeyMu.concat(questionKeyMu))]; //remove duplicates
+    let selectedKeyMu = rootKeyMu;
 
-    console.log(docs);
-
-    for (let d of docs) {
-      await DefinerStore.addBackLink(d.metadata.name);
-    }
-
-    console.log("Definitions:");
-    DefinerStore.definitions.forEach((d, key) => {
-      console.log(d.nameWithHyphen + " " + d.backLinks);
+    console.log("\nInput:");
+    inputedKeyMu.forEach((mu: string) => {
+      console.log(mu);
     });
 
-    console.log(Tokenizer.hyphenToken);
-    console.log("-");
+    console.log("\nGuessed:");
+    questionKeyMu.forEach((mu: string) => {
+      console.log(mu);
+    });
 
-    return;
-
-    const rootProcessing = rootKeyConcepts.map(async (concept: string) => {
-      let conceptDefinition = await DefinerStore.getDefinition(
-        concept.split(" ").join(Tokenizer.hyphenToken),
+    const rootProcessing = rootKeyMu.map(async (mu: string) => {
+      let muDefinition = await DefinerStore.getDefinition(
+        mu,
         true,
         false,
         true,
         false
       );
-      if (conceptDefinition) allDefinitions.push(conceptDefinition);
     });
 
     await Promise.all(rootProcessing);
+
+    console.log("\nDefinitions:");
+    let allDefinitions: Definition[] = [];
+    DefinerStore.definitions.forEach((d, key) => {
+      allDefinitions.push(d);
+      console.log(d);
+    });
+
+    allDefinitions.sort((a, b) => a.backLinks - b.backLinks);
+
+    allDefinitions.forEach((d) => {
+      console.log(d.nameWithHyphen + " " + d.backLinks);
+    });
+    return;
+
+    return;
 
     allDefinitions.forEach((d) => {
       d.keyConcepts.forEach((c) => {
@@ -168,7 +179,7 @@ export default class WriteCommand extends Command {
 
     //TODO!!! only replaces key concepts
     for (let conceptWithHyphens of allKeyConcepts) {
-      let concept = conceptWithHyphens.split(Tokenizer.hyphenToken).join(" ");
+      let concept = Utils.renameFromHyphen(conceptWithHyphens);
       console.log(conceptWithHyphens + " --> " + concept);
 
       definitionsContext = definitionsContext.replaceAll(

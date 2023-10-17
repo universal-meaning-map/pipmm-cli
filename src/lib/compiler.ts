@@ -265,7 +265,7 @@ export default class Compiler {
     if (typeFoamId == Referencer.PROP_NAME_FOAMID) {
       Referencer.nameToFoamId.set(propertyValue, requesterFoamId);
       Referencer.nameWithHyphenToFoamId.set(
-        propertyValue.split(" ").join(Tokenizer.hyphenToken),
+        Utils.renameToHyphen(propertyValue),
         requesterFoamId
       );
     }

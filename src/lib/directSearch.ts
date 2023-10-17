@@ -82,10 +82,7 @@ export default class DirectSearch {
     repo = await Filter.filter(repo, filter);
 
     if (namesWithHyphen) {
-      repo = await SemanticSearch.getRepoWithHyphenNames(
-        repo,
-        Tokenizer.hyphenToken
-      );
+      repo = await SemanticSearch.getRepoWithHyphenNames(repo);
     }
 
     const textSplitter = new CharacterTextSplitter({
@@ -181,10 +178,7 @@ export default class DirectSearch {
     if (!note) return docs;
 
     if (namesWithHyphen) {
-      repo = await SemanticSearch.getRepoWithHyphenNames(
-        repo,
-        Tokenizer.hyphenToken
-      );
+      repo = await SemanticSearch.getRepoWithHyphenNames(repo);
     }
 
     const textSplitter = new CharacterTextSplitter({

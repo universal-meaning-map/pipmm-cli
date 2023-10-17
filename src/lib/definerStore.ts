@@ -4,6 +4,7 @@ import { buildContextPromptFromDocs } from "./llm";
 import Referencer from "./referencer";
 import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
+import Utils from "./utils";
 
 export interface Definition {
   //evrything is with hyphen
@@ -23,16 +24,14 @@ export default class DefinerStore {
   static initDefinition = async (
     nameWithHyphen: string
   ): Promise<Definition | undefined> => {
-    const name = nameWithHyphen.split(Tokenizer.hyphenToken).join(" ");
-    console.log("initDefinition");
-    console.log(nameWithHyphen + " " + name);
+    const name = Utils.renameFromHyphen(nameWithHyphen);
 
     const iid = await DirectSearch.getIidByName(name);
 
     if (iid == "") {
       return undefined;
     }
-    console.log("INIT " + nameWithHyphen);
+    //console.log("INIT " + nameWithHyphen);
     const definition: Definition = {
       name: name,
       nameWithHyphen: nameWithHyphen,
@@ -47,7 +46,7 @@ export default class DefinerStore {
   };
 
   static addBackLink = async (nameWithHyphen: string): Promise<void> => {
-    console.log("Start backlink: " + nameWithHyphen);
+    //    console.log("Start backlink: " + nameWithHyphen);
     const d = await DefinerStore.getDefinition(
       nameWithHyphen,
       false,
@@ -56,13 +55,13 @@ export default class DefinerStore {
       false
     );
     if (!d) {
-      console.log("Fail: " + nameWithHyphen);
+     // console.log("Fail: " + nameWithHyphen);
 
       return;
     }
     d!.backLinks = d!.backLinks + 1;
     DefinerStore.definitions.set(d!.nameWithHyphen, d!);
-    console.log("END backlink: " + nameWithHyphen);
+    // console.log("END backlink: " + nameWithHyphen);
   };
 
   static getDefinition = async (
@@ -74,7 +73,6 @@ export default class DefinerStore {
   ): Promise<Definition | undefined> => {
     //We return it from store if exists
     let d: Definition;
-    console.log("Size:" + DefinerStore.definitions.size);
 
     if (DefinerStore.definitions.has(nameWithHyphen)) {
       d = DefinerStore.definitions.get(nameWithHyphen)!;
@@ -82,11 +80,9 @@ export default class DefinerStore {
       const du = await DefinerStore.initDefinition(nameWithHyphen);
 
       if (!du) {
-        console.log("Undefined: " + nameWithHyphen);
 
         return undefined;
       } else d = du;
-      console.log("Creating: " + nameWithHyphen);
     }
 
     if (needsDirect) {
@@ -108,7 +104,7 @@ export default class DefinerStore {
 
     if (needsKeyConcepts) {
       if (d.keyConcepts.length == 0) {
-        const keyConcepts = await Definer.getKeyConcepts(
+        const keyConcepts = await Definer.getDefinitionKeyConcepts(
           d.nameWithHyphen,
           Definer.intensionsToText(d.directIntensions)
         );

@@ -4,14 +4,17 @@ import {
   LlmRequest,
   SEARCH_ORIGIN_BACKLINK,
   SEARCH_ORIGIN_DIRECT,
+  SEARCH_ORIGIN_SEMANTIC,
   buildContextPromptFromDocs,
   callLlm,
+  filterDocsByConfindence,
   getContextDocsForConcept,
   openAIMaxTokens,
   openAITokenPerChar,
 } from "./llm";
 import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
+import Utils from "./utils";
 
 export default class Definer {
   static getLiteralIntensionsByIid = async (
@@ -119,10 +122,7 @@ ${Tokenizer.unknownTermToken}:`,
     let contextPrompt = buildContextPromptFromDocs(contextDocs);
 
     //Anonimize concept
-    const conceptWithHyphen = SemanticSearch.rename(
-      concept,
-      Tokenizer.hyphenToken
-    );
+    const conceptWithHyphen = Utils.renameToHyphen(concept);
 
     //Replace concept with X
     contextPrompt = contextPrompt.replace(
@@ -141,12 +141,12 @@ ${Tokenizer.unknownTermToken}:`,
     return "Backlinks\n" + out;
   };
 
-  static getKeyConcepts = async (
+  static getDefinitionKeyConcepts = async (
     concept: string,
     definition: string
   ): Promise<string[]> => {
     const keyConceptsRequest: LlmRequest = {
-      nameId: "keyConcepts",
+      nameId: "definitionKeyConcepts",
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `- The following is a particular definition of "{mu}"
@@ -164,6 +164,51 @@ Top words:`,
 
     let out = await callLlm(keyConceptsRequest, concept, definition);
     return out.split(", ");
+  };
+
+  static getQuestionKeyConcepts = async (
+    definition: string
+  ): Promise<string[]> => {
+    const keyConceptsRequest: LlmRequest = {
+      nameId: "questionKeyConcepts",
+      temperature: 0.0,
+      minCompletitionChars: 3000, //minimum chars saved for response
+      template: `"INSTRUCTIONS
+- List the key words in the following text.
+- Output a comma separated list without. Do not put a "." at the end.
+
+TEXT:
+{context}
+
+KEY IDEAS:`,
+    };
+
+    let out = await callLlm(keyConceptsRequest, "", definition);
+    return out.split(", ");
+  };
+
+  static getTextKeyMeaningUnits = async (text: string): Promise<string[]> => {
+    let docs: Document<Record<string, any>>[] = [];
+
+    //KEY CONCEPTS
+    const keyWords = await Definer.getQuestionKeyConcepts(text);
+
+    for (let word of keyWords) {
+      let wordDocs = await getContextDocsForConcept(word, [
+        SEARCH_ORIGIN_SEMANTIC,
+      ]);
+
+      wordDocs = filterDocsByConfindence(wordDocs, 0.7);
+      docs = docs.concat(wordDocs);
+    }
+
+    let keyMus: string[] = [];
+
+    for (let d of docs) {
+      keyMus.push(d.metadata.name);
+    }
+    keyMus = [...new Set(keyMus)]; //remove duplicates
+    return keyMus;
   };
 
   static respondQuestion = async (

@@ -5,6 +5,7 @@ import Referencer from "./referencer";
 import { promises as fsPromises, readFile } from "fs";
 import ConfigController from "./configController";
 import { parse, stringify } from "yaml";
+import Tokenizer from "./tokenizer";
 
 export default class Utils {
   static resolveHome = (filepath: string) => {
@@ -173,4 +174,12 @@ export default class Utils {
     }
     return obj;
   };
+
+  static renameToHyphen(name: string): string {
+    return name.split(" ").join(Tokenizer.hyphenToken);
+  }
+
+  static renameFromHyphen(name: string): string {
+    return name.split(Tokenizer.hyphenToken).join(" ");
+  }
 }
