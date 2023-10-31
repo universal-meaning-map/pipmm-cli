@@ -56,6 +56,9 @@ export default class ConfigController {
         arefLinkVisibilityFilter: Utils.resolveHome(
           foamRepo + "/.pipmm/arefLinkVisibilityFilter.json"
         ),
+        compiledDefinitions: Utils.resolveHome(
+          foamRepo + "/.pipmm/compiledDefinitions.json"
+        ),
       },
       network: {
         websocketsPort: 34343,
@@ -250,6 +253,7 @@ interface ConfigFile {
     remoteFilter: string;
     botFilter: string;
     arefLinkVisibilityFilter: string;
+    compiledDefinitions: string;
   };
   network: {
     websocketsPort: number;

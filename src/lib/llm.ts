@@ -8,6 +8,7 @@ import SemanticSearch from "../lib/semanticSearch";
 import DirectSearch from "../lib/directSearch";
 import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
+import { ChainValues } from "langchain/dist/schema";
 
 export const openAITokenPerChar = 0.25;
 export const openAIMaxTokens = 8000;
@@ -18,6 +19,17 @@ export const SEARCH_ORIGIN_SEMANTIC = "semantic";
 export interface LlmRequest {
   nameId: string; //identifier of the request template
   template: string; //langchain prompt template
+  minCompletitionChars: number; //minimum chars saved for response
+  temperature?: number; //model temperature
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+}
+
+export interface LlmRequest2 {
+  nameId: string; //identifier of the request template
+  template: string; //langchain prompt template
+  inputVariableNames: string[]; //variable names used in the prompt template
+  inputVariables: ChainValues;
   minCompletitionChars: number; //minimum chars saved for response
   temperature?: number; //model temperature
   frequencyPenalty?: number;
@@ -213,7 +225,6 @@ export async function callLlm(
   mu: string,
   context: string
 ): Promise<string> {
-
   const promptTemplate = new PromptTemplate({
     template: llmRequest.template,
     inputVariables: ["mu", "context", "myName"],
@@ -253,6 +264,32 @@ export async function callLlm(
   const chain = new LLMChain({ llm: model, prompt: promptTemplate });
 
   const res = await chain.call(promptInput);
+  return res.text;
+}
+
+export async function callLlm2(llmRequest: LlmRequest2): Promise<string> {
+  const promptTemplate = new PromptTemplate({
+    template: llmRequest.template,
+    inputVariables: llmRequest.inputVariableNames,
+  });
+
+  const model = new OpenAI({
+    temperature: llmRequest.temperature ? llmRequest.temperature : 0,
+    frequencyPenalty: llmRequest.frequencyPenalty
+      ? llmRequest.frequencyPenalty
+      : 0,
+    presencePenalty: llmRequest.presencePenalty
+      ? llmRequest.presencePenalty
+      : 0,
+    topP: 1,
+    modelName: "gpt-4-0613",
+    //modelName: "gpt-4-32k",ri
+    maxTokens: -1,
+    openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
+  });
+
+  const chain = new LLMChain({ llm: model, prompt: promptTemplate });
+  const res = await chain.call(llmRequest.inputVariables);
   return res.text;
 }
 

@@ -2,11 +2,13 @@ import { Document } from "langchain/document";
 import DirectSearch from "./directSearch";
 import {
   LlmRequest,
+  LlmRequest2,
   SEARCH_ORIGIN_BACKLINK,
   SEARCH_ORIGIN_DIRECT,
   SEARCH_ORIGIN_SEMANTIC,
   buildContextPromptFromDocs,
   callLlm,
+  callLlm2,
   filterDocsByConfindence,
   getContextDocsForConcept,
   openAIMaxTokens,
@@ -256,31 +258,118 @@ KEY IDEAS:`,
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `INSTRUCTIONS
-- Act as a very humble and deep thinker that has a very unique prespective and brings clarity to the audience through reasoning.
-- Your perspective is the founded on the particular meaning you give to certain concepts (defined below).
-- Respond to the question below.
-- Respond strictly based on your particular understanding of the concepts. 
-- Think deeply about how your perspective can provide clarity to the question.
-- Do not include external information or other people perspectives.
-- The audience does not know the concepts you use, make sure they can understand.
-- Do not use complicated, rare or technical words, explain them instead.
-- Provide an extensive, comprehensive and nuanced explanation.
-- Try to see deeper into what's behind the questions, and why is important.
-- If you make an statement, explain its reasoning. 
-- Use simple and consice language. Do not use jargon, rare words or technisms.
-- Explore interesting ideas in detail but make sure you are responding to the question.
-- Communicate in a gentle, humble and non condescending to a general audience.
 
-CONCEPTS
+- You will give a RESPONSE to YOUR AUDIENCE about the QUESTION they asked.
+- You will act based on YOUR PERSONALITY.
+- Your RESPONSE is founded exclusively based on the IMPERSONATED PERSPECTIVE.
+- You will stick to the RESPONSE CONDITIONS.
+
+RESPONSE CONDITIONS:
+
+- Only respond what the IMPERSONATED PERSPECTIVE concieves.
+- If you don't have a meaningful insight, do not respond. Suggest to frame the question differently instead.
+- Respond strictly based on the IMPERSONATED PERSPECTIVE.
+- Exclude from the RESPONSE elements of the IMPERSONATED PERSPECTIVE that are no relevant to the QUESTION.
+- Do not include external information.
+- Quality over quantity.
+- Delve deep into the QUESTION.
+- Strictly respond to the QUESTION.
+- Extend the response only if a mentioned requires clarification.
+- Your goal is to bring clarity to the QUESTION through reasoning based on IMPERSONATED PERSPECTIVE.
+- Provide in-depth, thoughtful RESPONSE.
+
+YOUR PERSONALITY
+You are an 
+
+Mindset and character:
+- Humble and respectful and approachable.
+- Unafraid to express opinions and strong convictions.
+- Confident about your unique perspective.
+- Objective evaluation of options and decisions.
+- Avoid unnecessary complexity or overthinking.
+- Consideration of consequences and risks.
+- Balance idealism with practicality.
+- Emphasis on rationality and reason.
+- Acceptance of what cannot be controlled.
+- Focus on what can be controlled, particularly one's thoughts and actions.
+
+Writing style:
+- Curious, observant, intellectual, and reflective tone.
+- Straightforward language. No unnecessary jargon and complexity.
+- Precise and technical language.
+- Do not use jargon exclusive to your vocabulary. Explain it instead.
+- Rich vocabulary spanning art, science, engineering, philosophy, and psychology.
+- Use complex sentences for explaining intricate concepts. These sentences often feature multiple clauses.
+- Well-structured with logical flow and clear transitions between ideas.
+- Descriptive writing with concise but vivid imagery.
+- Occasionally use rhetorical devices like analogies and metaphors for effective illustration.
+- Use impersonal and objective language.
+- Do not make references to yourself, or your perspevtive
+- Do not make appraisal or sentimental evaluations.
+
+YOUR AUDIENCE
+
+- Critical thinkers who engage in intellectual discussions.
+- Lifelong learners seeking educational resources.
+- Interest in depth of the human condition.
+- Diverse global community with various backgrounds and cultures.
+- Only like concise, information-rich content.
+- Do not know anything about your particular perspective and vocabulary.
+
+IMPERSONATED PERSPECTIVE
+
+The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
+
 {context}
 
 QUESTION
+
 {mu}
 
 RESPONSE`,
     };
 
     let out = await callLlm(questionWithDefinitions, mu, context);
+    return out;
+  };
+
+  static respondQuestion2 = async (
+    textType: string,
+    topic: string,
+    targetAudience: string,
+    style: string,
+    perspective: string
+  ): Promise<string> => {
+    const writeWithStyle: LlmRequest2 = {
+      nameId: "respond",
+      inputVariableNames: [
+        "textType",
+        "topic",
+        "targetAudience",
+        "style",
+        "perspective",
+      ],
+      inputVariables: {
+        textType: textType,
+        topic: topic,
+        targetAudience: targetAudience,
+        style: style,
+        perspective: perspective,
+      },
+      temperature: 0.0,
+      minCompletitionChars: 3000, //minimum chars saved for response
+      template: `
+Write {textType} about: {topic}.
+Do it for {targetAudience} in the style of {style}, capturing its tone, voice, vocabulary and sentence structure.
+The {textType} is exclusively based on your unique understanding of certain topics (perspective) outlined below.
+      
+YOUR PERSPECTIVE
+{perspective}
+
+RESPONSE`,
+    };
+
+    let out = await callLlm2(writeWithStyle);
     return out;
   };
 
@@ -292,6 +381,8 @@ RESPONSE`,
     return text;
   }
 }
+//- Explore interesting ideas in detail but make sure you are responding to the question.
+
 //- Explain the necessary meaning behind concepts when necessary. Express it inline, then continue answering the question.
 /*template: `- Identify the top words that are prerequisits to understand "{mu}" based on the following definition.
 - Rate the rarity of each word from very common (0), to used in specific domains (0.5), to extremely technical or unnexisten (1), and everything in between.

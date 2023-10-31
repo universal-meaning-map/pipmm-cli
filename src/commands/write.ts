@@ -71,16 +71,17 @@ export default class WriteCommand extends Command {
       ConfigController.foamRepoPath
     );
 
+    await DefinerStore.load();
     const question = args.question;
 
     //QUESTION
-    //SHOULD this return definitions? So I have the number of backlinks
     const inputKeyMuWithoutHyphen: string[] = args.keyConcepts.split(", ");
     const inputedKeyMu: string[] = [];
 
     for (let mu of inputKeyMuWithoutHyphen) {
       inputedKeyMu.push(Utils.renameToHyphen(mu));
     }
+
     const questionKeyMu: string[] = await Definer.getTextKeyMeaningUnits(
       question
     );
@@ -92,36 +93,52 @@ export default class WriteCommand extends Command {
       console.log(mu);
     });
 
-    console.log("\nGuessed:");
+    console.log("\n\nGuessed:");
     questionKeyMu.forEach((mu: string) => {
       console.log(mu);
     });
 
     const rootProcessing = rootKeyMu.map(async (mu: string) => {
-      let muDefinition = await DefinerStore.getDefinition(
-        mu,
-        true,
-        false,
-        true,
-        false
-      );
-
-      /*
-      let out = await Definer.getDefinitionKeyConcepts(
-        muDefinition!.nameWithHyphen,
-        Definer.intensionsToText(muDefinition!.directIntensions)
-      );
-
-      let out2 = await Definer.getDefinitionScoredConcepts(
-        muDefinition!.nameWithHyphen,
-        Definer.intensionsToText(muDefinition!.directIntensions)
-      );
-      console.log(muDefinition!.nameWithHyphen + ":\n\n" + out + "\n\n" + out2);
-
-      */
+      await DefinerStore.getDefinition(mu, true, false, true, false);
     });
 
     await Promise.all(rootProcessing);
+
+    await DefinerStore.save();
+    return;
+    //MAKE LIST OF SECOND LAYER KC
+
+    let secondLayerKeyMu: string[] = [];
+
+    for (let r of rootKeyMu) {
+      await DefinerStore.addBackLinkScore(r, 3);
+    }
+
+    DefinerStore.definitions.forEach((d) => {
+      for (let kcs of d.keyConceptsScores) {
+        secondLayerKeyMu.push(kcs.k);
+      }
+    });
+
+    secondLayerKeyMu = [...new Set(secondLayerKeyMu)]; //remove duplicates
+
+    console.log("SECOND LAYER KC:");
+    console.log(secondLayerKeyMu);
+
+    // GET SECOND LAYER DEFINITIONS
+    const secondLayerProcessing = secondLayerKeyMu.map(
+      async (conceptWithHyphen: string) => {
+        const mu = await DefinerStore.getDefinition(
+          conceptWithHyphen,
+          true,
+          false,
+          false,
+          false
+        );
+      }
+    );
+
+    await Promise.all(secondLayerProcessing);
 
     console.log("\nDefinitions:");
     let allDefinitions: Definition[] = [];
@@ -130,82 +147,40 @@ export default class WriteCommand extends Command {
       //console.log(d);
     });
 
-    allDefinitions.sort((a, b) => a.backLinkScore - b.backLinkScore);
+    allDefinitions.sort((a, b) => b.backLinkScore - a.backLinkScore);
 
     allDefinitions.forEach((d) => {
       console.log(d.nameWithHyphen + " " + d.backLinkScore);
     });
-    return;
-
-    /*
-
-    allDefinitions.forEach((d) => {
-      d.keyConceptsScores.forEach((c) => {
-        inputKeyMuWithoutHyphen.push(c.k);
-      });
-    });
-
-    inputKeyMuWithoutHyphen = [...new Set(inputKeyMuWithoutHyphen)]; //remove duplicates
-
-    const secondLayerProcessing = inputKeyMuWithoutHyphen.map(
-      async (conceptWithHyphen: string) => {
-        let conceptDefinition = await DefinerStore.getDefinition(
-          conceptWithHyphen,
-          true,
-          false,
-          false,
-          false
-        );
-        if (conceptDefinition) allDefinitions.push(conceptDefinition);
-      }
-    );
-    await Promise.all(secondLayerProcessing);
 
     let numOfDefWithContent = 0;
     let definitionsContext = "";
     let defitinionsDirectContext = "";
-    let definitionsCondensedContext = "";
 
-    DefinerStore.definitions.forEach((d, key) => {
-      console.log(d.nameWithHyphen + " " + d.backLinkScore);
-    });
-
-    return;
+    //MAKE CONTEXT
 
     allDefinitions.forEach((d) => {
+      if (d.directIntensions.length == 0) {
+        return;
+      }
       const defitinionText = Definer.intensionsToText(d.directIntensions);
       defitinionsDirectContext =
-        defitinionsDirectContext + d.name + ":\n" + defitinionText;
+        defitinionsDirectContext + "\n" + d.name + ":\n" + defitinionText;
 
-      definitionsCondensedContext =
-        definitionsCondensedContext +
-        "\n" +
-        d.name +
-        ":\n" +
-        d.condensedDirectIntensions +
-        "\n";
       if (d.directIntensions.length > 1) {
         numOfDefWithContent++;
+      } else {
+        console.log("No intensions " + d.nameWithHyphen);
       }
     });
 
-    //definitionsContext = defitinionsDirectContext;
-    definitionsContext = definitionsCondensedContext;
+    //REPLACE HYPHENS
+    definitionsContext = defitinionsDirectContext.replaceAll(
+      Tokenizer.hyphenToken,
+      " "
+    );
 
-    console.log(definitionsContext);
-
-    //TODO!!! only replaces key concepts
-    for (let conceptWithHyphens of inputKeyMuWithoutHyphen) {
-      let concept = Utils.renameFromHyphen(conceptWithHyphens);
-      console.log(conceptWithHyphens + " --> " + concept);
-
-      definitionsContext = definitionsContext.replaceAll(
-        conceptWithHyphens,
-        concept
-      );
-    }
-
-    let prunedDefinitionsContext = "";
+    let prunedDefinitionsContext = definitionsContext;
 
     const reservedResonseChars = 6000;
     const maxTotalChars = openAIMaxTokens / openAITokenPerChar;
@@ -222,20 +197,35 @@ export default class WriteCommand extends Command {
       prunedDefinitionsContext = definitionsContext.slice(0, -tokensToRemove);
     }
 
-    console.log(allDefinitions);
     const out = await Definer.respondQuestion(
       question,
       prunedDefinitionsContext
     );
 
-    console.log(inputKeyMuWithoutHyphen);
+    /*
+    const textType: string = "a motivational speech";
+    const topic: string = question;
+    const targetAudience: string =
+    "gaining awareness of what matters when I wake up in the morning";
+    const style: string = "Leonardo Da Vinci";
+    const perspective: string = prunedDefinitionsContext;
+    const out = await Definer.respondQuestion2(
+        textType,
+      topic,
+      targetAudience,
+      style,
+      perspective
+      );
+      */
+
+    console.log("\n\nOUT");
+    console.log(out);
 
     const directRemainPercentage =
       maxPromptChars / defitinionsDirectContext.length;
-    const condensedRemainPercentage =
-      maxPromptChars / definitionsCondensedContext.length;
 
-    console.log(`STATS
+    console.log(`
+STATS
 
 Accepted aprox:
     Total chars: ${maxTotalChars} tokens ${maxTotalChars * openAITokenPerChar}
@@ -245,13 +235,6 @@ Accepted aprox:
 
 Original
     Nº of def : ${numOfDefWithContent}
-    Condensed %: ${
-      Math.round(
-        (definitionsCondensedContext.length / defitinionsDirectContext.length) *
-          100
-      ) / 100
-    }
-
     Avg direct def Chars: ${Math.round(
       defitinionsDirectContext.length / numOfDefWithContent
     )} Tokens: ${Math.round(
@@ -260,16 +243,6 @@ Original
     )}
     Direct context Chars: ${defitinionsDirectContext.length}  Tokens: ${
       defitinionsDirectContext.length * openAITokenPerChar
-    }
-
-    Avg condensed def chars: ${Math.round(
-      definitionsCondensedContext.length / numOfDefWithContent
-    )} tokens ${Math.round(
-      (definitionsCondensedContext.length / numOfDefWithContent) *
-        openAITokenPerChar
-    )}
-    Condensed context Chars: ${definitionsCondensedContext.length}  Tokens: ${
-      definitionsCondensedContext.length * openAITokenPerChar
     }
 
 Pruned 
@@ -284,22 +257,9 @@ Pruned
         directRemainPercentage *
         openAITokenPerChar
     )}
-
-    Condensed % remained: ${Math.round(condensedRemainPercentage * 100) / 100}
-    Nº of condensed def. : ${
-      Math.round(numOfDefWithContent * condensedRemainPercentage * 100) / 100
-    }
-    Condensed context chars: ${Math.round(
-      definitionsCondensedContext.length * condensedRemainPercentage
-    )}  tokens: ${Math.round(
-      definitionsCondensedContext.length *
-        condensedRemainPercentage *
-        openAITokenPerChar
-    )}
-
-
-
 `);
+
+    DefinerStore.save();
 
     //Translate back into format X
     //const usedDocsNameIidMap = getDocsNameIidList(edContextDocs);
@@ -309,6 +269,5 @@ Pruned
 
     // const foamText = textToFoamText(out);
     // console.log(foamText);
-    */
   }
 }
