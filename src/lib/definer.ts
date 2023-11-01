@@ -17,10 +17,10 @@ import {
 import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
-import { KeyValuePair } from "./definerStore";
+import DefinerStore, { Definition, KeyValuePair } from "./definerStore";
 
 export default class Definer {
-  static getLiteralIntensionsByIid = async (
+ /* static getLiteralIntensionsByIid = async (
     nameWithoutHyphen: string,
     withHyphen: boolean
   ): Promise<string[]> => {
@@ -33,17 +33,25 @@ export default class Definer {
       return [];
     }
 
+    console.log("JERE");
+    console.log(contextDocs.length);
+    console.log(contextDocs);
+
     if (contextDocs.length == 1) {
-      console.log("🟡 " + nameWithoutHyphen + " exists but not is defined");
-      return [];
+      if ((contextDocs[0].pageContent = "")) {
+        console.log("🟡 " + nameWithoutHyphen + " exists but not is defined");
+        return [];
+      }
     }
 
-    console.log("🟢  " + nameWithoutHyphen + "  defined. ");
-
+    console.log("HELLO");
+    console.log("🟢 " + nameWithoutHyphen + "  defined. ");
+    console.log("BYE");
     //let contextPrompt = buildContextPromptFromDocs(contextDocs);
     let intensions = Definer.docsToIntensions(contextDocs);
     return intensions;
   };
+  */
 
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
     let intensions: string[] = [];
@@ -54,44 +62,6 @@ export default class Definer {
 
     return intensions;
   }
-
-  static getCondensedDirectIntensions = async (
-    concept: string
-  ): Promise<string> => {
-    const extensiveDefinitionRequest: LlmRequest = {
-      nameId: "extensiveDefinition",
-      temperature: 0.1,
-      minCompletitionChars: 3000, //minimum chars saved for response
-      template: `- Summarize {mu} by listing its defining intensions estrictly based on the provided statements
-- The character "${Tokenizer.beginingOfStatementToken} is used to indicate the begining of statement.
-- Do not include external information. If there are one or few statements, stick to them.
-- Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}". Don't start sentences with uppercase.
-- One bullet point per intension.
-
-Statements:
-###
-{context}
-
-{mu}:`,
-    };
-
-    //- Merge similar intension into a single one without loosing nuances.
-
-    const contextDocs = await getContextDocsForConcept(
-      concept,
-      [SEARCH_ORIGIN_DIRECT] //searchOrigins
-    );
-
-    if (contextDocs.length == 0) return "";
-
-    let contextPrompt = buildContextPromptFromDocs(contextDocs);
-
-    let llmRequest = extensiveDefinitionRequest;
-
-    const out = await callLlm(llmRequest, concept, contextPrompt);
-    return out;
-    return "Direct\n" + out;
-  };
 
   static getInferredIntenionsFromBacklinks = async (
     concept: string
@@ -264,7 +234,7 @@ KEY IDEAS:`,
 - Your RESPONSE is founded exclusively based on the IMPERSONATED PERSPECTIVE.
 - You will stick to the RESPONSE CONDITIONS.
 
-RESPONSE CONDITIONS:
+RESPONSE CONDITIONS
 
 - Only respond what the IMPERSONATED PERSPECTIVE concieves.
 - If you don't have a meaningful insight, do not respond. Suggest to frame the question differently instead.
@@ -279,7 +249,6 @@ RESPONSE CONDITIONS:
 - Provide in-depth, thoughtful RESPONSE.
 
 YOUR PERSONALITY
-You are an 
 
 Mindset and character:
 - Humble and respectful and approachable.
@@ -292,6 +261,16 @@ Mindset and character:
 - Emphasis on rationality and reason.
 - Acceptance of what cannot be controlled.
 - Focus on what can be controlled, particularly one's thoughts and actions.
+
+Structure
+1. Start the RESPONSE general and accessible ideas.
+2. Proceed by adding more resolution,
+3. Continue adding details until all the nuances and details of QUESTION are fully covered.
+
+- Use a logical flow and clear transitions between ideas.
+- Use complex sentences for explaining intricate concepts. Use multiple clauses if needed.
+- Structure the explanation with the necessary paragraphs.
+
 
 Writing style:
 - Curious, observant, intellectual, and reflective tone.
@@ -380,6 +359,109 @@ RESPONSE`,
     });
     return text;
   }
+
+  static getCompiledFriendlyDefinitionRequest = async (
+    term: string,
+    termDefiningIntensions: string,
+    termUsageContext: string,
+    termKeyConceptsDefinitions: string
+  ): Promise<string> => {
+    const compiledFriendlyRequest: LlmRequest2 = {
+      nameId: "respond",
+      inputVariableNames: [
+        "term",
+        "termDefiningIntensions",
+        "termUsageContext",
+        "termKeyConceptsDefinitions",
+        "perspective",
+      ],
+      inputVariables: {
+        term: term,
+        termDefiningIntensions: termDefiningIntensions,
+        termUsageContext: termUsageContext,
+        termKeyConceptsDefinitions: termKeyConceptsDefinitions,
+      },
+      temperature: 0.0,
+      minCompletitionChars: 3000, //minimum chars saved for response
+      template: `INSTRUCTIONS
+
+You job is to provide the most extensive definition of TERM based on the following instructions.
+- You will act based on YOUR PERSONALITY.
+- Infer the meaning of TERM only based on a deep conceptual comprehension of:
+    - The TERM DEFINING INTENSIONS which are the more defining qualities of TERM.
+    - The TERM KEY CONCEPTS DEFINITIONS which are definitions of concepts that are integral to the understanding of TERM.
+    - TERM USAGE CONTEXT. Which are examples of how TERM is used
+- Give a full comprehensive definition of TERM based on the inferred meaning.
+
+STRUCTURE
+
+1. Start the RESPONSE a general and accessible idea of what TERM is.
+2. Proceed by adding more resolution,
+3. Continue adding details until all the nuances and details of TERM are covered.
+
+- Use a logical flow and clear transitions between ideas.
+- Use complex sentences for explaining intricate concepts. Use multiple clauses if needed.
+- Structure the explanation with the necessary paragraphs.
+
+EXTENSION
+
+- The RESPONSE is founded exclusively based on: 
+    - TERM DEFINING INTENSIONS
+    - TERM KEY CONCEPTS DEFINITIONS
+    - TERM USAGE CONTEXT
+- Do not include external information.
+- Quality over quantity.
+- Delve deep into the QUESTION to provide in-depth, thoughtful RESPONSE.
+
+WRITING STYLE
+
+- Curious, observant, intellectual, and reflective tone.
+- Straightforward language. No unnecessary jargon and complexity.
+- Precise and technical language.
+- Do not use jargon exclusive to your vocabulary. Explain it instead.
+- Rich vocabulary spanning art, science, engineering, philosophy, psychology, semantics, semiotics and others.
+- Descriptive writing with concise but vivid imagery.
+- Occasionally use rhetorical devices like analogies and metaphors for effective illustration.
+- Use impersonal and objective language. Do not make references to yourself, or your perspective
+- Do not make appraisal or sentimental evaluations.
+
+YOUR AUDIENCE
+
+- Critical thinkers who engage in intellectual discussions.
+- Lifelong learners seeking educational resources.
+- Interest in depth of the human condition.
+- Diverse global community with various backgrounds and cultures.
+- Only like concise, information-rich content.
+- Do not know anything about your particular perspective and vocabulary.
+
+TERM
+
+{term}
+
+TERM DEFINING INTENSIONS
+
+{termDefiningIntensions}
+
+TERM USAGE CONTEXT
+
+{termUsageContext}
+
+TERM KEY CONCEPTS DEFINITIONS
+
+The following vocabulary is the basis of TERM KEY CONCEPTS DEFINITIONS:
+
+{termKeyConceptsDefinitions}
+
+QUESTION
+
+What is {term}?
+
+RESPONSE`,
+    };
+
+    let out = await callLlm2(compiledFriendlyRequest);
+    return out;
+  };
 }
 //- Explore interesting ideas in detail but make sure you are responding to the question.
 

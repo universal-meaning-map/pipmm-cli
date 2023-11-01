@@ -162,6 +162,18 @@ export default class DirectSearch {
     const note = repo.get(iid);
 
     if (!note) return docs;
+    if (!note.block.has(propViewIId)) {
+      console.log("No VIEW for" + namesWithHyphen);
+      let emptyDoc: Document<Record<string, any>> = {
+        pageContent: "",
+        metadata: {},
+      };
+      return [emptyDoc];
+    } else {
+      if (note.block.get(propViewIId) == "") {
+        console.log("EMPPTY view");
+      }
+    }
 
     const textSplitter = new CharacterTextSplitter({
       chunkSize: 1,

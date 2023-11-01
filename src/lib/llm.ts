@@ -289,7 +289,11 @@ export async function callLlm2(llmRequest: LlmRequest2): Promise<string> {
   });
 
   const chain = new LLMChain({ llm: model, prompt: promptTemplate });
+  console.log(
+    (await chain.prompt.format(llmRequest.inputVariables)).toString()
+  );
   const res = await chain.call(llmRequest.inputVariables);
+
   return res.text;
 }
 

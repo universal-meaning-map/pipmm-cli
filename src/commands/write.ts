@@ -3,20 +3,9 @@ import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
 import Definer from "../lib/definer";
-import DirectSearch from "../lib/directSearch";
-import { SlowBuffer } from "buffer";
-import SemanticSearch from "../lib/semanticSearch";
 import Tokenizer from "../lib/tokenizer";
-import {
-  SEARCH_ORIGIN_SEMANTIC,
-  filterDocsByConfindence,
-  getContextDocsForConcept,
-  openAIMaxTokens,
-  openAITokenPerChar,
-} from "../lib/llm";
+import { openAIMaxTokens, openAITokenPerChar } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
-import { LLM } from "langchain/dist/llms/base";
-import Referencer from "../lib/referencer";
 
 export default class WriteCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -74,6 +63,15 @@ export default class WriteCommand extends Command {
     await DefinerStore.load();
     const question = args.question;
 
+    const d = await DefinerStore.getDefinition(
+      question,
+      false,
+      false,
+      false,
+      true
+    );
+    return;
+
     //QUESTION
     const inputKeyMuWithoutHyphen: string[] = args.keyConcepts.split(", ");
     const inputedKeyMu: string[] = [];
@@ -104,8 +102,6 @@ export default class WriteCommand extends Command {
 
     await Promise.all(rootProcessing);
 
-    await DefinerStore.save();
-    return;
     //MAKE LIST OF SECOND LAYER KC
 
     let secondLayerKeyMu: string[] = [];
@@ -155,10 +151,12 @@ export default class WriteCommand extends Command {
 
     let numOfDefWithContent = 0;
     let definitionsContext = "";
-    let defitinionsDirectContext = "";
+
+    let defitinionsDirectContext =
+      DefinerStore.directDefinitionsToText(allDefinitions);
 
     //MAKE CONTEXT
-
+    /*
     allDefinitions.forEach((d) => {
       if (d.directIntensions.length == 0) {
         return;
@@ -173,6 +171,8 @@ export default class WriteCommand extends Command {
         console.log("No intensions " + d.nameWithHyphen);
       }
     });
+
+    */
 
     //REPLACE HYPHENS
     definitionsContext = defitinionsDirectContext.replaceAll(
