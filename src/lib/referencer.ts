@@ -29,7 +29,7 @@ export default class Referencer {
   static iidToCidMap: { [iid: string]: string } = {};
   static iidToTypeMap: { [iid: string]: IpmmType } = {};
   static iidToNoteWrap: Map<string, NoteWrap> = new Map();
-  static iidToNoteWrapWithHyphen: Map<string, NoteWrap> = new Map();
+  static iidToNoteWrapWithHyphen: Map<string, NoteWrap> = new Map(); //to be used with getRepoWithHyphenNames
   static iidToFoamId: Map<string, string> = new Map();
   static nameToFoamId: Map<string, string> = new Map();
   static nameWithHyphenToFoamId: Map<string, string> = new Map();

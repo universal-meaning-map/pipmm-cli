@@ -20,7 +20,7 @@ import Utils from "./utils";
 import DefinerStore, { Definition, KeyValuePair } from "./definerStore";
 
 export default class Definer {
- /* static getLiteralIntensionsByIid = async (
+  /* static getLiteralIntensionsByIid = async (
     nameWithoutHyphen: string,
     withHyphen: boolean
   ): Promise<string[]> => {
@@ -141,36 +141,49 @@ Top words:`,
 
   static getDefinitionScoredConcepts = async (
     concept: string,
-    definition: string
+    definition: string,
+    keyConcepts: string[]
   ): Promise<KeyValuePair[]> => {
-    const keyConceptsRequest: LlmRequest = {
-      nameId: "definitionKeyConcepts",
+    const terms = keyConcepts.join(", ");
+
+    const keyConceptsWithScoreRequest: LlmRequest2 = {
+      nameId: "keyConceptsWithScoreRequest",
+      inputVariableNames: ["concept", "conceptDefinition", "terms"],
+      inputVariables: {
+        concept: concept,
+        conceptDefinition: definition,
+        terms: terms,
+      },
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
-      template: `- The following is a particular definition of "{mu}"
-- Score the top words in the definition that are prerequisits to understand "{mu}".
+      template: `- The following is a particular definition of "{concept}"
+- Score the following list of Terms, prerequisits to understand "{concept}".
     - Score from 0 to 1 based on their prerequisit-score.
     - The prerequisit-score is higher if:
         - It uses "${Tokenizer.hyphenToken}" (hyphen).
         - It is rare.
-        - It is fundamental to have a comprehensive understanding of {mu}.
+        - It is fundamental to have a comprehensive understanding of {concept}.
         - It is technical.
         - Are used more than once
     - The prequisit-score is lower if:
         - It is used as example.
-- Output a list JSON array of objects with words (k) and its prerequist-score (v).
+- Output a list JSON array of objects with terms (k) and its prerequist-score (v).
     - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
     - Transform each word to its singular form.
     - Use the format: {{"k": "apple", "v": 0.7}}
 
-Definition of "{mu}":
-{context}
+Definition of "{concept}":
+{conceptDefinition}
 
-JSON array of words with prerequisit-score:
+Terms to score:
+{terms}
+
+JSON array of terms with prerequisit-score:
 [`,
     };
 
-    let out = "[" + (await callLlm(keyConceptsRequest, concept, definition));
+    let out = "[" + (await callLlm2(keyConceptsWithScoreRequest));
+    console.log(out);
     return JSON.parse(out) as KeyValuePair[];
   };
 
@@ -360,7 +373,7 @@ RESPONSE`,
     return text;
   }
 
-  static getCompiledFriendlyDefinitionRequest = async (
+  static requestKeyConceptsSynthesis = async (
     term: string,
     termDefiningIntensions: string,
     termUsageContext: string,
@@ -385,78 +398,30 @@ RESPONSE`,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `INSTRUCTIONS
 
-You job is to provide the most extensive definition of TERM based on the following instructions.
-- You will act based on YOUR PERSONALITY.
-- Infer the meaning of TERM only based on a deep conceptual comprehension of:
-    - The TERM DEFINING INTENSIONS which are the more defining qualities of TERM.
-    - The TERM KEY CONCEPTS DEFINITIONS which are definitions of concepts that are integral to the understanding of TERM.
-    - TERM USAGE CONTEXT. Which are examples of how TERM is used
-- Give a full comprehensive definition of TERM based on the inferred meaning.
+- You act as a resarcher assistant in charge of providing comprehensive background knowledge for YOUR AUDIENCE, so they can fully understand the deep meaning of "{term}" when reading its TERM DEFINITION.
+- TERM DEFINITION defines what "{term}" is.
+- USED CONCEPTS DEFINITIONS are concepts used to define "{term}".
+- Output a non-numerated list of SYNTHESIS IDEAS NOT INCLUDED IN TERM DEFINITION.
+    - Include synthesis of the ideas within the USED CONCEPTS DEFINITIONS that are necessary to have a deep conceptual comprehension of "{term}".
+    - Include explanations of the relationships and dependencies between "{term} and key concepts and in between key concepts.
+    - Do not include ideas that already exist in TERM DEFINITION.
+- Do not use any external information.
+- Use straightforward language. No unnecessary jargon and complexity.
+- Use impersonal and objective language.
+- Use precise and technical language.
+- A synthesis is made of complex sentences that explain the intricate details, relationships and ideas of the concept relevant to understand "{term}".  Sentences feature as many clauses as needed.
 
-STRUCTURE
-
-1. Start the RESPONSE a general and accessible idea of what TERM is.
-2. Proceed by adding more resolution,
-3. Continue adding details until all the nuances and details of TERM are covered.
-
-- Use a logical flow and clear transitions between ideas.
-- Use complex sentences for explaining intricate concepts. Use multiple clauses if needed.
-- Structure the explanation with the necessary paragraphs.
-
-EXTENSION
-
-- The RESPONSE is founded exclusively based on: 
-    - TERM DEFINING INTENSIONS
-    - TERM KEY CONCEPTS DEFINITIONS
-    - TERM USAGE CONTEXT
-- Do not include external information.
-- Quality over quantity.
-- Delve deep into the QUESTION to provide in-depth, thoughtful RESPONSE.
-
-WRITING STYLE
-
-- Curious, observant, intellectual, and reflective tone.
-- Straightforward language. No unnecessary jargon and complexity.
-- Precise and technical language.
-- Do not use jargon exclusive to your vocabulary. Explain it instead.
-- Rich vocabulary spanning art, science, engineering, philosophy, psychology, semantics, semiotics and others.
-- Descriptive writing with concise but vivid imagery.
-- Occasionally use rhetorical devices like analogies and metaphors for effective illustration.
-- Use impersonal and objective language. Do not make references to yourself, or your perspective
-- Do not make appraisal or sentimental evaluations.
-
-YOUR AUDIENCE
-
-- Critical thinkers who engage in intellectual discussions.
-- Lifelong learners seeking educational resources.
-- Interest in depth of the human condition.
-- Diverse global community with various backgrounds and cultures.
-- Only like concise, information-rich content.
-- Do not know anything about your particular perspective and vocabulary.
-
-TERM
-
-{term}
-
-TERM DEFINING INTENSIONS
+TERM DEFINTIION
 
 {termDefiningIntensions}
 
-TERM USAGE CONTEXT
+USED CONCEPTS DEFINITIONS
 
-{termUsageContext}
-
-TERM KEY CONCEPTS DEFINITIONS
-
-The following vocabulary is the basis of TERM KEY CONCEPTS DEFINITIONS:
+The following are definitions of concepts used to define "{term}" that may be prerequisists to understand "{term}".
 
 {termKeyConceptsDefinitions}
 
-QUESTION
-
-What is {term}?
-
-RESPONSE`,
+SYNTHESIS IDEAS NOT INCLUDED IN TERM DEFINITION`,
     };
 
     let out = await callLlm2(compiledFriendlyRequest);
@@ -475,3 +440,7 @@ Definition of "{mu}":
 {context}
 
 JSON object of key concepts:`,*/
+
+//Synthesis
+//Background knowledge
+// conceptual comprehension

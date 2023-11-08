@@ -8,7 +8,7 @@ import { openAIMaxTokens, openAITokenPerChar } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import DirectSearch from "../lib/directSearch";
 
-export default class WriteCommand extends Command {
+export default class AnswerCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
 
   static flags = {
@@ -46,7 +46,7 @@ export default class WriteCommand extends Command {
   ];
 
   async run() {
-    const { args, flags } = this.parse(WriteCommand);
+    const { args, flags } = this.parse(AnswerCommand);
 
     let workingPath = process.cwd();
     if (flags.repoPath) {
@@ -64,25 +64,16 @@ export default class WriteCommand extends Command {
     await DefinerStore.load();
     const question = args.question;
 
-    const d = await DefinerStore.getDefinition(
-      question,
-      false,
-      false,
-      false,
-      true
-    );
-
-    console.log(d!.compiledDefinition);
-    await DefinerStore.save();
-    return;
-
     //QUESTION
+    console.log("A");
     const inputKeyMuWithoutHyphen: string[] = args.keyConcepts.split(", ");
     const inputedKeyMu: string[] = [];
 
     for (let mu of inputKeyMuWithoutHyphen) {
       inputedKeyMu.push(Utils.renameToHyphen(mu));
     }
+
+    console.log(inputedKeyMu);
 
     const questionKeyMu: string[] = await Definer.getTextKeyMeaningUnits(
       question

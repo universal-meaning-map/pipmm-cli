@@ -9,8 +9,6 @@ import {
   getConfidenceScore,
   sortDocsByConfidence,
 } from "./llm";
-import SemanticSearch from "./semanticSearch";
-import Tokenizer from "./tokenizer";
 import ConfigController from "./configController";
 import Filter from "./filterController";
 
@@ -210,5 +208,52 @@ export default class DirectSearch {
       docs.push(doc);
     }
     return docs;
+  };
+
+  static getAllNamesWithHyphenDependencies = async (
+    nameWithHyphen: string
+  ): Promise<string[]> => {
+    const iid = await DirectSearch.getIidByName(
+      Utils.renameFromHyphen(nameWithHyphen)
+    );
+
+    const iidDependencies = await DirectSearch.getAllIidsDependencies(iid);
+    const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+
+    let nameWithHyphenDependencies = iidDependencies.map((iid) => {
+      const note = repoWithHyphen.get(iid);
+      if (note && note.block && note.block.has(NAME_IID)) {
+        return note.block.get(NAME_IID);
+      }
+    });
+    console.log(nameWithHyphenDependencies);
+    return nameWithHyphenDependencies;
+  };
+
+  static getAllIidsDependencies = async (iid: string): Promise<string[]> => {
+    let dependencyIids: string[] = [];
+    const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
+    const note = repoWithHyphen.get(iid);
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+    const VIEW_IDD = await Referencer.makeIid(Referencer.PROP_VIEW_FOAMID);
+
+    if (note && note.block && note.block.has(VIEW_IDD)) {
+      const viewIPT = note.block.get(VIEW_IDD);
+      for (let run of viewIPT) {
+        //console.log(run);
+        if (run[0] == "[") {
+          let expr = JSON.parse(run);
+          if (expr.length == 1) {
+            const depIid = expr[0].split("/")[0];
+
+            if (depIid && depIid != iid) dependencyIids.push(depIid);
+          }
+        }
+      }
+    } else {
+    }
+    const noDuplicates = [...new Set(dependencyIids)];
+    return noDuplicates;
   };
 }

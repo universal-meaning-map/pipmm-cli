@@ -476,6 +476,17 @@ export function filterBySearchOrigin(
   );
 }
 
+export function filterDocsByMaxLength(
+  docs: Document<Record<string, any>>[],
+  maxLength: number
+): Document<Record<string, any>>[] {
+  return docs.filter((doc) => {
+    if (doc.pageContent.length < maxLength) {
+      return doc;
+    }
+  });
+}
+
 export function logDocsWithHigherConfidenceLast(
   docs: Document<Record<string, any>>[]
 ) {

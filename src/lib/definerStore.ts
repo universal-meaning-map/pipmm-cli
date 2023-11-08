@@ -1,3 +1,4 @@
+import { LLM } from "langchain/dist/llms/base";
 import ConfigController from "./configController";
 import Definer from "./definer";
 import DirectSearch from "./directSearch";
@@ -5,6 +6,12 @@ import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
 import * as fs from "fs";
+import {
+  SEARCH_ORIGIN_BACKLINK,
+  buildContextPromptFromDocs,
+  filterDocsByMaxLength,
+  getContextDocsForConcept,
+} from "./llm";
 
 export interface Definition {
   //evrything is with hyphen
@@ -27,7 +34,7 @@ export interface KeyValuePair {
 
 export default class DefinerStore {
   static hoursToMilis = 3600000;
-  static defaultLlmUpdatePeriod: number = 15 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
+  static defaultLlmUpdatePeriod: number = 4 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
   static definitions: Map<string, Definition> = new Map();
 
   static save = async (): Promise<void> => {
@@ -37,10 +44,7 @@ export default class DefinerStore {
       storedDefinitions.push(d);
     });
 
-    console.log("Save");
-
     const j = JSON.stringify(storedDefinitions, null, 2);
-    console.log(j);
     Utils.saveFile(
       j,
       ConfigController._configFile.resources.compiledDefinitions
@@ -179,20 +183,33 @@ export default class DefinerStore {
         Date.now() - d.lastKeyConceptsRequest >
         DefinerStore.defaultLlmUpdatePeriod
       ) {
+        const dependencies =
+          await DirectSearch.getAllNamesWithHyphenDependencies(nameWithHyphen);
+
+        console.log("Dependencies: " + nameWithHyphen);
+        console.log(dependencies);
+
         const keyWordsScores = await Definer.getDefinitionScoredConcepts(
           d.nameWithHyphen,
-          Definer.intensionsToText(d.directIntensions)
+          Definer.intensionsToText(d.directIntensions),
+          dependencies
         );
 
         d = DefinerStore.definitions.get(nameWithHyphen)!;
+        d.keyConceptsScores = []; //resets stored ones
+
+        console.log("Adding scores to " + nameWithHyphen);
         keyWordsScores.forEach((wordWithScore) => {
           if (Referencer.nameWithHyphenToFoamId.has(wordWithScore.k)) {
             d.keyConceptsScores.push(wordWithScore);
+            console.log(wordWithScore);
           }
         });
         d.keyConceptsScores.sort((a, b) => b.v - a.v);
         d.lastKeyConceptsRequest = Date.now();
         DefinerStore.definitions.set(nameWithHyphen, d);
+        console.log("sorted:");
+        console.log(d.keyConceptsScores);
       } else {
         console.log(
           "Not updating " +
@@ -208,15 +225,15 @@ export default class DefinerStore {
     d = DefinerStore.definitions.get(nameWithHyphen)!;
     if (needsCompiled) {
       if (
-        Date.now() - d.lastCompiledRequest >
-        DefinerStore.defaultLlmUpdatePeriod
+        true ||
+        Date.now() - d.lastCompiledRequest > DefinerStore.defaultLlmUpdatePeriod
       ) {
-        const cd = await DefinerStore.getCompiledFriendlyDefinition(
+        const cd = await DefinerStore.getDefinitionSupportContext(
           nameWithHyphen
         );
         d = DefinerStore.definitions.get(nameWithHyphen)!;
         d.lastCompiledRequest = Date.now();
-        d.keyConceptsScores;
+        d.compiledDefinition = cd;
         DefinerStore.definitions.set(nameWithHyphen, d);
       }
     }
@@ -233,7 +250,7 @@ export default class DefinerStore {
     //directIntensions
   };
 
-  static getCompiledFriendlyDefinition = async (
+  static getDefinitionSupportContext = async (
     nameWithHyphen: string
   ): Promise<string> => {
     let rootDefinition = await DefinerStore.getDefinition(
@@ -249,12 +266,16 @@ export default class DefinerStore {
       return "";
     }
 
+    //Get list of key concepts
+    //Filter only the ones with high score.
     let keyConcepts: string[] = [];
-
     for (let ks of rootDefinition!.keyConceptsScores) {
-      keyConcepts.push(ks.k);
+      if (ks.v > 0.7) keyConcepts.push(ks.k);
     }
 
+    //filter key concepts
+
+    //Get KeyConcepts definitions
     const secondLayerProcessing = keyConcepts.map(
       async (conceptWithHyphen: string): Promise<Definition | undefined> => {
         return await DefinerStore.getDefinition(
@@ -267,23 +288,50 @@ export default class DefinerStore {
       }
     );
 
-    let keyConceptsDefinitions: Definition[] = [];
+    let keyConceptsSynthesis: Definition[] = [];
     await Promise.all(secondLayerProcessing).then((definitions) => {
       for (let d of definitions) {
-        if (d) keyConceptsDefinitions.push(d);
+        if (d) keyConceptsSynthesis.push(d);
       }
     });
 
-    const term = nameWithHyphen.replaceAll(Tokenizer.hyphenToken, " ");
+    //Remove hyphens
+    const term = nameWithHyphen; //nameWithHyphen.replaceAll(Tokenizer.hyphenToken, " ");
+
+    // Get root definition
     const termIntensions = DefinerStore.directDefinitionsToText([
       rootDefinition,
-    ]).replaceAll(Tokenizer.hyphenToken, " ");
-    const termUsageContext = "<No usage examples>";
+    ]); //.replaceAll(Tokenizer.hyphenToken, " ");
     const keyConceptstextDefinitions = DefinerStore.directDefinitionsToText(
-      keyConceptsDefinitions
-    ).replaceAll(Tokenizer.hyphenToken, " ");
+      keyConceptsSynthesis
+    ); //.replaceAll(Tokenizer.hyphenToken, " ");
 
-    const out = await Definer.getCompiledFriendlyDefinitionRequest(
+    //Terms usage context
+    /*
+    THIS SHOULD BE A DIFFERENT CALL
+    - direct intension
+    - usage intensions
+    - key concepts syntesis
+    */
+    let termUsageContext = "<No usage examples>";
+    /*
+    let termUsageDocs = await getContextDocsForConcept(
+      term,
+      [SEARCH_ORIGIN_BACKLINK] //searchOrigins
+    );
+
+    termUsageDocs = filterDocsByMaxLength(termUsageDocs, 300);
+
+    if (termUsageDocs.length != 0) {
+      termUsageContext = buildContextPromptFromDocs(termUsageDocs);
+    }
+    console.log("TERM USAGE CONTEXT");
+    console.log(termUsageContext.length);
+    console.log(termUsageContext);
+    */
+
+    // Get final call
+    const out = await Definer.requestKeyConceptsSynthesis(
       term,
       termIntensions,
       termUsageContext,
@@ -301,9 +349,21 @@ export default class DefinerStore {
       }
       const defitinionText = Definer.intensionsToText(d.directIntensions);
       definitionsText =
-        definitionsText + "\n" + d.name + ":\n" + defitinionText;
+        definitionsText + "\n" + d.nameWithHyphen + ":\n" + defitinionText;
     });
     //NEEDS PRUNING
     return definitionsText;
+  }
+
+  static filterKeyConceptByScore(
+    keyConcepts: KeyValuePair[],
+    minScore: number
+  ) {
+    function keyConceptsFitler(keyConcept: KeyValuePair): boolean {
+      if (keyConcept.v >= minScore) return true;
+      return false;
+    }
+
+    return keyConcepts.filter(keyConceptsFitler);
   }
 }
