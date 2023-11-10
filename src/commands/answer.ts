@@ -5,7 +5,7 @@ import Compiler from "../lib/compiler";
 import Definer from "../lib/definer";
 import Tokenizer from "../lib/tokenizer";
 import { openAIMaxTokens, openAITokenPerChar } from "../lib/llm";
-import DefinerStore, { Definition } from "../lib/definerStore";
+import DefinerStore, { Definition, KeyValuePair, RequestScores } from "../lib/definerStore";
 import DirectSearch from "../lib/directSearch";
 
 export default class AnswerCommand extends Command {
@@ -46,6 +46,7 @@ export default class AnswerCommand extends Command {
   ];
 
   async run() {
+    console.warn = () => {};
     const { args, flags } = this.parse(AnswerCommand);
 
     let workingPath = process.cwd();
@@ -61,33 +62,32 @@ export default class AnswerCommand extends Command {
       ConfigController.foamRepoPath
     );
 
+    // Load compiled definitions
     await DefinerStore.load();
+
+    //QUESTION and KEY CONCEPTS
     const question = args.question;
+    const baseConcepts: string[] = args.keyConcepts.split(", ");
 
-    //QUESTION
-    console.log("A");
-    const inputKeyMuWithoutHyphen: string[] = args.keyConcepts.split(", ");
-    const inputedKeyMu: string[] = [];
-
-    for (let mu of inputKeyMuWithoutHyphen) {
-      inputedKeyMu.push(Utils.renameToHyphen(mu));
-    }
-
-    console.log(inputedKeyMu);
-
-    const questionKeyMu: string[] = await Definer.getTextKeyMeaningUnits(
+    let requestScores = DefinerStore.newRequestScores();
+    //Guess TEXT K
+    const guessedConcepts: KeyValuePair[] = await Definer.guessTextKeyConcepts(
       question
     );
 
-    const rootKeyMu = [...new Set(inputedKeyMu.concat(questionKeyMu))]; //remove duplicates
+    console.log(guessedConcepts);
+
+    return;
+
+    const rootKeyMu = [...new Set(baseConcepts.concat(guessedConcepts))]; //remove duplicates
 
     console.log("\nInput:");
-    inputedKeyMu.forEach((mu: string) => {
+    baseConcepts.forEach((mu: string) => {
       console.log(mu);
     });
 
     console.log("\n\nGuessed:");
-    questionKeyMu.forEach((mu: string) => {
+    guessedConcepts.forEach((mu: string) => {
       console.log(mu);
     });
 

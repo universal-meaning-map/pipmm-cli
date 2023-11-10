@@ -21,9 +21,9 @@ export default class TrainCommand extends Command {
         "Executes the command relative to the specified path as oppose to the working directory",
     }),
 
-    indexWithHyphen: flags.boolean({
-      name: "indexHypen",
-      char: "w",
+    indexWithoutHyphen: flags.boolean({
+      name: "noHyphen",
+      char: "N",
       description:
         "Indexes view and  names on their own vector DB. Multi word names are joined with " +
         Tokenizer.hyphenToken,
@@ -69,7 +69,7 @@ export default class TrainCommand extends Command {
     await SemanticSearch.index(
       filteredRepo,
       Referencer.PROP_VIEW_FOAMID,
-      flags.indexWithHyphen
+      !flags.indexWithoutHyphen
     );
     /*await SemanticSearch.index(
       filteredRepo,

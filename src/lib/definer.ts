@@ -13,11 +13,13 @@ import {
   getContextDocsForConcept,
   openAIMaxTokens,
   openAITokenPerChar,
+  sortDocsByConfidence,
 } from "./llm";
 import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
 import DefinerStore, { Definition, KeyValuePair } from "./definerStore";
+import { uniqBy } from "@oclif/plugin-help/lib/util";
 
 export default class Definer {
   /* static getLiteralIntensionsByIid = async (
@@ -147,7 +149,6 @@ Top words:`,
     const terms = keyConcepts.join(", ");
 
     const keyConceptsWithScoreRequest: LlmRequest2 = {
-      nameId: "keyConceptsWithScoreRequest",
       inputVariableNames: ["concept", "conceptDefinition", "terms"],
       inputVariables: {
         concept: concept,
@@ -187,50 +188,125 @@ JSON array of terms with prerequisit-score:
     return JSON.parse(out) as KeyValuePair[];
   };
 
-  static getQuestionKeyConcepts = async (
-    definition: string
-  ): Promise<string[]> => {
-    const keyConceptsRequest: LlmRequest = {
-      nameId: "questionKeyConcepts",
+  static getTextRelatedConceptsRequest = async (
+    context: string
+  ): Promise<KeyValuePair[]> => {
+    const guessedScoredConcepts: LlmRequest2 = {
+      inputVariableNames: ["context"],
+      inputVariables: {
+        context: context,
+      },
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `"INSTRUCTIONS
-- List the key words in the following text.
-- Output a comma separated list without. Do not put a "." at the end.
+Suggest:
+- concepts and ideas that may be related to the TEXT.
+- concepts and ideas in the TEXT.
+- key words in the TEXT
+- concepts and ideas that can capture the meaning of the TEXT in different words.
 
-TEXT:
+Output a list JSON array of objects with concept (k) and its prerequist-score (v).
+- Write in singular and lower-case.
+- Score from 0 to 1 based on its relevancy to the TEXT.
+- Use the format: {{"k": "apple", "v": 0.7}}
+
+TEXT
 {context}
-
-KEY IDEAS:`,
+.
+CONCEPTS`,
     };
 
-    let out = await callLlm(keyConceptsRequest, "", definition);
-    return out.split(", ");
+    let json = await callLlm2(guessedScoredConcepts);
+    let out = JSON.parse(json) as KeyValuePair[];
+    for (let kv of out) {
+      kv.v = Utils.mapRange(kv.v, 0, 1, 0.5, 1);
+    }
+    return out;
   };
 
-  static getTextKeyMeaningUnits = async (text: string): Promise<string[]> => {
-    let docs: Document<Record<string, any>>[] = [];
+  static guessTextKeyConcepts = async (
+    text: string
+  ): Promise<KeyValuePair[]> => {
+    //Get scored list of related concepts
+    const relatedConceptScored = await Definer.getTextRelatedConceptsRequest(
+      text
+    );
 
-    //KEY CONCEPTS
-    const keyWords = await Definer.getQuestionKeyConcepts(text);
+    console.log("Guessed key words");
+    console.log(relatedConceptScored);
 
-    for (let word of keyWords) {
-      let wordDocs = await getContextDocsForConcept(word, [
+    let allDocs: Document<Record<string, any>>[] = [];
+    for (let concept of relatedConceptScored) {
+      //We get all the docs related to the semantic search
+      let docsForConcept = await getContextDocsForConcept(concept.k, [
         SEARCH_ORIGIN_SEMANTIC,
       ]);
 
-      wordDocs = filterDocsByConfindence(wordDocs, 0.7);
-      docs = docs.concat(wordDocs);
+      // we give the doc the score
+      // we recalculate confidence based on that.
+      for (let d of docsForConcept) {
+        d.metadata.textRelevanceScore = concept.v;
+        d.metadata.confidence = d.metadata.confidence * concept.v;
+      }
+
+      allDocs = allDocs.concat(docsForConcept);
     }
 
-    let keyMus: string[] = [];
+    allDocs = sortDocsByConfidence(allDocs);
+    allDocs = filterDocsByConfindence(allDocs, 0.6);
 
-    for (let d of docs) {
-      keyMus.push(d.metadata.name);
+    let guessedConcepts: KeyValuePair[] = [];
+
+    for (let d of allDocs) {
+      guessedConcepts.push({ k: d.metadata.name, v: d.metadata.confidence });
     }
-    keyMus = [...new Set(keyMus)]; //remove duplicates
-    return keyMus;
+
+    //guessedConcepts = [...new Set(guessedConcepts)]; //remove duplicates
+    return Definer.removeRepeatsAndNormalizeScore(guessedConcepts);
   };
+
+  static removeRepeatsAndNormalizeScore(
+    concepts: KeyValuePair[]
+  ): KeyValuePair[] {
+    concepts.sort((a, b) => {
+      let A = a.k.split(Tokenizer.hyphenToken).join();
+      let B = b.k.split(Tokenizer.hyphenToken).join();
+      if (A < B) return -1;
+      if (A > B) return 1;
+      return 1;
+    });
+
+    let uniques: KeyValuePair[] = [];
+    let prevKey = "";
+    let count = 1;
+    let hv = 0;
+
+    console.log(concepts);
+
+    //increases k.v base on repetitions, taking the highest score as base
+    let prevC = { k: "", v: 0 };
+    for (let i = 0; i < concepts.length; i++) {
+      let c = concepts[i];
+      if (c.k != prevC.k || i == concepts.length - 1) {
+        //calculate the previous
+        if (prevC.v > hv) hv = prevC.v; // get the highest score
+        let f = 1 + Math.log(count) * 0.1; // 2x = 1.0693, 10x = 1.2
+        let v = hv * f;
+        if (v > 1) v = 1;
+
+        //console.log(prevC);
+        //console.log(count + " " + v);
+        uniques.push({ k: prevC.k, v: v });
+        prevC = c;
+        count = 1;
+        hv = 0;
+      } else {
+        count++;
+      }
+    }
+
+    return uniques;
+  }
 
   static respondQuestion = async (
     mu: string, // question
@@ -333,7 +409,6 @@ RESPONSE`,
     perspective: string
   ): Promise<string> => {
     const writeWithStyle: LlmRequest2 = {
-      nameId: "respond",
       inputVariableNames: [
         "textType",
         "topic",
@@ -380,7 +455,6 @@ RESPONSE`,
     termKeyConceptsDefinitions: string
   ): Promise<string> => {
     const compiledFriendlyRequest: LlmRequest2 = {
-      nameId: "respond",
       inputVariableNames: [
         "term",
         "termDefiningIntensions",

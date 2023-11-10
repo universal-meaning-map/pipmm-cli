@@ -32,6 +32,14 @@ export interface KeyValuePair {
   v: number;
 }
 
+export interface RequestScores {
+  given: KeyValuePair[];
+  givenParents: KeyValuePair[];
+  manual: KeyValuePair[];
+  manualParents: KeyValuePair[];
+  final: KeyValuePair[];
+}
+
 export default class DefinerStore {
   static hoursToMilis = 3600000;
   static defaultLlmUpdatePeriod: number = 4 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
@@ -123,6 +131,16 @@ export default class DefinerStore {
     DefinerStore.definitions.set(d!.nameWithHyphen, d!);
 
     // console.log("SET backlink: " + nameWithHyphen);
+  };
+
+  static newRequestScores = (): RequestScores => {
+    return {
+      manual: [],
+      manualParents: [],
+      given: [],
+      givenParents: [],
+      final: [],
+    };
   };
 
   static getDefinition = async (
@@ -302,9 +320,8 @@ export default class DefinerStore {
     const termIntensions = DefinerStore.directDefinitionsToText([
       rootDefinition,
     ]); //.replaceAll(Tokenizer.hyphenToken, " ");
-    const keyConceptstextDefinitions = DefinerStore.directDefinitionsToText(
-      keyConceptsSynthesis
-    ); //.replaceAll(Tokenizer.hyphenToken, " ");
+    const keyConceptstextDefinitions =
+      DefinerStore.directDefinitionsToText(keyConceptsSynthesis); //.replaceAll(Tokenizer.hyphenToken, " ");
 
     //Terms usage context
     /*

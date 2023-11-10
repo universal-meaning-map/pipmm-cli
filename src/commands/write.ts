@@ -6,7 +6,7 @@ import Definer from "../lib/definer";
 import Tokenizer from "../lib/tokenizer";
 import { openAIMaxTokens, openAITokenPerChar } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
-import DirectSearch from "../lib/directSearch";
+import Composer, { sectionInstructions } from "../lib/composer";
 
 export default class WriteCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -74,204 +74,43 @@ export default class WriteCommand extends Command {
 
     console.log(d!.compiledDefinition);
     await DefinerStore.save();
-    return;
+    const sectionInstructions: sectionInstructions[] = [
+      {
+        title: "Overview",
+        instructions:
+          "Instructions:  very high level overview synthesis of what IPMM is. Just few paragraphs.",
+        coverage: "IPMM intent, What problems IPMM solves",
+        baseConcepts: ["IPMM"],
+      },
+      {
+        title: "Current stage",
+        instructions: "Synthesize the current stage of development of IPMM?",
+        coverage: "IPMM intent, What problems IPMM solves",
+        baseConcepts: [
+          "IPMM-current-focus",
+          "IPMM",
+          "IPMM-purpose",
+          "IPMM Framework",
+        ],
+      },
+      {
+        title: "Terminology",
+        instructions:
+          "Justify in a synthetic way why it is  relevant for IPMM to have its own terminology",
+        coverage:
+          "IPMM has a unique terminology. It creates and redefines words in order to create a paradigm that can capture the problem space with much more accuracy, and not be constrained by pre-existing conceptions",
+        baseConcepts: [
+          "personal-language",
+          "shared-language",
+          "limits-of-shared language",
+          "word",
+        ],
+      },
+    ];
 
-    //QUESTION
-    const inputKeyMuWithoutHyphen: string[] = args.keyConcepts.split(", ");
-    const inputedKeyMu: string[] = [];
-
-    for (let mu of inputKeyMuWithoutHyphen) {
-      inputedKeyMu.push(Utils.renameToHyphen(mu));
-    }
-
-    const questionKeyMu: string[] = await Definer.getTextKeyMeaningUnits(
-      question
-    );
-
-    const rootKeyMu = [...new Set(inputedKeyMu.concat(questionKeyMu))]; //remove duplicates
-
-    console.log("\nInput:");
-    inputedKeyMu.forEach((mu: string) => {
-      console.log(mu);
-    });
-
-    console.log("\n\nGuessed:");
-    questionKeyMu.forEach((mu: string) => {
-      console.log(mu);
-    });
-
-    const rootProcessing = rootKeyMu.map(async (mu: string) => {
-      await DefinerStore.getDefinition(mu, true, false, true, false);
-    });
-
-    await Promise.all(rootProcessing);
-
-    //MAKE LIST OF SECOND LAYER KC
-
-    let secondLayerKeyMu: string[] = [];
-
-    for (let r of rootKeyMu) {
-      await DefinerStore.addBackLinkScore(r, 3);
-    }
-
-    DefinerStore.definitions.forEach((d) => {
-      for (let kcs of d.keyConceptsScores) {
-        secondLayerKeyMu.push(kcs.k);
-      }
-    });
-
-    secondLayerKeyMu = [...new Set(secondLayerKeyMu)]; //remove duplicates
-
-    console.log("SECOND LAYER KC:");
-    console.log(secondLayerKeyMu);
-
-    // GET SECOND LAYER DEFINITIONS
-    const secondLayerProcessing = secondLayerKeyMu.map(
-      async (conceptWithHyphen: string) => {
-        const mu = await DefinerStore.getDefinition(
-          conceptWithHyphen,
-          true,
-          false,
-          false,
-          false
-        );
-      }
-    );
-
-    await Promise.all(secondLayerProcessing);
-
-    console.log("\nDefinitions:");
-    let allDefinitions: Definition[] = [];
-    DefinerStore.definitions.forEach((d, key) => {
-      allDefinitions.push(d);
-      //console.log(d);
-    });
-
-    allDefinitions.sort((a, b) => b.backLinkScore - a.backLinkScore);
-
-    allDefinitions.forEach((d) => {
-      console.log(d.nameWithHyphen + " " + d.backLinkScore);
-    });
-
-    let numOfDefWithContent = 0;
-    let definitionsContext = "";
-
-    let defitinionsDirectContext =
-      DefinerStore.directDefinitionsToText(allDefinitions);
-
-    //MAKE CONTEXT
-    /*
-    allDefinitions.forEach((d) => {
-      if (d.directIntensions.length == 0) {
-        return;
-      }
-      const defitinionText = Definer.intensionsToText(d.directIntensions);
-      defitinionsDirectContext =
-        defitinionsDirectContext + "\n" + d.name + ":\n" + defitinionText;
-
-      if (d.directIntensions.length > 1) {
-        numOfDefWithContent++;
-      } else {
-        console.log("No intensions " + d.nameWithHyphen);
-      }
-    });
-
-    */
-
-    //REPLACE HYPHENS
-    definitionsContext = defitinionsDirectContext.replaceAll(
-      Tokenizer.hyphenToken,
-      " "
-    );
-
-    let prunedDefinitionsContext = definitionsContext;
-
-    const reservedResonseChars = 6000;
-    const maxTotalChars = openAIMaxTokens / openAITokenPerChar;
-    const maxPromptChars = maxTotalChars - reservedResonseChars;
-
-    const responseTokens = 1500;
-    const maxTokens = 8000;
-    const maxPromptTOkens = maxTokens - responseTokens;
-    const promptTokens = definitionsContext.length * openAITokenPerChar;
-    if (promptTokens > maxPromptTOkens) {
-      const tokensToRemove =
-        (promptTokens - maxPromptTOkens) / openAITokenPerChar;
-
-      prunedDefinitionsContext = definitionsContext.slice(0, -tokensToRemove);
-    }
-
-    const out = await Definer.respondQuestion(
-      question,
-      prunedDefinitionsContext
-    );
-
-    /*
-    const textType: string = "a motivational speech";
-    const topic: string = question;
-    const targetAudience: string =
-    "gaining awareness of what matters when I wake up in the morning";
-    const style: string = "Leonardo Da Vinci";
-    const perspective: string = prunedDefinitionsContext;
-    const out = await Definer.respondQuestion2(
-        textType,
-      topic,
-      targetAudience,
-      style,
-      perspective
-      );
-      */
-
-    console.log("\n\nOUT");
-    console.log(out);
-
-    const directRemainPercentage =
-      maxPromptChars / defitinionsDirectContext.length;
-
-    console.log(`
-STATS
-
-Accepted aprox:
-    Total chars: ${maxTotalChars} tokens ${maxTotalChars * openAITokenPerChar}
-    Prompt chars: ${maxPromptChars} tokens ${
-      maxPromptChars * openAITokenPerChar
-    }
-
-Original
-    Nº of def : ${numOfDefWithContent}
-    Avg direct def Chars: ${Math.round(
-      defitinionsDirectContext.length / numOfDefWithContent
-    )} Tokens: ${Math.round(
-      (defitinionsDirectContext.length / numOfDefWithContent) *
-        openAITokenPerChar
-    )}
-    Direct context Chars: ${defitinionsDirectContext.length}  Tokens: ${
-      defitinionsDirectContext.length * openAITokenPerChar
-    }
-
-Pruned 
-    Direct % remained: ${Math.round(directRemainPercentage * 100) / 100}
-    Nº of direct def. : ${
-      Math.round(numOfDefWithContent * directRemainPercentage * 100) / 100
-    }
-    Direct context chars: ${Math.round(
-      defitinionsDirectContext.length * directRemainPercentage
-    )}  tokens: ${Math.round(
-      defitinionsDirectContext.length *
-        directRemainPercentage *
-        openAITokenPerChar
-    )}
-`);
-
-    DefinerStore.save();
-
-    //Translate back into format X
-    //const usedDocsNameIidMap = getDocsNameIidList(edContextDocs);
-
-    //const ipt = await textToIptFromList(out, sortedNameIId);
-    //console.log(ipt);
-
-    // const foamText = textToFoamText(out);
-    // console.log(foamText);
+    const baseConcepts= Composer.getBaseConcepts(sectionInstructions);
+    const sectionInstructionsText = Composer.makeSectionRequest(sectionInstructions);
+    const conceptDefintions = ""
+    Composer.composeRequest("IPMM", sectionInstructionsText,conceptDefintions);
   }
 }

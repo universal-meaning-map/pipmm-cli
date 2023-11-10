@@ -9,6 +9,7 @@ import DirectSearch from "../lib/directSearch";
 import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
 import { ChainValues } from "langchain/dist/schema";
+import { KeyValuePair } from "./definerStore";
 
 export const openAITokenPerChar = 0.25;
 export const openAIMaxTokens = 8000;
@@ -26,7 +27,6 @@ export interface LlmRequest {
 }
 
 export interface LlmRequest2 {
-  nameId: string; //identifier of the request template
   template: string; //langchain prompt template
   inputVariableNames: string[]; //variable names used in the prompt template
   inputVariables: ChainValues;
