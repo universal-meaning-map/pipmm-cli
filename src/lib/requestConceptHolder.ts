@@ -95,10 +95,10 @@ export default class RequestConceptHolder {
     return conceptScores;
   }
 
-  getFinalDefinitions(): Definition[] {
+  async getFinalDefinitions(): Promise<Definition[]> {
     let definitions: Definition[] = [];
     for (let cs of this.final) {
-      const d = DefinerStore.getDefinition(cs.k, false, false, false, false);
+      const d = await DefinerStore.getDefinition(cs.k, false, false, false, false);
       if (d) definitions.push(d);
     }
     return definitions;

@@ -1,13 +1,11 @@
 import { Document } from "langchain/document";
 import {
-  LlmRequest,
   LlmRequest2,
   ModelConfig,
   GPT4,
   SEARCH_ORIGIN_BACKLINK,
   SEARCH_ORIGIN_SEMANTIC,
   buildContextPromptFromDocs,
-  callLlm,
   callLlm2,
   filterDocsByConfindence,
   getContextDocsForConcept,
@@ -16,6 +14,7 @@ import {
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
 import { KeyValuePair } from "./definerStore";
+import { ChainValues } from "langchain/dist/schema";
 
 export default class Definer {
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
@@ -52,12 +51,12 @@ export default class Definer {
       Tokenizer.unknownTermToken
     );
 
+    const inputVariables: ChainValues = {
+      contextPrompt: contextPrompt,
+    };
     const request: LlmRequest2 = {
-      model: GPT4,
       inputVariableNames: ["context"],
-      inputVariables: {
-        contextPrompt: contextPrompt,
-      },
+
       temperature: 0.2,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `- In the following occurrances an unknown term ${Tokenizer.unknownTermToken} is used.
@@ -72,7 +71,7 @@ export default class Definer {
   ${Tokenizer.unknownTermToken}:`,
     };
 
-    let out = await callLlm2(request);
+    let out = await callLlm2(GPT4, request, inputVariables);
 
     out = out.replace(
       new RegExp(Tokenizer.unknownTermToken, "g"),
@@ -86,13 +85,12 @@ export default class Definer {
     concept: string,
     definition: string
   ): Promise<string[]> => {
+    const inputVariables: ChainValues = {
+      concept: concept,
+      conceptDefinition: definition,
+    };
     const keyConceptsRequest: LlmRequest2 = {
-      model: model,
       inputVariableNames: ["concept", "conceptDefinition"],
-      inputVariables: {
-        concept: concept,
-        conceptDefinition: definition,
-      },
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `- The following is a particular definition of "{concept}"
@@ -108,26 +106,48 @@ Definition of "{concept}":
 Top words:`,
     };
 
-    let out = await callLlm2(keyConceptsRequest);
+    let out = await callLlm2(GPT4, keyConceptsRequest, inputVariables);
     return out.split(", ");
   };
 
+  t = `- The following is a particular definition of "{concept}"
+  - Score the following list of Terms, prerequisits to understand "{concept}".
+      - Score from 0 to 1 based on their prerequisit-score.
+      - The prerequisit-score is higher if:
+          - It uses "${Tokenizer.hyphenToken}" (hyphen).
+          - It is rare.
+          - It is fundamental to have a comprehensive understanding of {concept}.
+          - It is technical.
+          - Are used more than once
+      - The prequisit-score is lower if:
+          - It is used as example.
+  - Output a list JSON array of objects with terms (k) and its prerequist-score (v).
+      - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
+      - Transform each word to its singular form.
+      - Use the format: {{"k": "apple", "v": 0.7}}
+  
+  Definition of "{concept}":
+  {conceptDefinition}
+  
+  Terms to score:
+  {terms}
+  
+  JSON array of terms with prerequisit-score:
+  [`;
   static getDefinitionScoredConcepts = async (
-    model: ModelConfig,
     concept: string,
     definition: string,
     keyConcepts: string[]
   ): Promise<KeyValuePair[]> => {
     const terms = keyConcepts.join(", ");
+    const inputVariables: ChainValues = {
+      concept: concept,
+      conceptDefinition: definition,
+      terms: terms,
+    };
 
     const keyConceptsWithScoreRequest: LlmRequest2 = {
-      model: model,
       inputVariableNames: ["concept", "conceptDefinition", "terms"],
-      inputVariables: {
-        concept: concept,
-        conceptDefinition: definition,
-        terms: terms,
-      },
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `- The following is a particular definition of "{concept}"
@@ -153,11 +173,11 @@ Terms to score:
 {terms}
 
 JSON array of terms with prerequisit-score:
-[`,
+`,
     };
 
-    let out = "[" + (await callLlm2(keyConceptsWithScoreRequest));
-    //console.log(out);
+    let out = await callLlm2(GPT4, keyConceptsWithScoreRequest, inputVariables);
+    console.log(out);
     return JSON.parse(out) as KeyValuePair[];
   };
 
@@ -165,12 +185,11 @@ JSON array of terms with prerequisit-score:
     model: ModelConfig,
     context: string
   ): Promise<KeyValuePair[]> => {
+    const inputVariables: ChainValues = {
+      context: context,
+    };
     const guessedScoredConcepts: LlmRequest2 = {
-      model: model,
       inputVariableNames: ["context"],
-      inputVariables: {
-        context: context,
-      },
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `"INSTRUCTIONS
@@ -191,7 +210,7 @@ TEXT
 CONCEPTS`,
     };
 
-    let json = await callLlm2(guessedScoredConcepts);
+    let json = await callLlm2(GPT4, guessedScoredConcepts, inputVariables);
     let out = JSON.parse(json) as KeyValuePair[];
     for (let kv of out) {
       kv.v = Utils.mapRange(kv.v, 0, 1, 0.5, 1);
@@ -293,21 +312,11 @@ CONCEPTS`,
     return Definer.sortConceptScores(uniques);
   }
 
-  static respondQuestion = async (
-    model: ModelConfig,
-    question: string, // question
-    definitions: string // allDefintions
-  ): Promise<string> => {
-    const request: LlmRequest2 = {
-      model: model,
-      inputVariableNames: ["question", "definitions"],
-      inputVariables: {
-        question: question,
-        definitions: definitions,
-      },
-      temperature: 0.0,
-      minCompletitionChars: 3000, //minimum chars saved for response
-      template: `INSTRUCTIONS
+  static responseRequest: LlmRequest2 = {
+    inputVariableNames: ["question", "definitions"],
+    temperature: 0.0,
+    minCompletitionChars: 3000, //minimum chars saved for response
+    template: `INSTRUCTIONS
 
 - You will give a RESPONSE to YOUR AUDIENCE about the QUESTION they asked.
 - You will act based on YOUR PERSONALITY.
@@ -386,10 +395,6 @@ QUESTION
 {question}
 
 RESPONSE`,
-    };
-
-    let out = await callLlm2(request);
-    return out;
   };
 
   static respondQuestion2 = async (
@@ -400,8 +405,14 @@ RESPONSE`,
     style: string,
     perspective: string
   ): Promise<string> => {
+    const inputVariables: ChainValues = {
+      textType: textType,
+      topic: topic,
+      targetAudience: targetAudience,
+      style: style,
+      perspective: perspective,
+    };
     const writeWithStyle: LlmRequest2 = {
-      model: model,
       inputVariableNames: [
         "textType",
         "topic",
@@ -409,13 +420,7 @@ RESPONSE`,
         "style",
         "perspective",
       ],
-      inputVariables: {
-        textType: textType,
-        topic: topic,
-        targetAudience: targetAudience,
-        style: style,
-        perspective: perspective,
-      },
+
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `
@@ -429,7 +434,7 @@ YOUR PERSPECTIVE
 RESPONSE`,
     };
 
-    let out = await callLlm2(writeWithStyle);
+    let out = await callLlm2(GPT4, writeWithStyle, inputVariables);
     return out;
   };
 
@@ -441,31 +446,17 @@ RESPONSE`,
     return text;
   }
 
-  static requestKeyConceptsSynthesis = async (
-    model: ModelConfig,
-    term: string,
-    termDefiningIntensions: string,
-    termUsageContext: string,
-    termKeyConceptsDefinitions: string
-  ): Promise<string> => {
-    const compiledFriendlyRequest: LlmRequest2 = {
-      model: model,
-      inputVariableNames: [
-        "term",
-        "termDefiningIntensions",
-        "termUsageContext",
-        "termKeyConceptsDefinitions",
-        "perspective",
-      ],
-      inputVariables: {
-        term: term,
-        termDefiningIntensions: termDefiningIntensions,
-        termUsageContext: termUsageContext,
-        termKeyConceptsDefinitions: termKeyConceptsDefinitions,
-      },
-      temperature: 0.0,
-      minCompletitionChars: 3000, //minimum chars saved for response
-      template: `INSTRUCTIONS
+  static compiledFriendlyRequest: LlmRequest2 = {
+    inputVariableNames: [
+      "term",
+      "termDefiningIntensions",
+      "termUsageContext",
+      "termKeyConceptsDefinitions",
+      "perspective",
+    ],
+    temperature: 0.0,
+    minCompletitionChars: 3000, //minimum chars saved for response
+    template: `INSTRUCTIONS
 
 - You act as a resarcher assistant in charge of providing comprehensive background knowledge for YOUR AUDIENCE, so they can fully understand the deep meaning of "{term}" when reading its TERM DEFINITION.
 - TERM DEFINITION defines what "{term}" is.
@@ -491,12 +482,9 @@ The following are definitions of concepts used to define "{term}" that may be pr
 {termKeyConceptsDefinitions}
 
 SYNTHESIS IDEAS NOT INCLUDED IN TERM DEFINITION`,
-    };
-
-    let out = await callLlm2(compiledFriendlyRequest);
-    return out;
   };
 }
+
 //- Explore interesting ideas in detail but make sure you are responding to the question.
 
 //- Explain the necessary meaning behind concepts when necessary. Express it inline, then continue answering the question.

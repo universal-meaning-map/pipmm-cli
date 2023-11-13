@@ -4,7 +4,7 @@ import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
 import Definer from "../lib/definer";
 import Tokenizer from "../lib/tokenizer";
-import { GPT4, ModelConfig } from "../lib/llm";
+import { GPT4, callLlm2, getPromptContextMaxChars } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import RequestConceptHolder from "../lib/requestConceptHolder";
 
@@ -74,28 +74,18 @@ export default class AnswerCommand extends Command {
     await DefinerStore.save();
 
     console.log("\nDefinitions:");
-    let allDefinitions: Definition[] = rch.getFinalDefinitions();
+    let allDefinitions: Definition[] = await rch.getFinalDefinitions();
     let definitionsText = DefinerStore.directDefinitionsToText(allDefinitions);
     definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
 
-    let getPromptContextMaxChars = (
-      reservedResponseChars: number,
-      promptTemplateChars: number,
-      model: ModelConfig
-    ) => {
-      const maxTotalChars = model.maxTokens * model.tokenToChar;
-      const maxPromptChars = maxTotalChars - reservedResponseChars;
-      const promptContextMaxChars = maxPromptChars - promptTemplateChars;
-      return promptContextMaxChars;
-    };
-
+    const request = Definer.responseRequest;
     const responseModel = GPT4;
     const reservedResponseChars = 6000;
-    const promptTemplateChars = 9;
+    const promptTemplateChars = request.template.length;
     const maxContextChars = getPromptContextMaxChars(
       reservedResponseChars,
       promptTemplateChars,
-      responseModel
+      GPT4
     );
 
     let prunedDefinitionsText = definitionsText;
@@ -104,15 +94,15 @@ export default class AnswerCommand extends Command {
     if (definitionsText.length > maxContextChars) {
       const charsToRemove = definitionsText.length - maxContextChars;
       prunedDefinitionsText = definitionsText.slice(0, -charsToRemove);
+      console.log("Pruned " + charsToRemove);
+      console.log("Final" + prunedDefinitionsText.length);
     }
+    const inputVariables = {
+      question: question,
+      definitions: prunedDefinitionsText,
+    };
 
-    const out = await Definer.respondQuestion(
-      responseModel,
-      question,
-      prunedDefinitionsText
-    );
-
-    console.log("\n\nOUT");
+    let out = await callLlm2(responseModel, request, inputVariables);
     console.log(out);
 
     console.log(`

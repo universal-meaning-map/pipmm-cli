@@ -32,14 +32,23 @@ export interface ModelConfig {
 }
 
 export interface LlmRequest2 {
-  model: ModelConfig;
   template: string; //langchain prompt template
   inputVariableNames: string[]; //variable names used in the prompt template
-  inputVariables: ChainValues;
   minCompletitionChars: number; //minimum chars saved for response
   temperature?: number; //model temperature
   frequencyPenalty?: number;
   presencePenalty?: number;
+}
+
+export function getPromptContextMaxChars(
+  reservedResponseChars: number,
+  promptTemplateChars: number,
+  model: ModelConfig
+) {
+  const maxTotalChars = model.maxTokens * model.tokenToChar;
+  const maxPromptChars = maxTotalChars - reservedResponseChars;
+  const promptContextMaxChars = maxPromptChars - promptTemplateChars;
+  return promptContextMaxChars;
 }
 
 export interface SearchRequest {
@@ -226,12 +235,12 @@ Q: "{mu}"
 `,
 };
 
-export let GPT4: ModelConfig = {
+export const GPT4: ModelConfig = {
   modelName: "gpt-4-0613",
   maxTokens: 8000,
   tokenToChar: 0.25,
 };
-
+/*
 export async function callLlm(
   llmRequest: LlmRequest,
   mu: string,
@@ -268,24 +277,29 @@ export async function callLlm(
     openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
   });
 
-  /*
-      const tokens = await model.generate([prompt]);
-      console.log(tokens);
-  */
+  
+  //    const tokens = await model.generate([prompt]);
+  //    console.log(tokens);
+  
 
   const chain = new LLMChain({ llm: model, prompt: promptTemplate });
 
   const res = await chain.call(promptInput);
   return res.text;
 }
+*/
 
-export async function callLlm2(llmRequest: LlmRequest2): Promise<string> {
+export async function callLlm2(
+  modelConfig: ModelConfig,
+  llmRequest: LlmRequest2,
+  inputVariables: ChainValues
+): Promise<string> {
   const promptTemplate = new PromptTemplate({
     template: llmRequest.template,
     inputVariables: llmRequest.inputVariableNames,
   });
 
-  const model = new OpenAI({
+  const openAiModel = new OpenAI({
     temperature: llmRequest.temperature ? llmRequest.temperature : 0,
     frequencyPenalty: llmRequest.frequencyPenalty
       ? llmRequest.frequencyPenalty
@@ -294,17 +308,15 @@ export async function callLlm2(llmRequest: LlmRequest2): Promise<string> {
       ? llmRequest.presencePenalty
       : 0,
     topP: 1,
-    modelName: "gpt-4-0613",
+    modelName: modelConfig.modelName,
     //modelName: "gpt-4-32k",ri
     maxTokens: -1,
     openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
   });
 
-  const chain = new LLMChain({ llm: model, prompt: promptTemplate });
-  console.log(
-    (await chain.prompt.format(llmRequest.inputVariables)).toString()
-  );
-  const res = await chain.call(llmRequest.inputVariables);
+  const chain = new LLMChain({ llm: openAiModel, prompt: promptTemplate });
+  //console.log((await chain.prompt.format(inputVariables)).toString());
+  const res = await chain.call(inputVariables);
 
   return res.text;
 }

@@ -7,11 +7,14 @@ import Tokenizer from "./tokenizer";
 import Utils from "./utils";
 import * as fs from "fs";
 import {
+    GPT4,
   SEARCH_ORIGIN_BACKLINK,
   buildContextPromptFromDocs,
+  callLlm2,
   filterDocsByMaxLength,
   getContextDocsForConcept,
 } from "./llm";
+import { ChainValues } from "langchain/dist/schema";
 
 export interface Definition {
   //evrything is with hyphen
@@ -325,14 +328,18 @@ export default class DefinerStore {
     */
 
     // Get final call
-    const out = await Definer.requestKeyConceptsSynthesis(
-      term,
-      termIntensions,
-      termUsageContext,
-      keyConceptstextDefinitions
-    );
-    //console.log(out);
+
+    const inputVariables: ChainValues = {
+        term: term,
+        termDefiningIntensions: termIntensions,
+        termUsageContext: termUsageContext,
+        termKeyConceptsDefinitions: keyConceptstextDefinitions,
+      };
+
+
+    let out = await callLlm2(GPT4,Definer.compiledFriendlyRequest, inputVariables);
     return out;
+
   };
 
   static directDefinitionsToText(definitions: Definition[]): string {
