@@ -10,9 +10,8 @@ import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
 import { ChainValues } from "langchain/dist/schema";
 import { KeyValuePair } from "./definerStore";
+import { Model } from "openai";
 
-export const openAITokenPerChar = 0.25;
-export const openAIMaxTokens = 8000;
 export const SEARCH_ORIGIN_DIRECT = "direct";
 export const SEARCH_ORIGIN_BACKLINK = "backlink";
 export const SEARCH_ORIGIN_SEMANTIC = "semantic";
@@ -26,7 +25,14 @@ export interface LlmRequest {
   presencePenalty?: number;
 }
 
+export interface ModelConfig {
+  modelName: string;
+  maxTokens: number;
+  tokenToChar: number;
+}
+
 export interface LlmRequest2 {
+  model: ModelConfig;
   template: string; //langchain prompt template
   inputVariableNames: string[]; //variable names used in the prompt template
   inputVariables: ChainValues;
@@ -218,6 +224,12 @@ form: compare
 ###
 Q: "{mu}"
 `,
+};
+
+export let GPT4: ModelConfig = {
+  modelName: "gpt-4-0613",
+  maxTokens: 8000,
+  tokenToChar: 0.25,
 };
 
 export async function callLlm(

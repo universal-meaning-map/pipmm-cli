@@ -2,9 +2,6 @@ import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
-import Definer from "../lib/definer";
-import Tokenizer from "../lib/tokenizer";
-import { openAIMaxTokens, openAITokenPerChar } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import Composer, { sectionInstructions } from "../lib/composer";
 
@@ -108,9 +105,10 @@ export default class WriteCommand extends Command {
       },
     ];
 
-    const baseConcepts= Composer.getBaseConcepts(sectionInstructions);
-    const sectionInstructionsText = Composer.makeSectionRequest(sectionInstructions);
-    const conceptDefintions = ""
-    Composer.composeRequest("IPMM", sectionInstructionsText,conceptDefintions);
+    const baseConcepts = Composer.getBaseConcepts(sectionInstructions);
+    const sectionInstructionsText =
+      Composer.makeSectionRequest(sectionInstructions);
+    const conceptDefintions = "";
+    Composer.composeRequest("IPMM", sectionInstructionsText, conceptDefintions);
   }
 }

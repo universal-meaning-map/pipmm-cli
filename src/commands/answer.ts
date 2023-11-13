@@ -4,9 +4,9 @@ import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
 import Definer from "../lib/definer";
 import Tokenizer from "../lib/tokenizer";
-import { openAIMaxTokens, openAITokenPerChar } from "../lib/llm";
-import DefinerStore, { Definition, KeyValuePair, RequestScores } from "../lib/definerStore";
-import DirectSearch from "../lib/directSearch";
+import { GPT4, ModelConfig } from "../lib/llm";
+import DefinerStore, { Definition } from "../lib/definerStore";
+import RequestConceptHolder from "../lib/requestConceptHolder";
 
 export default class AnswerCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -67,194 +67,62 @@ export default class AnswerCommand extends Command {
 
     //QUESTION and KEY CONCEPTS
     const question = args.question;
-    const baseConcepts: string[] = args.keyConcepts.split(", ");
+    const givenConcepts: string[] = args.keyConcepts.split(", ");
 
-    let requestScores = DefinerStore.newRequestScores();
-    //Guess TEXT K
-    const guessedConcepts: KeyValuePair[] = await Definer.guessTextKeyConcepts(
-      question
-    );
-
-    console.log(guessedConcepts);
-
-    return;
-
-    const rootKeyMu = [...new Set(baseConcepts.concat(guessedConcepts))]; //remove duplicates
-
-    console.log("\nInput:");
-    baseConcepts.forEach((mu: string) => {
-      console.log(mu);
-    });
-
-    console.log("\n\nGuessed:");
-    guessedConcepts.forEach((mu: string) => {
-      console.log(mu);
-    });
-
-    const rootProcessing = rootKeyMu.map(async (mu: string) => {
-      await DefinerStore.getDefinition(mu, true, false, true, false);
-    });
-
-    await Promise.all(rootProcessing);
-
-    //MAKE LIST OF SECOND LAYER KC
-
-    let secondLayerKeyMu: string[] = [];
-
-    for (let r of rootKeyMu) {
-      await DefinerStore.addBackLinkScore(r, 3);
-    }
-
-    DefinerStore.definitions.forEach((d) => {
-      for (let kcs of d.keyConceptsScores) {
-        secondLayerKeyMu.push(kcs.k);
-      }
-    });
-
-    secondLayerKeyMu = [...new Set(secondLayerKeyMu)]; //remove duplicates
-
-    console.log("SECOND LAYER KC:");
-    console.log(secondLayerKeyMu);
-
-    // GET SECOND LAYER DEFINITIONS
-    const secondLayerProcessing = secondLayerKeyMu.map(
-      async (conceptWithHyphen: string) => {
-        const mu = await DefinerStore.getDefinition(
-          conceptWithHyphen,
-          true,
-          false,
-          false,
-          false
-        );
-      }
-    );
-
-    await Promise.all(secondLayerProcessing);
+    let rch = new RequestConceptHolder(givenConcepts, question);
+    await rch.proces();
+    await DefinerStore.save();
 
     console.log("\nDefinitions:");
-    let allDefinitions: Definition[] = [];
-    DefinerStore.definitions.forEach((d, key) => {
-      allDefinitions.push(d);
-      //console.log(d);
-    });
+    let allDefinitions: Definition[] = rch.getFinalDefinitions();
+    let definitionsText = DefinerStore.directDefinitionsToText(allDefinitions);
+    definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
 
-    allDefinitions.sort((a, b) => b.backLinkScore - a.backLinkScore);
+    let getPromptContextMaxChars = (
+      reservedResponseChars: number,
+      promptTemplateChars: number,
+      model: ModelConfig
+    ) => {
+      const maxTotalChars = model.maxTokens * model.tokenToChar;
+      const maxPromptChars = maxTotalChars - reservedResponseChars;
+      const promptContextMaxChars = maxPromptChars - promptTemplateChars;
+      return promptContextMaxChars;
+    };
 
-    allDefinitions.forEach((d) => {
-      console.log(d.nameWithHyphen + " " + d.backLinkScore);
-    });
-
-    let numOfDefWithContent = 0;
-    let definitionsContext = "";
-
-    let defitinionsDirectContext =
-      DefinerStore.directDefinitionsToText(allDefinitions);
-
-    //MAKE CONTEXT
-    /*
-    allDefinitions.forEach((d) => {
-      if (d.directIntensions.length == 0) {
-        return;
-      }
-      const defitinionText = Definer.intensionsToText(d.directIntensions);
-      defitinionsDirectContext =
-        defitinionsDirectContext + "\n" + d.name + ":\n" + defitinionText;
-
-      if (d.directIntensions.length > 1) {
-        numOfDefWithContent++;
-      } else {
-        console.log("No intensions " + d.nameWithHyphen);
-      }
-    });
-
-    */
-
-    //REPLACE HYPHENS
-    definitionsContext = defitinionsDirectContext.replaceAll(
-      Tokenizer.hyphenToken,
-      " "
+    const responseModel = GPT4;
+    const reservedResponseChars = 6000;
+    const promptTemplateChars = 9;
+    const maxContextChars = getPromptContextMaxChars(
+      reservedResponseChars,
+      promptTemplateChars,
+      responseModel
     );
 
-    let prunedDefinitionsContext = definitionsContext;
+    let prunedDefinitionsText = definitionsText;
 
-    const reservedResonseChars = 6000;
-    const maxTotalChars = openAIMaxTokens / openAITokenPerChar;
-    const maxPromptChars = maxTotalChars - reservedResonseChars;
-
-    const responseTokens = 1500;
-    const maxTokens = 8000;
-    const maxPromptTOkens = maxTokens - responseTokens;
-    const promptTokens = definitionsContext.length * openAITokenPerChar;
-    if (promptTokens > maxPromptTOkens) {
-      const tokensToRemove =
-        (promptTokens - maxPromptTOkens) / openAITokenPerChar;
-
-      prunedDefinitionsContext = definitionsContext.slice(0, -tokensToRemove);
+    //Todo prune definitions instead of chars. To get the number of definitions.
+    if (definitionsText.length > maxContextChars) {
+      const charsToRemove = definitionsText.length - maxContextChars;
+      prunedDefinitionsText = definitionsText.slice(0, -charsToRemove);
     }
 
     const out = await Definer.respondQuestion(
+      responseModel,
       question,
-      prunedDefinitionsContext
+      prunedDefinitionsText
     );
-
-    /*
-    const textType: string = "a motivational speech";
-    const topic: string = question;
-    const targetAudience: string =
-    "gaining awareness of what matters when I wake up in the morning";
-    const style: string = "Leonardo Da Vinci";
-    const perspective: string = prunedDefinitionsContext;
-    const out = await Definer.respondQuestion2(
-        textType,
-      topic,
-      targetAudience,
-      style,
-      perspective
-      );
-      */
 
     console.log("\n\nOUT");
     console.log(out);
-
-    const directRemainPercentage =
-      maxPromptChars / defitinionsDirectContext.length;
 
     console.log(`
 STATS
 
 Accepted aprox:
-    Total chars: ${maxTotalChars} tokens ${maxTotalChars * openAITokenPerChar}
-    Prompt chars: ${maxPromptChars} tokens ${
-      maxPromptChars * openAITokenPerChar
-    }
-
-Original
-    Nº of def : ${numOfDefWithContent}
-    Avg direct def Chars: ${Math.round(
-      defitinionsDirectContext.length / numOfDefWithContent
-    )} Tokens: ${Math.round(
-      (defitinionsDirectContext.length / numOfDefWithContent) *
-        openAITokenPerChar
-    )}
-    Direct context Chars: ${defitinionsDirectContext.length}  Tokens: ${
-      defitinionsDirectContext.length * openAITokenPerChar
-    }
-
-Pruned 
-    Direct % remained: ${Math.round(directRemainPercentage * 100) / 100}
-    Nº of direct def. : ${
-      Math.round(numOfDefWithContent * directRemainPercentage * 100) / 100
-    }
-    Direct context chars: ${Math.round(
-      defitinionsDirectContext.length * directRemainPercentage
-    )}  tokens: ${Math.round(
-      defitinionsDirectContext.length *
-        directRemainPercentage *
-        openAITokenPerChar
-    )}
+    Total chars: ${
+      responseModel.maxTokens * responseModel.tokenToChar
+    } tokens ${responseModel.maxTokens}
 `);
-
-    DefinerStore.save();
 
     //Translate back into format X
     //const usedDocsNameIidMap = getDocsNameIidList(edContextDocs);

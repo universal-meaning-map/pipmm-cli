@@ -1,60 +1,23 @@
 import { Document } from "langchain/document";
-import DirectSearch from "./directSearch";
 import {
   LlmRequest,
   LlmRequest2,
+  ModelConfig,
+  GPT4,
   SEARCH_ORIGIN_BACKLINK,
-  SEARCH_ORIGIN_DIRECT,
   SEARCH_ORIGIN_SEMANTIC,
   buildContextPromptFromDocs,
   callLlm,
   callLlm2,
   filterDocsByConfindence,
   getContextDocsForConcept,
-  openAIMaxTokens,
-  openAITokenPerChar,
   sortDocsByConfidence,
 } from "./llm";
-import SemanticSearch from "./semanticSearch";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
-import DefinerStore, { Definition, KeyValuePair } from "./definerStore";
-import { uniqBy } from "@oclif/plugin-help/lib/util";
+import { KeyValuePair } from "./definerStore";
 
 export default class Definer {
-  /* static getLiteralIntensionsByIid = async (
-    nameWithoutHyphen: string,
-    withHyphen: boolean
-  ): Promise<string[]> => {
-    const iid = await DirectSearch.getIidByName(nameWithoutHyphen);
-
-    const contextDocs = await DirectSearch.getAllDocsOfIid(iid, withHyphen);
-
-    if (contextDocs.length == 0) {
-      console.log("🔴 " + nameWithoutHyphen + " not found");
-      return [];
-    }
-
-    console.log("JERE");
-    console.log(contextDocs.length);
-    console.log(contextDocs);
-
-    if (contextDocs.length == 1) {
-      if ((contextDocs[0].pageContent = "")) {
-        console.log("🟡 " + nameWithoutHyphen + " exists but not is defined");
-        return [];
-      }
-    }
-
-    console.log("HELLO");
-    console.log("🟢 " + nameWithoutHyphen + "  defined. ");
-    console.log("BYE");
-    //let contextPrompt = buildContextPromptFromDocs(contextDocs);
-    let intensions = Definer.docsToIntensions(contextDocs);
-    return intensions;
-  };
-  */
-
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
     let intensions: string[] = [];
 
@@ -68,22 +31,6 @@ export default class Definer {
   static getInferredIntenionsFromBacklinks = async (
     concept: string
   ): Promise<string> => {
-    const inferMeaningRequest: LlmRequest = {
-      nameId: "inferMeaning",
-      temperature: 0.2,
-      minCompletitionChars: 3000, //minimum chars saved for response
-      template: `- In the following occurrances an unknown term ${Tokenizer.unknownTermToken} is used.
-- Find commonalities betwen X usage in occurance and abstract them.
-- Use one bullet point per abstraction to define what ${Tokenizer.unknownTermToken} is.
-- Rely strictly on the provided occurrences, without including external information.
-- Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}". Don't start sentences with uppercase.    
-Ocurrances:
-###
-{context}
-        
-${Tokenizer.unknownTermToken}:`,
-    };
-
     const contextDocs = await getContextDocsForConcept(
       concept,
       [SEARCH_ORIGIN_BACKLINK] //searchOrigins
@@ -105,9 +52,27 @@ ${Tokenizer.unknownTermToken}:`,
       Tokenizer.unknownTermToken
     );
 
-    let llmRequest = inferMeaningRequest;
+    const request: LlmRequest2 = {
+      model: GPT4,
+      inputVariableNames: ["context"],
+      inputVariables: {
+        contextPrompt: contextPrompt,
+      },
+      temperature: 0.2,
+      minCompletitionChars: 3000, //minimum chars saved for response
+      template: `- In the following occurrances an unknown term ${Tokenizer.unknownTermToken} is used.
+  - Find commonalities betwen X usage in occurance and abstract them.
+  - Use one bullet point per abstraction to define what ${Tokenizer.unknownTermToken} is.
+  - Rely strictly on the provided occurrences, without including external information.
+  - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}". Don't start sentences with uppercase.    
+  Ocurrances:
+  ###
+  {context}
+          
+  ${Tokenizer.unknownTermToken}:`,
+    };
 
-    let out = await callLlm(llmRequest, concept, contextPrompt);
+    let out = await callLlm2(request);
 
     out = out.replace(
       new RegExp(Tokenizer.unknownTermToken, "g"),
@@ -117,31 +82,38 @@ ${Tokenizer.unknownTermToken}:`,
   };
 
   static getDefinitionKeyConcepts = async (
+    model: ModelConfig,
     concept: string,
     definition: string
   ): Promise<string[]> => {
-    const keyConceptsRequest: LlmRequest = {
-      nameId: "definitionKeyConcepts",
+    const keyConceptsRequest: LlmRequest2 = {
+      model: model,
+      inputVariableNames: ["concept", "conceptDefinition"],
+      inputVariables: {
+        concept: concept,
+        conceptDefinition: definition,
+      },
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
-      template: `- The following is a particular definition of "{mu}"
-- List the top words in the definition that are prerequisits to understand "{mu}".
+      template: `- The following is a particular definition of "{concept}"
+- List the top words in the definition that are prerequisits to understand "{concept}".
 - Prioritize words that are rare, use "${Tokenizer.hyphenToken}" or are fundamental to have a comprehensive understanding.
 - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
 - Output a comma separated list without. Do not put a "." at the end.
 - Transform the words to its singular form.
 
-Definition of "{mu}":
-{context}
+Definition of "{concept}":
+{definition}
 
 Top words:`,
     };
 
-    let out = await callLlm(keyConceptsRequest, concept, definition);
+    let out = await callLlm2(keyConceptsRequest);
     return out.split(", ");
   };
 
   static getDefinitionScoredConcepts = async (
+    model: ModelConfig,
     concept: string,
     definition: string,
     keyConcepts: string[]
@@ -149,6 +121,7 @@ Top words:`,
     const terms = keyConcepts.join(", ");
 
     const keyConceptsWithScoreRequest: LlmRequest2 = {
+      model: model,
       inputVariableNames: ["concept", "conceptDefinition", "terms"],
       inputVariables: {
         concept: concept,
@@ -184,14 +157,16 @@ JSON array of terms with prerequisit-score:
     };
 
     let out = "[" + (await callLlm2(keyConceptsWithScoreRequest));
-    console.log(out);
+    //console.log(out);
     return JSON.parse(out) as KeyValuePair[];
   };
 
   static getTextRelatedConceptsRequest = async (
+    model: ModelConfig,
     context: string
   ): Promise<KeyValuePair[]> => {
     const guessedScoredConcepts: LlmRequest2 = {
+      model: model,
       inputVariableNames: ["context"],
       inputVariables: {
         context: context,
@@ -227,13 +202,15 @@ CONCEPTS`,
   static guessTextKeyConcepts = async (
     text: string
   ): Promise<KeyValuePair[]> => {
+    const model = GPT4;
     //Get scored list of related concepts
     const relatedConceptScored = await Definer.getTextRelatedConceptsRequest(
+      model,
       text
     );
 
-    console.log("Guessed key words");
-    console.log(relatedConceptScored);
+    //console.log("Guessed key words");
+    //console.log(relatedConceptScored);
 
     let allDocs: Document<Record<string, any>>[] = [];
     for (let concept of relatedConceptScored) {
@@ -262,8 +239,18 @@ CONCEPTS`,
     }
 
     //guessedConcepts = [...new Set(guessedConcepts)]; //remove duplicates
-    return Definer.removeRepeatsAndNormalizeScore(guessedConcepts);
+    return Definer.sortConceptScores(
+      Definer.removeRepeatsAndNormalizeScore(guessedConcepts)
+    );
   };
+
+  static sortConceptScores(conceptScores: KeyValuePair[]): KeyValuePair[] {
+    conceptScores.sort((a, b) => {
+      if (a.v < b.v) return 1;
+      return -1;
+    });
+    return conceptScores;
+  }
 
   static removeRepeatsAndNormalizeScore(
     concepts: KeyValuePair[]
@@ -280,8 +267,6 @@ CONCEPTS`,
     let prevKey = "";
     let count = 1;
     let hv = 0;
-
-    console.log(concepts);
 
     //increases k.v base on repetitions, taking the highest score as base
     let prevC = { k: "", v: 0 };
@@ -305,15 +290,21 @@ CONCEPTS`,
       }
     }
 
-    return uniques;
+    return Definer.sortConceptScores(uniques);
   }
 
   static respondQuestion = async (
-    mu: string, // question
-    context: string // allDefintions
+    model: ModelConfig,
+    question: string, // question
+    definitions: string // allDefintions
   ): Promise<string> => {
-    const questionWithDefinitions: LlmRequest = {
-      nameId: "respond",
+    const request: LlmRequest2 = {
+      model: model,
+      inputVariableNames: ["question", "definitions"],
+      inputVariables: {
+        question: question,
+        definitions: definitions,
+      },
       temperature: 0.0,
       minCompletitionChars: 3000, //minimum chars saved for response
       template: `INSTRUCTIONS
@@ -388,20 +379,21 @@ IMPERSONATED PERSPECTIVE
 
 The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
 
-{context}
+{definitions}
 
 QUESTION
 
-{mu}
+{question}
 
 RESPONSE`,
     };
 
-    let out = await callLlm(questionWithDefinitions, mu, context);
+    let out = await callLlm2(request);
     return out;
   };
 
   static respondQuestion2 = async (
+    model: ModelConfig,
     textType: string,
     topic: string,
     targetAudience: string,
@@ -409,6 +401,7 @@ RESPONSE`,
     perspective: string
   ): Promise<string> => {
     const writeWithStyle: LlmRequest2 = {
+      model: model,
       inputVariableNames: [
         "textType",
         "topic",
@@ -449,12 +442,14 @@ RESPONSE`,
   }
 
   static requestKeyConceptsSynthesis = async (
+    model: ModelConfig,
     term: string,
     termDefiningIntensions: string,
     termUsageContext: string,
     termKeyConceptsDefinitions: string
   ): Promise<string> => {
     const compiledFriendlyRequest: LlmRequest2 = {
+      model: model,
       inputVariableNames: [
         "term",
         "termDefiningIntensions",

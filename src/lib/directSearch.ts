@@ -22,7 +22,7 @@ export default class DirectSearch {
         let name = note.block.get(propNameIId);
         //exact name
         //console.log(name + " - " + text);
-        if (name == text) {
+        if (name.toLowerCase() == text.toLocaleLowerCase()) {
           return note.iid;
         }
         //TODO: semantic search over name and synonims.

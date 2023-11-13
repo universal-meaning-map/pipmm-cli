@@ -32,14 +32,6 @@ export interface KeyValuePair {
   v: number;
 }
 
-export interface RequestScores {
-  given: KeyValuePair[];
-  givenParents: KeyValuePair[];
-  manual: KeyValuePair[];
-  manualParents: KeyValuePair[];
-  final: KeyValuePair[];
-}
-
 export default class DefinerStore {
   static hoursToMilis = 3600000;
   static defaultLlmUpdatePeriod: number = 4 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
@@ -133,16 +125,6 @@ export default class DefinerStore {
     // console.log("SET backlink: " + nameWithHyphen);
   };
 
-  static newRequestScores = (): RequestScores => {
-    return {
-      manual: [],
-      manualParents: [],
-      given: [],
-      givenParents: [],
-      final: [],
-    };
-  };
-
   static getDefinition = async (
     nameWithHyphen: string,
     needsDirect: boolean,
@@ -204,9 +186,6 @@ export default class DefinerStore {
         const dependencies =
           await DirectSearch.getAllNamesWithHyphenDependencies(nameWithHyphen);
 
-        console.log("Dependencies: " + nameWithHyphen);
-        console.log(dependencies);
-
         const keyWordsScores = await Definer.getDefinitionScoredConcepts(
           d.nameWithHyphen,
           Definer.intensionsToText(d.directIntensions),
@@ -216,7 +195,6 @@ export default class DefinerStore {
         d = DefinerStore.definitions.get(nameWithHyphen)!;
         d.keyConceptsScores = []; //resets stored ones
 
-        console.log("Adding scores to " + nameWithHyphen);
         keyWordsScores.forEach((wordWithScore) => {
           if (Referencer.nameWithHyphenToFoamId.has(wordWithScore.k)) {
             d.keyConceptsScores.push(wordWithScore);
@@ -226,8 +204,6 @@ export default class DefinerStore {
         d.keyConceptsScores.sort((a, b) => b.v - a.v);
         d.lastKeyConceptsRequest = Date.now();
         DefinerStore.definitions.set(nameWithHyphen, d);
-        console.log("sorted:");
-        console.log(d.keyConceptsScores);
       } else {
         console.log(
           "Not updating " +
@@ -243,8 +219,9 @@ export default class DefinerStore {
     d = DefinerStore.definitions.get(nameWithHyphen)!;
     if (needsCompiled) {
       if (
-        true ||
-        Date.now() - d.lastCompiledRequest > DefinerStore.defaultLlmUpdatePeriod
+        //true ||
+        Date.now() - d.lastCompiledRequest >
+        DefinerStore.defaultLlmUpdatePeriod
       ) {
         const cd = await DefinerStore.getDefinitionSupportContext(
           nameWithHyphen

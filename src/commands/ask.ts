@@ -7,7 +7,7 @@ import {
   callLlm,
   dontKnowRequest,
   openAIMaxTokens,
-  openAITokenPerChar,
+  openAiCharToToken,
   getContextDocs,
   questionRequest,
   friendlyPersonalReply,
@@ -114,7 +114,7 @@ export default class AskCommand extends Command {
 
     //Token calculations
     const promptTokens =
-      (llmRequest.template.length + mu.length) * openAITokenPerChar; //this is not correct
+      (llmRequest.template.length + mu.length) * openAiCharToToken; //this is not correct
     const maxContextTokens =
       openAIMaxTokens - llmRequest.minCompletitionChars - promptTokens;
 
