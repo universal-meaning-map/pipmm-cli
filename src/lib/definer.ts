@@ -1,21 +1,17 @@
 import { Document } from "langchain/document";
 import {
-  LlmRequest2,
+  LlmRequest,
   ModelConfig,
   GPT4,
   SEARCH_ORIGIN_BACKLINK,
   SEARCH_ORIGIN_SEMANTIC,
-  buildContextPromptFromDocs,
-  callLlm2,
-  filterDocsByConfindence,
-  getContextDocsForConcept,
-  sortDocsByConfidence,
+  callLlm,
 } from "./llm";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
 import { KeyValuePair } from "./definerStore";
 import { ChainValues } from "langchain/dist/schema";
-
+import DocsUtils from "./docsUtils";
 export default class Definer {
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
     let intensions: string[] = [];
@@ -30,7 +26,7 @@ export default class Definer {
   static getInferredIntenionsFromBacklinks = async (
     concept: string
   ): Promise<string> => {
-    const contextDocs = await getContextDocsForConcept(
+    const contextDocs = await DocsUtils.getContextDocsForConcept(
       concept,
       [SEARCH_ORIGIN_BACKLINK] //searchOrigins
     );
@@ -40,7 +36,7 @@ export default class Definer {
       return "";
     }
 
-    let contextPrompt = buildContextPromptFromDocs(contextDocs);
+    let contextPrompt = DocsUtils.buildContextPromptFromDocs(contextDocs);
 
     //Anonimize concept
     const conceptWithHyphen = Utils.renameToHyphen(concept);
@@ -54,11 +50,12 @@ export default class Definer {
     const inputVariables: ChainValues = {
       contextPrompt: contextPrompt,
     };
-    const request: LlmRequest2 = {
+    const request: LlmRequest = {
+      name: "Infer intensions",
+      identifierVariable: concept,
       inputVariableNames: ["context"],
-
       temperature: 0.2,
-      minCompletitionChars: 3000, //minimum chars saved for response
+      maxCompletitionChars: 3000, //minimum chars saved for response
       template: `- In the following occurrances an unknown term ${Tokenizer.unknownTermToken} is used.
   - Find commonalities betwen X usage in occurance and abstract them.
   - Use one bullet point per abstraction to define what ${Tokenizer.unknownTermToken} is.
@@ -71,7 +68,7 @@ export default class Definer {
   ${Tokenizer.unknownTermToken}:`,
     };
 
-    let out = await callLlm2(GPT4, request, inputVariables);
+    let out = await callLlm(GPT4, request, inputVariables);
 
     out = out.replace(
       new RegExp(Tokenizer.unknownTermToken, "g"),
@@ -80,8 +77,8 @@ export default class Definer {
     return "Backlinks\n" + out;
   };
 
+  /*
   static getDefinitionKeyConcepts = async (
-    model: ModelConfig,
     concept: string,
     definition: string
   ): Promise<string[]> => {
@@ -109,31 +106,7 @@ Top words:`,
     let out = await callLlm2(GPT4, keyConceptsRequest, inputVariables);
     return out.split(", ");
   };
-
-  t = `- The following is a particular definition of "{concept}"
-  - Score the following list of Terms, prerequisits to understand "{concept}".
-      - Score from 0 to 1 based on their prerequisit-score.
-      - The prerequisit-score is higher if:
-          - It uses "${Tokenizer.hyphenToken}" (hyphen).
-          - It is rare.
-          - It is fundamental to have a comprehensive understanding of {concept}.
-          - It is technical.
-          - Are used more than once
-      - The prequisit-score is lower if:
-          - It is used as example.
-  - Output a list JSON array of objects with terms (k) and its prerequist-score (v).
-      - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
-      - Transform each word to its singular form.
-      - Use the format: {{"k": "apple", "v": 0.7}}
-  
-  Definition of "{concept}":
-  {conceptDefinition}
-  
-  Terms to score:
-  {terms}
-  
-  JSON array of terms with prerequisit-score:
-  [`;
+*/
   static getDefinitionScoredConcepts = async (
     concept: string,
     definition: string,
@@ -146,10 +119,12 @@ Top words:`,
       terms: terms,
     };
 
-    const keyConceptsWithScoreRequest: LlmRequest2 = {
+    const request: LlmRequest = {
+      name: "Score definition key concepts",
+      identifierVariable: concept,
       inputVariableNames: ["concept", "conceptDefinition", "terms"],
       temperature: 0.0,
-      minCompletitionChars: 3000, //minimum chars saved for response
+      maxCompletitionChars: 3000, //minimum chars saved for response
       template: `- The following is a particular definition of "{concept}"
 - Score the following list of Terms, prerequisits to understand "{concept}".
     - Score from 0 to 1 based on their prerequisit-score.
@@ -176,22 +151,23 @@ JSON array of terms with prerequisit-score:
 `,
     };
 
-    let out = await callLlm2(GPT4, keyConceptsWithScoreRequest, inputVariables);
+    let out = await callLlm(GPT4, request, inputVariables);
     console.log(out);
     return JSON.parse(out) as KeyValuePair[];
   };
 
   static getTextRelatedConceptsRequest = async (
-    model: ModelConfig,
-    context: string
+    text: string
   ): Promise<KeyValuePair[]> => {
     const inputVariables: ChainValues = {
-      context: context,
+      text: text,
     };
-    const guessedScoredConcepts: LlmRequest2 = {
-      inputVariableNames: ["context"],
+    const guessedScoredConcepts: LlmRequest = {
+      name: "Suggest text related concepts",
+      identifierVariable: text,
+      inputVariableNames: ["text"],
       temperature: 0.0,
-      minCompletitionChars: 3000, //minimum chars saved for response
+      maxCompletitionChars: 3000, //minimum chars saved for response
       template: `"INSTRUCTIONS
 Suggest:
 - concepts and ideas that may be related to the TEXT.
@@ -205,12 +181,12 @@ Output a list JSON array of objects with concept (k) and its prerequist-score (v
 - Use the format: {{"k": "apple", "v": 0.7}}
 
 TEXT
-{context}
+{text}
 .
 CONCEPTS`,
     };
 
-    let json = await callLlm2(GPT4, guessedScoredConcepts, inputVariables);
+    let json = await callLlm(GPT4, guessedScoredConcepts, inputVariables);
     let out = JSON.parse(json) as KeyValuePair[];
     for (let kv of out) {
       kv.v = Utils.mapRange(kv.v, 0, 1, 0.5, 1);
@@ -224,7 +200,6 @@ CONCEPTS`,
     const model = GPT4;
     //Get scored list of related concepts
     const relatedConceptScored = await Definer.getTextRelatedConceptsRequest(
-      model,
       text
     );
 
@@ -234,7 +209,7 @@ CONCEPTS`,
     let allDocs: Document<Record<string, any>>[] = [];
     for (let concept of relatedConceptScored) {
       //We get all the docs related to the semantic search
-      let docsForConcept = await getContextDocsForConcept(concept.k, [
+      let docsForConcept = await DocsUtils.getContextDocsForConcept(concept.k, [
         SEARCH_ORIGIN_SEMANTIC,
       ]);
 
@@ -248,8 +223,8 @@ CONCEPTS`,
       allDocs = allDocs.concat(docsForConcept);
     }
 
-    allDocs = sortDocsByConfidence(allDocs);
-    allDocs = filterDocsByConfindence(allDocs, 0.6);
+    allDocs = DocsUtils.sortDocsByConfidence(allDocs);
+    allDocs = DocsUtils.filterDocsByConfindence(allDocs, 0.6);
 
     let guessedConcepts: KeyValuePair[] = [];
 
@@ -283,7 +258,6 @@ CONCEPTS`,
     });
 
     let uniques: KeyValuePair[] = [];
-    let prevKey = "";
     let count = 1;
     let hv = 0;
 
@@ -312,10 +286,12 @@ CONCEPTS`,
     return Definer.sortConceptScores(uniques);
   }
 
-  static responseRequest: LlmRequest2 = {
+  static respondToQuestionRequest: LlmRequest = {
+    identifierVariable: "<not set>",
+    name: "Respond to question based on perspective",
     inputVariableNames: ["question", "definitions"],
     temperature: 0.0,
-    minCompletitionChars: 3000, //minimum chars saved for response
+    maxCompletitionChars: 3000, //minimum chars saved for response
     template: `INSTRUCTIONS
 
 - You will give a RESPONSE to YOUR AUDIENCE about the QUESTION they asked.
@@ -412,7 +388,9 @@ RESPONSE`,
       style: style,
       perspective: perspective,
     };
-    const writeWithStyle: LlmRequest2 = {
+    const writeWithStyle: LlmRequest = {
+      name: "!Respond to question (not defined well)",
+      identifierVariable: topic,
       inputVariableNames: [
         "textType",
         "topic",
@@ -422,7 +400,7 @@ RESPONSE`,
       ],
 
       temperature: 0.0,
-      minCompletitionChars: 3000, //minimum chars saved for response
+      maxCompletitionChars: 3000, //minimum chars saved for response
       template: `
 Write {textType} about: {topic}.
 Do it for {targetAudience} in the style of {style}, capturing its tone, voice, vocabulary and sentence structure.
@@ -434,7 +412,7 @@ YOUR PERSPECTIVE
 RESPONSE`,
     };
 
-    let out = await callLlm2(GPT4, writeWithStyle, inputVariables);
+    let out = await callLlm(GPT4, writeWithStyle, inputVariables);
     return out;
   };
 
@@ -446,7 +424,9 @@ RESPONSE`,
     return text;
   }
 
-  static compiledFriendlyRequest: LlmRequest2 = {
+  static defBackgroundSynthesisRequest: LlmRequest = {
+    name: "Get definition background knowledge synthesis",
+    identifierVariable: "<not set>",
     inputVariableNames: [
       "term",
       "termDefiningIntensions",
@@ -455,7 +435,7 @@ RESPONSE`,
       "perspective",
     ],
     temperature: 0.0,
-    minCompletitionChars: 3000, //minimum chars saved for response
+    maxCompletitionChars: 3000, //minimum chars saved for response
     template: `INSTRUCTIONS
 
 - You act as a resarcher assistant in charge of providing comprehensive background knowledge for YOUR AUDIENCE, so they can fully understand the deep meaning of "{term}" when reading its TERM DEFINITION.

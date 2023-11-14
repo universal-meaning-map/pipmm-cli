@@ -1,10 +1,5 @@
-import { Document } from "langchain/document";
-import DirectSearch from "./directSearch";
-import { LlmRequest2, callLlm2 } from "./llm";
-import SemanticSearch from "./semanticSearch";
-import Tokenizer from "./tokenizer";
-import Utils from "./utils";
-import DefinerStore, { Definition, KeyValuePair } from "./definerStore";
+import { LlmRequest, callLlm, GPT4 } from "./llm";
+import { ChainValues } from "langchain/dist/schema";
 
 export interface sectionInstructions {
   title: string;
@@ -45,19 +40,20 @@ export default class Composer {
     keyConceptDefinitions: string,
     sectionsInstructions: string
   ): Promise<string> => {
-    const compiledFriendlyRequest: LlmRequest2 = {
+    const inputVariables: ChainValues = {
+      mainTitle: mainTitle,
+      keyConceptDefinitions: keyConceptDefinitions,
+      sectionInstructions: sectionsInstructions,
+    };
+    const compiledFriendlyRequest: LlmRequest = {
       inputVariableNames: [
         "mainTitle",
         "keyConceptDefinitions",
         "sectionInstructions",
       ],
-      inputVariables: {
-        mainTitle: mainTitle,
-        keyConceptDefinitions: keyConceptDefinitions,
-        sectionInstructions: sectionsInstructions,
-      },
+
       temperature: 0.0,
-      minCompletitionChars: 3000, //minimum chars saved for response
+      maxCompletitionChars: 3000, //minimum chars saved for response
       template: `INSTRUCTIONS
 
 - You're the writer of a documentation about {mainTitle}
@@ -137,7 +133,7 @@ SECTIONS TO WRITE
 OUTPUT`,
     };
 
-    let out = await callLlm2(compiledFriendlyRequest);
+    let out = await callLlm(GPT4, compiledFriendlyRequest, inputVariables);
     return out;
   };
 }

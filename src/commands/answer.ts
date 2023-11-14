@@ -4,7 +4,12 @@ import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
 import Definer from "../lib/definer";
 import Tokenizer from "../lib/tokenizer";
-import { GPT4, callLlm2, getPromptContextMaxChars } from "../lib/llm";
+import {
+  GPT4,
+  callLlm,
+  getPromptContextMaxChars,
+  outputLlmStats,
+} from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import RequestConceptHolder from "../lib/requestConceptHolder";
 
@@ -71,48 +76,46 @@ export default class AnswerCommand extends Command {
 
     let rch = new RequestConceptHolder(givenConcepts, question);
     await rch.proces();
+
     await DefinerStore.save();
 
-    console.log("\nDefinitions:");
-    let allDefinitions: Definition[] = await rch.getFinalDefinitions();
-    let definitionsText = DefinerStore.directDefinitionsToText(allDefinitions);
-    definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
-
-    const request = Definer.responseRequest;
+    const request = Definer.respondToQuestionRequest;
+    request.identifierVariable = question;
     const responseModel = GPT4;
     const reservedResponseChars = 6000;
     const promptTemplateChars = request.template.length;
-    const maxContextChars = getPromptContextMaxChars(
+    const maxPromptContextChars = getPromptContextMaxChars(
       reservedResponseChars,
       promptTemplateChars,
       GPT4
     );
 
+    let allDefinitions: Definition[] = await rch.getAllDefinitions();
+    let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
+      allDefinitions,
+      maxPromptContextChars
+    );
+    let definitionsText = maxedOutTextDefinitions.join("\n");
+    definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
+
     let prunedDefinitionsText = definitionsText;
 
-    //Todo prune definitions instead of chars. To get the number of definitions.
-    if (definitionsText.length > maxContextChars) {
-      const charsToRemove = definitionsText.length - maxContextChars;
-      prunedDefinitionsText = definitionsText.slice(0, -charsToRemove);
-      console.log("Pruned " + charsToRemove);
-      console.log("Final" + prunedDefinitionsText.length);
-    }
     const inputVariables = {
       question: question,
       definitions: prunedDefinitionsText,
     };
+    console.log(`
+DEFINITIONS:
+Name: ${request.name}
+Id: ${request.identifierVariable}
+Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
+`);
 
-    let out = await callLlm2(responseModel, request, inputVariables);
+    let out = await callLlm(responseModel, request, inputVariables);
+
     console.log(out);
 
-    console.log(`
-STATS
-
-Accepted aprox:
-    Total chars: ${
-      responseModel.maxTokens * responseModel.tokenToChar
-    } tokens ${responseModel.maxTokens}
-`);
+    outputLlmStats();
 
     //Translate back into format X
     //const usedDocsNameIidMap = getDocsNameIidList(edContextDocs);

@@ -3,17 +3,9 @@ import ConfigController from "./configController";
 import Definer from "./definer";
 import DirectSearch from "./directSearch";
 import Referencer from "./referencer";
-import Tokenizer from "./tokenizer";
 import Utils from "./utils";
 import * as fs from "fs";
-import {
-    GPT4,
-  SEARCH_ORIGIN_BACKLINK,
-  buildContextPromptFromDocs,
-  callLlm2,
-  filterDocsByMaxLength,
-  getContextDocsForConcept,
-} from "./llm";
+import { GPT4, callLlm } from "./llm";
 import { ChainValues } from "langchain/dist/schema";
 
 export interface Definition {
@@ -330,17 +322,40 @@ export default class DefinerStore {
     // Get final call
 
     const inputVariables: ChainValues = {
-        term: term,
-        termDefiningIntensions: termIntensions,
-        termUsageContext: termUsageContext,
-        termKeyConceptsDefinitions: keyConceptstextDefinitions,
-      };
+      term: term,
+      termDefiningIntensions: termIntensions,
+      termUsageContext: termUsageContext,
+      termKeyConceptsDefinitions: keyConceptstextDefinitions,
+    };
+    const request = Definer.defBackgroundSynthesisRequest;
+    request.identifierVariable = term;
 
-
-    let out = await callLlm2(GPT4,Definer.compiledFriendlyRequest, inputVariables);
+    let out = await callLlm(GPT4, request, inputVariables);
     return out;
-
   };
+
+  static getMaxOutDefinitions(
+    definitions: Definition[],
+    maxChars: number
+  ): string[] {
+    let definitionsTexts: string[] = [];
+
+    let currentChars: number = 0;
+
+    for (let d of definitions) {
+      if (d.directIntensions.length == 0) {
+        continue;
+      }
+
+      const intensionText = Definer.intensionsToText(d.directIntensions);
+      const defText = d.nameWithHyphen + ":\n" + intensionText + "\n";
+      if (currentChars + defText.length > maxChars) break;
+      definitionsTexts.push(defText);
+      currentChars = currentChars + defText.length + 1; //+1 is for the join character added after
+    }
+
+    return definitionsTexts;
+  }
 
   static directDefinitionsToText(definitions: Definition[]): string {
     let definitionsText = "";

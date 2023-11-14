@@ -7,7 +7,7 @@ export default class RequestConceptHolder {
   givenParents: KeyValuePair[];
   guessed: KeyValuePair[];
   guessedParents: KeyValuePair[];
-  final: KeyValuePair[];
+  all: KeyValuePair[];
   text: string;
 
   constructor(_given: string[], _text: string) {
@@ -17,16 +17,16 @@ export default class RequestConceptHolder {
     this.givenParents = [];
     this.guessed = [];
     this.guessedParents = [];
-    this.final = [];
+    this.all = [];
     this.text = _text;
   }
   async proces() {
     await Promise.all([this.processGiven(), this.processGuesed()]);
-    this.final = Definer.removeRepeatsAndNormalizeScore(
+    this.all = Definer.removeRepeatsAndNormalizeScore(
       this.given.concat(this.givenParents, this.guessed, this.guessedParents)
     );
 
-    this.final = Definer.sortConceptScores(this.final);
+    this.all = Definer.sortConceptScores(this.all);
 
     console.log("GIVEN");
     console.log(this.given);
@@ -37,7 +37,7 @@ export default class RequestConceptHolder {
     console.log("GUESSED PARENTS");
     console.log(this.guessedParents);
     console.log("FINAL");
-    console.log(this.final);
+    console.log(this.all);
   }
 
   async processGiven(): Promise<void> {
@@ -95,10 +95,16 @@ export default class RequestConceptHolder {
     return conceptScores;
   }
 
-  async getFinalDefinitions(): Promise<Definition[]> {
+  async getAllDefinitions(): Promise<Definition[]> {
     let definitions: Definition[] = [];
-    for (let cs of this.final) {
-      const d = await DefinerStore.getDefinition(cs.k, false, false, false, false);
+    for (let cs of this.all) {
+      const d = await DefinerStore.getDefinition(
+        cs.k,
+        false,
+        false,
+        false,
+        false
+      );
       if (d) definitions.push(d);
     }
     return definitions;

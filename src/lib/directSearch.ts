@@ -3,11 +3,12 @@ import Publisher from "./publisher";
 import Referencer from "./referencer";
 import Utils from "./utils";
 import { Document } from "langchain/document";
+import DocsUtils from "./docsUtils";
+
 import {
   SEARCH_ORIGIN_BACKLINK,
   SEARCH_ORIGIN_DIRECT,
   getConfidenceScore,
-  sortDocsByConfidence,
 } from "./llm";
 import ConfigController from "./configController";
 import Filter from "./filterController";
@@ -136,7 +137,7 @@ export default class DirectSearch {
       }
     }
 
-    docs = sortDocsByConfidence(docs);
+    docs = DocsUtils.sortDocsByConfidence(docs);
 
     return docs;
   };
