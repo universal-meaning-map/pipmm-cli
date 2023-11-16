@@ -129,6 +129,9 @@ export default class DefinerStore {
   ): Promise<Definition | undefined> => {
     //We return it from store if exists
 
+    if (needsKeyConcepts) needsDirect = true;
+    if (needsCompiled) needsDirect = true;
+
     let d: Definition;
     if (DefinerStore.definitions.has(nameWithHyphen)) {
       d = DefinerStore.definitions.get(nameWithHyphen)!;
@@ -142,6 +145,7 @@ export default class DefinerStore {
         return undefined;
       } else {
         d = du;
+
         DefinerStore.definitions.set(nameWithHyphen, d);
       }
     }
@@ -193,7 +197,7 @@ export default class DefinerStore {
         keyWordsScores.forEach((wordWithScore) => {
           if (Referencer.nameWithHyphenToFoamId.has(wordWithScore.k)) {
             d.keyConceptsScores.push(wordWithScore);
-            console.log(wordWithScore);
+            //console.log(wordWithScore);
           }
         });
         d.keyConceptsScores.sort((a, b) => b.v - a.v);
@@ -201,11 +205,13 @@ export default class DefinerStore {
         DefinerStore.definitions.set(nameWithHyphen, d);
       } else {
         console.log(
-          "Not updating " +
-            nameWithHyphen +
-            " Key Concepts because it was updated only " +
-            (Date.now() - d.lastKeyConceptsRequest) /
-              DefinerStore.hoursToMilis +
+          nameWithHyphen +
+            " Key Concepts was updated " +
+            Utils.round(
+              (Date.now() - d.lastKeyConceptsRequest) /
+                DefinerStore.hoursToMilis,
+              10
+            ) +
             " hours ago"
         );
       }
@@ -381,5 +387,22 @@ export default class DefinerStore {
     }
 
     return keyConcepts.filter(keyConceptsFitler);
+  }
+
+  static async getDefinitionsByConceptScoreList(
+    conceptsScoreList: KeyValuePair[]
+  ): Promise<Definition[]> {
+    let definitions: Definition[] = [];
+    for (let cs of conceptsScoreList) {
+      const d = await DefinerStore.getDefinition(
+        cs.k,
+        false,
+        false,
+        false,
+        false
+      );
+      if (d) definitions.push(d);
+    }
+    return definitions;
   }
 }

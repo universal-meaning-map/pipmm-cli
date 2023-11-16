@@ -20,6 +20,7 @@ export interface LlmRecord {
   tokenOut: number;
   tokenIn: number;
   model: ModelConfig;
+  duration: number; //ms
 }
 
 export interface ModelConfig {
@@ -41,6 +42,14 @@ export interface LlmRequest {
   presencePenalty?: number;
 }
 
+export const GPT35TURBO: ModelConfig = {
+  modelName: "gpt-3.5-turbo-1106",
+  maxTokens: 8000, //16000
+  tokenToChar: 4,
+  tokenInCost: 0.001 / 1000,
+  tokenOutCost: 0.002 / 1000,
+};
+
 export const GPT4: ModelConfig = {
   modelName: "gpt-4-0613",
   maxTokens: 8000,
@@ -50,12 +59,12 @@ export const GPT4: ModelConfig = {
 };
 
 export const GPT4TURBO: ModelConfig = {
-    modelName: "gpt-4-1106-preview",
-    maxTokens: 8000,//128000
-    tokenToChar: 4,
-    tokenInCost: 0.01 / 1000,
-    tokenOutCost: 0.03 / 1000,
-  };
+  modelName: "gpt-4-1106-preview",
+  maxTokens: 8000, //128000
+  tokenToChar: 4,
+  tokenInCost: 0.01 / 1000,
+  tokenOutCost: 0.03 / 1000,
+};
 
 export async function callLlm(
   modelConfig: ModelConfig,
@@ -77,12 +86,13 @@ export async function callLlm(
       : 0,
     topP: 1,
     modelName: modelConfig.modelName,
-    //modelName: "gpt-4-32k",ri
     maxTokens: -1,
     openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
   });
 
-  console.log(`
+  const verbose = false;
+  if (verbose)
+    console.log(`
 REQUEST
 Name: ${llmRequest.name}
 Id: ${llmRequest.identifierVariable}`);
@@ -90,21 +100,24 @@ Id: ${llmRequest.identifierVariable}`);
   const chain = new LLMChain({ llm: openAiModel, prompt: promptTemplate });
   const finalPrompt = (await chain.prompt.format(inputVariables)).toString();
 
-  console.log(`
+  if (verbose) console.log(finalPrompt);
+
+  if (verbose)
+    console.log(`
 IN
 In chars: ${finalPrompt.length}
 In tokens: ${finalPrompt.length / modelConfig.tokenToChar}
-Cost in: ${
-    (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
-  }$
+Cost in: ${Utils.round(
+      (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
+    )}$
 
 OUT
 Max. out chars: ${llmRequest.maxCompletitionChars} 
 Max. out tokens: ${llmRequest.maxCompletitionChars / modelConfig.tokenToChar}
-Max. cost out: ${
-    (llmRequest.maxCompletitionChars / modelConfig.tokenToChar) *
-    modelConfig.tokenOutCost
-  }$
+Max. cost out: ${Utils.round(
+      (llmRequest.maxCompletitionChars / modelConfig.tokenToChar) *
+        modelConfig.tokenOutCost
+    )}$
   
 MODEL
 Id: ${modelConfig.modelName}
@@ -112,27 +125,44 @@ Max chars: ${modelConfig.maxTokens * modelConfig.tokenToChar}
 Max tokens: ${modelConfig.maxTokens}
 `);
 
+  const t = Date.now();
   const res = await chain.call(inputVariables);
+  const duration = Date.now() - t;
 
-  console.log(`
+  const totalCost = Utils.round(
+    (res.text.length / modelConfig.tokenToChar) * modelConfig.tokenOutCost +
+      (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
+  );
+  if (verbose)
+    console.log(`
 RESPONSE:
 Name: ${llmRequest.name}
 Id: ${llmRequest.identifierVariable}
+Duration: ${(Math.round(duration / 1000), 10)}s
 Chars: ${res.text.length}
 Tokens: ${res.text.length / modelConfig.tokenToChar}
 Cost out: ${
-    (res.text.length / modelConfig.tokenToChar) * modelConfig.tokenOutCost
-  }$
-Cost total: ${
-    (res.text.length / modelConfig.tokenToChar) * modelConfig.tokenOutCost +
-    (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
-  }$`);
+      Utils.round(res.text.length / modelConfig.tokenToChar) *
+      modelConfig.tokenOutCost
+    }$
+Cost total: ${totalCost}$`);
 
-  console.log(res);
+  if (verbose) console.log(res);
+
+  if (!verbose)
+    console.log(
+      "💬" +
+        totalCost +
+        "$\t" +
+        llmRequest.name +
+        ": " +
+        llmRequest.identifierVariable
+    );
 
   const record: LlmRecord = {
     name: llmRequest.name,
     id: llmRequest.identifierVariable,
+    duration: duration,
     model: modelConfig,
     tokenIn: finalPrompt.length / modelConfig.tokenToChar,
     tokenOut: llmRequest.maxCompletitionChars / modelConfig.tokenToChar,
@@ -144,19 +174,28 @@ Cost total: ${
 export function outputLlmStats() {
   let totalCalls = 0;
   let totalCost = 0;
+  let totalDuration = 0;
   for (let r of llmHistory) {
     const costOut = r.model.tokenOutCost * r.tokenOut;
     const costIn = r.model.tokenInCost * r.tokenIn;
     totalCalls++;
     totalCost = totalCost + costIn + costOut;
+    totalDuration = totalDuration + r.duration;
     console.log(totalCalls + ". " + r.name);
-
-    console.log(r.id);
-    console.log("Cost: " + (costIn + costOut) + "$");
-    console.log("\n");
+    console.log("🆔 " + r.id);
+    console.log(
+      "💰  " +
+        Utils.round(costIn + costOut) +
+        "$\t⌛" +
+        Utils.round(r.duration / 1000, 10) +
+        "s"
+    );
   }
   console.log("Total calls:\t" + totalCalls);
-  console.log("Total cost:\t" + totalCost);
+  console.log("Total cost:\t" + Utils.round(totalCost) + "$");
+  console.log(
+    "Total duration:\t" + Utils.round(totalDuration / 1000, 10) + "s"
+  );
 }
 
 export function getPromptContextMaxChars(

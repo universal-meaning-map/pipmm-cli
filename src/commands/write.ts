@@ -4,6 +4,15 @@ import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import Composer, { sectionInstructions } from "../lib/composer";
+import RequestConceptHolder, { parallelRCH } from "../lib/requestConceptHolder";
+import {
+  GPT4TURBO,
+  callLlm,
+  getPromptContextMaxChars,
+  outputLlmStats,
+} from "../lib/llm";
+import Tokenizer from "../lib/tokenizer";
+import { ChainValues } from "langchain/dist/schema";
 
 export default class WriteCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -43,6 +52,8 @@ export default class WriteCommand extends Command {
   ];
 
   async run() {
+    console.warn = () => {};
+
     const { args, flags } = this.parse(WriteCommand);
 
     let workingPath = process.cwd();
@@ -59,31 +70,19 @@ export default class WriteCommand extends Command {
     );
 
     await DefinerStore.load();
-    const question = args.question;
-
-    const d = await DefinerStore.getDefinition(
-      question,
-      false,
-      false,
-      false,
-      true
-    );
-
-    console.log(d!.compiledDefinition);
-    await DefinerStore.save();
     const sectionInstructions: sectionInstructions[] = [
       {
         title: "Overview",
         instructions:
           "Instructions:  very high level overview synthesis of what IPMM is. Just few paragraphs.",
         coverage: "IPMM intent, What problems IPMM solves",
-        baseConcepts: ["IPMM"],
+        givenConcepts: ["IPMM"],
       },
       {
         title: "Current stage",
         instructions: "Synthesize the current stage of development of IPMM?",
         coverage: "IPMM intent, What problems IPMM solves",
-        baseConcepts: [
+        givenConcepts: [
           "IPMM-current-focus",
           "IPMM",
           "IPMM-purpose",
@@ -96,19 +95,53 @@ export default class WriteCommand extends Command {
           "Justify in a synthetic way why it is  relevant for IPMM to have its own terminology",
         coverage:
           "IPMM has a unique terminology. It creates and redefines words in order to create a paradigm that can capture the problem space with much more accuracy, and not be constrained by pre-existing conceptions",
-        baseConcepts: [
+        givenConcepts: [
           "personal-language",
           "shared-language",
-          "limits-of-shared language",
+          "limits-of-shared-language",
           "word",
         ],
       },
     ];
 
-    const baseConcepts = Composer.getBaseConcepts(sectionInstructions);
-    const sectionInstructionsText =
+    const mainTitle = "IPMM project overview";
+
+    const allConceptScores = await parallelRCH(sectionInstructions);
+    const allDefinitions = await DefinerStore.getDefinitionsByConceptScoreList(
+      allConceptScores
+    );
+    await DefinerStore.save();
+
+    const request = Composer.composeRequest;
+
+    request.identifierVariable = mainTitle;
+    const model = GPT4TURBO;
+    const reservedResponseChars = 6000;
+    const promptTemplateChars = request.template.length;
+    const maxPromptContextChars = getPromptContextMaxChars(
+      reservedResponseChars,
+      promptTemplateChars,
+      model
+    );
+
+    let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
+      allDefinitions,
+      maxPromptContextChars
+    );
+
+    let definitionsText = maxedOutTextDefinitions.join("\n");
+    definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
+
+    const sectionsInstructionsText =
       Composer.makeSectionRequest(sectionInstructions);
-    const conceptDefintions = "";
-    Composer.composeRequest("IPMM", sectionInstructionsText, conceptDefintions);
+    const inputVariables: ChainValues = {
+      mainTitle: mainTitle,
+      keyConceptDefinitions: definitionsText,
+      sectionsInstructions: sectionsInstructionsText,
+    };
+
+    let out = await callLlm(model, request, inputVariables);
+    console.log(out);
+    outputLlmStats();
   }
 }

@@ -5,7 +5,9 @@ import Compiler from "../lib/compiler";
 import Definer from "../lib/definer";
 import Tokenizer from "../lib/tokenizer";
 import {
+  GPT35TURBO,
   GPT4,
+  GPT4TURBO,
   callLlm,
   getPromptContextMaxChars,
   outputLlmStats,
@@ -79,40 +81,80 @@ export default class AnswerCommand extends Command {
 
     await DefinerStore.save();
 
-    const request = Definer.respondToQuestionRequest;
-    request.identifierVariable = question;
-    const responseModel = GPT4;
-    const reservedResponseChars = 6000;
-    const promptTemplateChars = request.template.length;
+    const answerRequest = Definer.respondToQuestionRequest;
+    answerRequest.identifierVariable = question;
+    const answerModel = GPT4TURBO;
+    const promptTemplateChars = answerRequest.template.length;
     const maxPromptContextChars = getPromptContextMaxChars(
-      reservedResponseChars,
+      answerRequest.maxCompletitionChars,
       promptTemplateChars,
-      GPT4
+      answerModel
     );
 
-    let allDefinitions: Definition[] = await rch.getAllDefinitions();
+    let allDefinitions: Definition[] =
+      await DefinerStore.getDefinitionsByConceptScoreList(rch.all);
     let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
       allDefinitions,
       maxPromptContextChars
     );
     let definitionsText = maxedOutTextDefinitions.join("\n");
     definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
-
-    let prunedDefinitionsText = definitionsText;
-
-    const inputVariables = {
+    const answerInputVariables = {
       question: question,
-      definitions: prunedDefinitionsText,
+      definitions: definitionsText,
     };
+    const successionRequest = Definer.successionRequest;
+    const successionInputVariables = {
+      request: question,
+      perspective: definitionsText,
+    };
+
     console.log(`
 DEFINITIONS:
-Name: ${request.name}
-Id: ${request.identifierVariable}
+Name: ${answerRequest.name}
+Id: ${answerRequest.identifierVariable}
 Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
 `);
 
-    let out = await callLlm(responseModel, request, inputVariables);
+    // let text = await callLlm(answerModel, answerRequest, answerInputVariables);
+    let text = await callLlm(
+      GPT35TURBO,
+      successionRequest,
+      successionInputVariables
+    );
+    console.log(text);
 
+    return;
+
+    const codRequest = Definer.codRequest;
+    codRequest.identifierVariable = question;
+    const codModel = GPT35TURBO;
+
+    const codMaxPromptContextChars = getPromptContextMaxChars(
+      codRequest.maxCompletitionChars,
+      promptTemplateChars,
+      codModel
+    );
+
+    let codMaxedOutTextDefinitions: string[] =
+      DefinerStore.getMaxOutDefinitions(
+        allDefinitions,
+        codMaxPromptContextChars
+      );
+
+    let codDefinitionsText = codMaxedOutTextDefinitions.join("\n");
+    codDefinitionsText = codDefinitionsText.replaceAll(
+      Tokenizer.hyphenToken,
+      " "
+    );
+
+    const codInputVariables = {
+      request: question,
+      text: text,
+      perspective: codDefinitionsText,
+    };
+
+    let out = await callLlm(codModel, codRequest, codInputVariables);
     console.log(out);
 
     outputLlmStats();

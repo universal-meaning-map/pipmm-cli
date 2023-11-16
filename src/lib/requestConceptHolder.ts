@@ -1,6 +1,7 @@
 import { Key } from "readline";
 import DefinerStore, { KeyValuePair, Definition } from "../lib/definerStore";
 import Definer from "./definer";
+import { sectionInstructions } from "./composer";
 
 export default class RequestConceptHolder {
   given: KeyValuePair[];
@@ -27,7 +28,7 @@ export default class RequestConceptHolder {
     );
 
     this.all = Definer.sortConceptScores(this.all);
-
+    /*
     console.log("GIVEN");
     console.log(this.given);
     console.log("GIVEN PARENTS");
@@ -38,6 +39,7 @@ export default class RequestConceptHolder {
     console.log(this.guessedParents);
     console.log("FINAL");
     console.log(this.all);
+    */
   }
 
   async processGiven(): Promise<void> {
@@ -75,7 +77,7 @@ export default class RequestConceptHolder {
         pcs = this.penalizeConceptScores(pcs, compensation);
         return pcs;
       } else {
-        console.log(cs.k + " failed");
+        console.log(cs.k + " not found");
         return [] as KeyValuePair[]; // Return an empty array with the correct type
       }
     });
@@ -94,19 +96,22 @@ export default class RequestConceptHolder {
     }
     return conceptScores;
   }
+}
 
-  async getAllDefinitions(): Promise<Definition[]> {
-    let definitions: Definition[] = [];
-    for (let cs of this.all) {
-      const d = await DefinerStore.getDefinition(
-        cs.k,
-        false,
-        false,
-        false,
-        false
-      );
-      if (d) definitions.push(d);
-    }
-    return definitions;
-  }
+export async function parallelRCH(
+  sectionsInstructions: sectionInstructions[]
+): Promise<KeyValuePair[]> {
+  const process = sectionsInstructions.map(async (s: sectionInstructions) => {
+    const text = s.title + "\n" + s.coverage;
+    const rch = new RequestConceptHolder(s.givenConcepts, text);
+    await rch.proces();
+    return rch.all;
+  });
+
+  const r: KeyValuePair[][] = await Promise.all(process);
+
+  let all: KeyValuePair[] = ([] as KeyValuePair[]).concat(...r);
+  let allUnique = Definer.removeRepeatsAndNormalizeScore(all);
+
+  return Definer.sortConceptScores(allUnique);
 }

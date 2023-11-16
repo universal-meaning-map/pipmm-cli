@@ -182,4 +182,8 @@ export default class Utils {
   static renameFromHyphen(name: string): string {
     return name.split(Tokenizer.hyphenToken).join(" ");
   }
+
+  static round(n: number, precision: number = 1000): number {
+    return Math.round(n * precision) / precision;
+  }
 }

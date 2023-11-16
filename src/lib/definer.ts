@@ -6,6 +6,8 @@ import {
   SEARCH_ORIGIN_BACKLINK,
   SEARCH_ORIGIN_SEMANTIC,
   callLlm,
+  GPT4TURBO,
+  GPT35TURBO,
 } from "./llm";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
@@ -136,7 +138,8 @@ Top words:`,
         - Are used more than once
     - The prequisit-score is lower if:
         - It is used as example.
-- Output a list JSON array of objects with terms (k) and its prerequist-score (v).
+- Output a list JSON object with an array of objects named "scores" with concept (k) and its prerequist-score (v).
+    - Do not write the JSON object inside Markdown code syntax.
     - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
     - Transform each word to its singular form.
     - Use the format: {{"k": "apple", "v": 0.7}}
@@ -151,9 +154,14 @@ JSON array of terms with prerequisit-score:
 `,
     };
 
-    let out = await callLlm(GPT4, request, inputVariables);
-    console.log(out);
-    return JSON.parse(out) as KeyValuePair[];
+    let j = await callLlm(GPT4TURBO, request, inputVariables);
+    try {
+      const out = JSON.parse(j).scores as KeyValuePair[];
+      return out;
+    } catch (e) {
+      console.log(e);
+      return [];
+    }
   };
 
   static getTextRelatedConceptsRequest = async (
@@ -175,7 +183,8 @@ Suggest:
 - key words in the TEXT
 - concepts and ideas that can capture the meaning of the TEXT in different words.
 
-Output a list JSON array of objects with concept (k) and its prerequist-score (v).
+Output a list JSON object with an array of objects named "scores" with concept (k) and its prerequist-score (v).
+- Do not write the JSON object inside Markdown code syntax.
 - Write in singular and lower-case.
 - Score from 0 to 1 based on its relevancy to the TEXT.
 - Use the format: {{"k": "apple", "v": 0.7}}
@@ -186,12 +195,18 @@ TEXT
 CONCEPTS`,
     };
 
-    let json = await callLlm(GPT4, guessedScoredConcepts, inputVariables);
-    let out = JSON.parse(json) as KeyValuePair[];
-    for (let kv of out) {
-      kv.v = Utils.mapRange(kv.v, 0, 1, 0.5, 1);
+    let json = await callLlm(GPT4TURBO, guessedScoredConcepts, inputVariables);
+
+    try {
+      const out = JSON.parse(json).scores as KeyValuePair[];
+      for (let kv of out) {
+        kv.v = Utils.mapRange(kv.v, 0, 1, 0.5, 1);
+      }
+      return out;
+    } catch (e) {
+      console.log(e);
+      return [];
     }
-    return out;
   };
 
   static guessTextKeyConcepts = async (
@@ -462,6 +477,105 @@ The following are definitions of concepts used to define "{term}" that may be pr
 {termKeyConceptsDefinitions}
 
 SYNTHESIS IDEAS NOT INCLUDED IN TERM DEFINITION`,
+  };
+  //You will generate increasingly, entity-dense and relevant to the REQUEST versions of the ORIGINAL TEXT.
+
+  static codRequest: LlmRequest = {
+    name: "Increase significance",
+    identifierVariable: "<not set>",
+    inputVariableNames: ["text", "request", "perspective"],
+    temperature: 0.0,
+    maxCompletitionChars: 15000, //minimum chars saved for response
+    template: `INSTRUCTIONS
+
+The ORIGINAL TEXT is a response to the REQUEST
+Your job is to improve the density of relevant content to meet the REQUEST based the information in the IMPERSONATED PERSPECTIVE.
+
+Rewrite ORIGINAL TEXT to:
+- Increase relevancy of information and accuracy to better match the REQUEST.
+- Increase entity density.
+
+Repeat the following 2 steps 5 times.
+Step 1. Write a PIECE that matches the REQUEST and covers every entity and detail from the previous PIECE plus the missing entities.
+Step 2. Identify 1-5 informative entities from the IMPERSONATED PERESPECTIVE which are missing from the previously generated PIECE and are relevant to successfully meet the REQUEST.
+A missing entity is:
+- relevant to meet the REQUEST,
+- specific yet concise (5 words or fewer),
+- novel (not in the previous PIECE),
+- faithful (present in the IMPERSONATED PERSPECTIVE),
+- anywhere (can be located anywhere in the IMPERSONATED PERSPECTIVE).
+
+GUIDELINES:
+- Each PIECE should have the same length as the ORIGINAL TEXT. It can be a little longer but never shorter.
+- Make every word count: rewrite the previous PIECE to improve flow and make space for additional entities.
+- Make space with fusion, compression, and removal of uninformative phrases and fillers.
+- The PIECE should become highly information dense and self-contained, i.e., easily understood without the IMPERSONATED PERSPECTIVE.
+- Missing entities can appear anywhere in the new PIECE.
+- Never drop entities from the previous PIECE. If space cannot be made, add fewer new entities.
+- Answer in JSON. The JSON should be a list (length 5) of dictionaries whose keys are "Piece" and "Missing_Entities".
+
+REQUEST
+
+{request}
+
+ORIGINAL TEXT
+
+{text}
+
+IMPERSONATED PERSPECTIVE
+
+The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
+
+{perspective}`,
+  };
+
+  static successionRequest: LlmRequest = {
+    name: "Succession",
+    identifierVariable: "<not set>",
+    inputVariableNames: ["request", "perspective"],
+    temperature: 0.0,
+    maxCompletitionChars: 15000, //minimum chars saved for response
+    template: `INSTRUCTIONS
+
+1. Define outlines.
+    1. First outline: The outline is made of nested sections. Each section is represented by a heading. Each section contains a list of the concepts that should be included. First outline goes into the first element of the "outlines" array.
+    2. Second outline: Rewrite the title of the first outline to align with the request and the current content. Rewrite the headings of the first outline so each heading better reflects the concepts it contains. Add 1-3 new headings (section or subsection) missing in the previous outline to capture ideas present in IMPERSONATED PERSPECTIVE and that will support explaining the REQUEST. Second outline goes into the second element of the "outlines" array.
+    3. Third outline: Rewrite the bullet point concepts of each section of the second outilne in order to better reflect their heading and to capture the best content to meet the REQUEST. Thirs outline goes into the third element of the "outlines" array.
+
+    Guidelines:
+    - The goal is define the best outline possible in order to explain REQUEST
+    - Each outline is an iteration over the previous one.
+    - Each outline is an element of the "outlines" array
+    - Define a headings for title, sections and sub-sections.
+    - For each heading list the concepts and ideas that should be included in that section.
+    - The title should be representative of the REQUEST, but adapted to what exists in IMPERSONATED PERSPECTIVE.
+    - In the concepts list, include when example or rethorical device may be necessary
+    - Only ideas contained within IMPERSONATED PERSPECTIVE can be used. No external information.
+    - The overall sturcture should go from more general and simple to more detailed and complex.
+   
+    
+2. Write content. Write a markdown text, well structured with pharagraphs following the outline structure headings and content defined in the third outline.
+    
+3. Style: Rewrite "content" for as ELI5
+
+Answer in JSON file with the following structure:
+    {{
+        "outlines": [], // 3 outlines
+        "content": "", 
+        "style": "", 
+    }}
+
+REQUEST
+
+{request}
+
+IMPERSONATED PERSPECTIVE
+
+The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
+
+{perspective}
+
+JSON`,
   };
 }
 

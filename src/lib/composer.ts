@@ -1,11 +1,11 @@
-import { LlmRequest, callLlm, GPT4 } from "./llm";
+import { LlmRequest, callLlm, GPT4, GPT4TURBO } from "./llm";
 import { ChainValues } from "langchain/dist/schema";
 
 export interface sectionInstructions {
   title: string;
   instructions: string;
   coverage: string;
-  baseConcepts: string[];
+  givenConcepts: string[];
 }
 
 export default class Composer {
@@ -24,37 +24,18 @@ export default class Composer {
     return JSON.stringify(instructionsContext, null, 2);
   };
 
-  static getBaseConcepts = (
-    sectionInstructions: sectionInstructions[]
-  ): string[] => {
-    let baseConcepts: string[] = [];
-    for (let s of sectionInstructions) {
-      baseConcepts.concat(s.baseConcepts);
-    }
+  static composeRequest: LlmRequest = {
+    name: "ComposeRequest",
+    identifierVariable: "<not set>",
+    inputVariableNames: [
+      "mainTitle",
+      "keyConceptDefinitions",
+      "sectionsInstructions",
+    ],
 
-    return baseConcepts;
-  };
-
-  static composeRequest = async (
-    mainTitle: string,
-    keyConceptDefinitions: string,
-    sectionsInstructions: string
-  ): Promise<string> => {
-    const inputVariables: ChainValues = {
-      mainTitle: mainTitle,
-      keyConceptDefinitions: keyConceptDefinitions,
-      sectionInstructions: sectionsInstructions,
-    };
-    const compiledFriendlyRequest: LlmRequest = {
-      inputVariableNames: [
-        "mainTitle",
-        "keyConceptDefinitions",
-        "sectionInstructions",
-      ],
-
-      temperature: 0.0,
-      maxCompletitionChars: 3000, //minimum chars saved for response
-      template: `INSTRUCTIONS
+    temperature: 0.0,
+    maxCompletitionChars: 3000, //minimum chars saved for response
+    template: `INSTRUCTIONS
 
 - You're the writer of a documentation about {mainTitle}
 - You're writing for YOUR AUDIENCE.
@@ -131,9 +112,5 @@ SECTIONS TO WRITE
 {sectionsInstructions}
 
 OUTPUT`,
-    };
-
-    let out = await callLlm(GPT4, compiledFriendlyRequest, inputVariables);
-    return out;
   };
 }
