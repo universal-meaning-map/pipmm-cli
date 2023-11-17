@@ -14,6 +14,7 @@ import {
 } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import RequestConceptHolder from "../lib/requestConceptHolder";
+import { request } from "http";
 
 export default class AnswerCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -81,6 +82,7 @@ export default class AnswerCommand extends Command {
 
     await DefinerStore.save();
 
+    //ANSWER
     const answerRequest = Definer.respondToQuestionRequest;
     answerRequest.identifierVariable = question;
     const answerModel = GPT4TURBO;
@@ -103,10 +105,32 @@ export default class AnswerCommand extends Command {
       question: question,
       definitions: definitionsText,
     };
+
+    //SUCCESSION
+    const successionModel = GPT4TURBO;
     const successionRequest = Definer.successionRequest;
+    successionRequest.identifierVariable = question;
+    const successionMaxPromptContextChars = getPromptContextMaxChars(
+      successionRequest.maxCompletitionChars,
+      successionRequest.template.length,
+      successionModel
+    );
+
+    let successionMaxedOutTextDefinitions: string[] =
+      DefinerStore.getMaxOutDefinitions(
+        allDefinitions,
+        successionMaxPromptContextChars
+      );
+    let successionPerspective = maxedOutTextDefinitions.join("\n");
+
+    successionPerspective = definitionsText.replaceAll(
+      Tokenizer.hyphenToken,
+      " "
+    );
+
     const successionInputVariables = {
       request: question,
-      perspective: definitionsText,
+      perspective: successionPerspective,
     };
 
     console.log(`
@@ -118,11 +142,13 @@ Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
 
     // let text = await callLlm(answerModel, answerRequest, answerInputVariables);
     let text = await callLlm(
-      GPT35TURBO,
+      GPT4TURBO,
       successionRequest,
       successionInputVariables
     );
     console.log(text);
+
+    outputLlmStats();
 
     return;
 

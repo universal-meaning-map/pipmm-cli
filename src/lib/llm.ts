@@ -60,7 +60,7 @@ export const GPT4: ModelConfig = {
 
 export const GPT4TURBO: ModelConfig = {
   modelName: "gpt-4-1106-preview",
-  maxTokens: 8000, //128000
+  maxTokens: 16000, //128000
   tokenToChar: 4,
   tokenInCost: 0.01 / 1000,
   tokenOutCost: 0.03 / 1000,
@@ -91,11 +91,6 @@ export async function callLlm(
   });
 
   const verbose = false;
-  if (verbose)
-    console.log(`
-REQUEST
-Name: ${llmRequest.name}
-Id: ${llmRequest.identifierVariable}`);
 
   const chain = new LLMChain({ llm: openAiModel, prompt: promptTemplate });
   const finalPrompt = (await chain.prompt.format(inputVariables)).toString();
@@ -104,6 +99,10 @@ Id: ${llmRequest.identifierVariable}`);
 
   if (verbose)
     console.log(`
+REQUEST
+Name: ${llmRequest.name}
+Id: ${llmRequest.identifierVariable}
+
 IN
 In chars: ${finalPrompt.length}
 In tokens: ${finalPrompt.length / modelConfig.tokenToChar}
@@ -153,7 +152,7 @@ Cost total: ${totalCost}$`);
     console.log(
       "💬" +
         totalCost +
-        "$\t" +
+        "$  " +
         llmRequest.name +
         ": " +
         llmRequest.identifierVariable
@@ -181,12 +180,10 @@ export function outputLlmStats() {
     totalCalls++;
     totalCost = totalCost + costIn + costOut;
     totalDuration = totalDuration + r.duration;
-    console.log(totalCalls + ". " + r.name);
-    console.log("🆔 " + r.id);
+    console.log(totalCalls + ". " + r.name + ": " + r.id);
     console.log(
-      "💰  " +
-        Utils.round(costIn + costOut) +
-        "$\t⌛" +
+      Utils.round(costIn + costOut) +
+        "$\t" +
         Utils.round(r.duration / 1000, 10) +
         "s"
     );

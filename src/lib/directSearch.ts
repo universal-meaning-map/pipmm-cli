@@ -228,7 +228,7 @@ export default class DirectSearch {
         return note.block.get(NAME_IID);
       }
     });
-    console.log(nameWithHyphenDependencies);
+    //console.log(nameWithHyphenDependencies);
     return nameWithHyphenDependencies;
   };
 

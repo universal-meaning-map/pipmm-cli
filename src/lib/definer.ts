@@ -17,6 +17,7 @@ import DocsUtils from "./docsUtils";
 export default class Definer {
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
     let intensions: string[] = [];
+    if (docs == undefined) return [];
 
     docs.forEach((r) => {
       intensions.push(r.pageContent);
@@ -122,7 +123,7 @@ Top words:`,
     };
 
     const request: LlmRequest = {
-      name: "Score definition key concepts",
+      name: "Score def concepts",
       identifierVariable: concept,
       inputVariableNames: ["concept", "conceptDefinition", "terms"],
       temperature: 0.0,
@@ -171,7 +172,7 @@ JSON array of terms with prerequisit-score:
       text: text,
     };
     const guessedScoredConcepts: LlmRequest = {
-      name: "Suggest text related concepts",
+      name: "Score text rel. concepts",
       identifierVariable: text,
       inputVariableNames: ["text"],
       temperature: 0.0,
@@ -303,7 +304,7 @@ CONCEPTS`,
 
   static respondToQuestionRequest: LlmRequest = {
     identifierVariable: "<not set>",
-    name: "Respond to question based on perspective",
+    name: "Respond",
     inputVariableNames: ["question", "definitions"],
     temperature: 0.0,
     maxCompletitionChars: 3000, //minimum chars saved for response
@@ -434,13 +435,14 @@ RESPONSE`,
   static intensionsToText(intensions: string[]): string {
     let text = "";
     intensions.forEach((i) => {
+      if (!i) console.log("Fix me. Intensions to text");
       text = text + Tokenizer.beginingOfStatementToken + " " + i + "\n";
     });
     return text;
   }
 
   static defBackgroundSynthesisRequest: LlmRequest = {
-    name: "Get definition background knowledge synthesis",
+    name: "Def. Background syntesis",
     identifierVariable: "<not set>",
     inputVariableNames: [
       "term",
@@ -534,36 +536,143 @@ The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
     identifierVariable: "<not set>",
     inputVariableNames: ["request", "perspective"],
     temperature: 0.0,
-    maxCompletitionChars: 15000, //minimum chars saved for response
-    template: `INSTRUCTIONS
+    maxCompletitionChars: 20000, //minimum chars saved for response
+    template: `GOAL
+- The ultimate goal is to create a writing composition in response to the REQUEST. COMPOSITION from now on.
+    
+INSTRUCTIONS
+- You will follow all the STEPS (7) to progressively create the foundations of the COMPOSITION.
+- All your responses are based on IMPERSONATED PERSPECTIVE, unless explicitly said the opposite.
+- IMPERSONATED PERSPECTIVE may contain some information that is not relevant to the request and you need to discard.
+- The relevant information may be anywhere in the IMPERSONATED PERSPECTIVE.
+- Only write what is instructed under the "Output:" section of each Step.
+- Answer with a JSON object.
+- The JSON object should not be inside Makrdown code.
+- The JSON object will have with the following signature:
+{{
+    "Output 0":{{<Step 0 object>}},
+    "Output 1":{{<Step 1 object>}},
+    "Output 2":{{<Step 2 object>}},
+    "Output 3":{{<Step 3 object>}},
+    "Output 4":{{<Step 4 object>}},
+    "Output 5":{{<Step 5 object>}},
+    "Output 6":{{<Step 6 object>}},
+}}
 
-1. Define outlines.
-    1. First outline: The outline is made of nested sections. Each section is represented by a heading. Each section contains a list of the concepts that should be included. First outline goes into the first element of the "outlines" array.
-    2. Second outline: Rewrite the title of the first outline to align with the request and the current content. Rewrite the headings of the first outline so each heading better reflects the concepts it contains. Add 1-3 new headings (section or subsection) missing in the previous outline to capture ideas present in IMPERSONATED PERSPECTIVE and that will support explaining the REQUEST. Second outline goes into the second element of the "outlines" array.
-    3. Third outline: Rewrite the bullet point concepts of each section of the second outilne in order to better reflect their heading and to capture the best content to meet the REQUEST. Thirs outline goes into the third element of the "outlines" array.
+STEPS
 
+Step 0. Propose the COMPOSITION titles
     Guidelines:
-    - The goal is define the best outline possible in order to explain REQUEST
-    - Each outline is an iteration over the previous one.
-    - Each outline is an element of the "outlines" array
-    - Define a headings for title, sections and sub-sections.
-    - For each heading list the concepts and ideas that should be included in that section.
-    - The title should be representative of the REQUEST, but adapted to what exists in IMPERSONATED PERSPECTIVE.
-    - In the concepts list, include when example or rethorical device may be necessary
-    - Only ideas contained within IMPERSONATED PERSPECTIVE can be used. No external information.
-    - The overall sturcture should go from more general and simple to more detailed and complex.
-   
-    
-2. Write content. Write a markdown text, well structured with pharagraphs following the outline structure headings and content defined in the third outline.
-    
-3. Style: Rewrite "content" for as ELI5
+    - A title must be highly representative of the REQUEST.
+    - The title is not based on IMPERSONATED PERSPECTIVE.
+    - The title should be an elaborate clause.
+    - A title must be in a question form.
+    Output:
+    - Write the title
+    Format:
+    - A string
 
-Answer in JSON file with the following structure:
-    {{
-        "outlines": [], // 3 outlines
-        "content": "", 
-        "style": "", 
-    }}
+Step 1. Propose general guiding questions
+    Guidelines:
+
+    - Qualties of a good guiding questions:
+        - Clarity: Clearly formulated and easily understood.
+        - Relevance: Directly related to the REQUEST.
+        - Open-ended: Encourages detailed responses, avoiding yes/no answers.
+        - Focused: Targets a specific aspect of the REQUEST.
+        - Neutral: Phrased in a way that avoids bias.
+        - Engaging: Sparks interest and involvement.
+        - Complexity: Thought-provoking without being overly complex.
+        - Connection to Goals: Aligns with the overall .
+        - Encourages Reflection: Prompts participants to reflect on thoughts or experiences.
+        - Unique and diverse: Each question should cover a unique aspect, creating diversity
+        - Foundational: Reveal background knowledge.
+    
+    - A good guiding question assists in highliting elements that will help answer the REQUEST such as:
+        - Elements that give more resolution and clarity in order to answer the REQUEST
+        - Base understanding of the concepts at play.
+        - Doubts that the reader may have in relation to the REQUEST.
+        - Essential inquirie in relation to the REQUEST.
+        - What needs are behind the REQUEST.
+        - Questioning if the REQUEST itself.
+        - Clarify background knowledge.
+        - Highlights functional actions.
+    Output:
+    - A list of 10-20 guiding questions agnostic to IMPERSONATED PERSPECTIVE
+    Format:
+    - An array of strings.
+
+Step 2. Analize questions
+    Guidelines:
+    - General analysis: What fundamental guiding questions are missing from Output 1?
+    - Per question analysis: For each question in Output 1 analize, how can this question be improved?
+    
+    Output:
+    - General analysis and per question analyis
+    Format:
+    - A JSON object with a "General analysis" and "Per questions analysis"
+
+Step 3. Rewrite questions
+    Guidelines:
+    - Based on the General analysis of Output 2. Create new questions to cover the missing ones.
+    - Based on the Per question analysis of Output 2. Rewrite each question accordingly.
+    Output:
+    - New questions that were missing
+    - Rewriten list of guiding questions
+    Format:
+    - An array of strings.
+
+Step 4. Synthesise guiding questions
+    Guidelines:
+    - Take Ouput 3  and transform them into a single list with half of the questions.
+    - Discard questions that are the least relevant.
+    - Merge similar questions into one.
+    Output:
+    - A list of questions
+    Format:
+    - An array of strings
+
+Step 5. Group questions
+    Guidelines:
+    - Group the guiding questions of Output 4 based in common themes.
+    - Each theme is expressed as a question that is representative of its guiding questions.
+
+    Output:
+    - The rewriten list of guiding questions
+    Format:
+    - An array of objects with "grouping question" and "guiding questions" fields:
+
+Step 6. Genearte a narrative
+    Guidelines:
+    - Output 4 represents the body of knowledge that should be covered in the COMPOSITION
+    - Generate the overarching narrative that covers the body of knowledge in order to answer the REQUEST.
+    - The narrative should be fully comprehensive of Output 4
+    - The narrative should streamline the reading.
+    - Use a logical flow and clear transitions between ideas.
+    - The title of the narrative is Outcome 0.
+   
+    Output:
+    - A narrative based on Output 4
+    Format:
+    - A Markdown document with sections and subsectioms.
+    - Under each section explain the narrative
+
+
+Step 5. Generate an Outline
+    Guidelines:
+    - Output 3 represents the body of knowledge that should be covered in the COMPOSITION
+    - Propose an outline that for the COMPOSITION that covers the full body of knowledge.
+    - The outline is a high level representation of what the strcuture of the COMPOSITION should be.
+    - The outline is made of nested sections.
+    - Use a logical flow and clear transitions between ideas.
+    - Add new elements that may be necessary to facilitate the reading flow. (connectors, introduction, ending...)
+    - The outline can contain sections and subsections
+
+    Output:
+    - A list of guiding questions
+    Format:
+    - A Markdown document 
+
 
 REQUEST
 
@@ -571,7 +680,7 @@ REQUEST
 
 IMPERSONATED PERSPECTIVE
 
-The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
+The following terminology is the basis of IMPERSONATED PERSPECTIVE:
 
 {perspective}
 
@@ -579,6 +688,64 @@ JSON`,
   };
 }
 
+/*
+
+
+Step 5. Sort guiding questions
+    Guidelines:
+    - Background understanding / conceptual before practical
+    - Abstract before specific
+    - Directly responding to the REQUEST before indirect.
+    
+    Output:
+    - A list of sorted questions
+    Format:
+    - An array of strings
+
+Step 5. Compose the first outline
+    Guidelines:
+    - The outline is founded on Output 5
+    - The outline is a high level representation of what the strcuture of the COMPOSITION should be.
+    - The outline is made of nested sections.
+    - Each section is represented by a heading.
+    - Each headings must be an elaborate clause reflecting the guiding Questions of Output 5.
+    - Each section contains a list of the concepts and ideas that the section should cover.
+    - The ideas to be included should be complex caluses based on IMPERSONATED PERSPECTVE.
+    - The headings and the contents always should aim to best explain the REQUEST. This is the top priority.
+    - Only ideas contained within IMPERSONATED PERSPECTIVE can be used. No external information.
+    Output:
+    - The outline following the guidelines. 
+    Format:
+    - A JSON object with the signature:
+    {{
+        "Title": {{
+          "Section1": ["Idea1", "Idea2", ...],
+          "Section2": ["Idea1", "Idea2", ...],
+          ...
+        }}
+    }}
+
+Step 6. Compose the second outline
+    Guidelines:
+    - Rewrite the headings of the Output 5 to better reflect the concepts it contains.
+    - For each section add 1-3 new concepts missing in Output 5.
+
+    Output
+    -The outline following the guidelines.
+
+    Format: 
+    - Same format as Output 5
+
+AUDIENCE
+
+- Critical thinkers who engage in intellectual discussions.
+- Interest in depth of the human condition.
+- Diverse global community with various backgrounds and cultures.
+- Only like concise, information-rich content.
+- Do not know anything about IMPERSONATED PERSPECTIVE terminology.
+
+- Context-aware: Tailored to fit the AUDIENCE and context.
+*/
 //- Explore interesting ideas in detail but make sure you are responding to the question.
 
 //- Explain the necessary meaning behind concepts when necessary. Express it inline, then continue answering the question.

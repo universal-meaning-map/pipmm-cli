@@ -141,7 +141,7 @@ export default class DefinerStore {
       const du = await DefinerStore.initDefinition(nameWithHyphen);
 
       if (!du) {
-        console.log("couldn't find" + nameWithHyphen);
+        console.log(nameWithHyphen + " not found. Init definition");
         return undefined;
       } else {
         d = du;
@@ -194,12 +194,19 @@ export default class DefinerStore {
         d = DefinerStore.definitions.get(nameWithHyphen)!;
         d.keyConceptsScores = []; //resets stored ones
 
+        for (let wordWithScore of keyWordsScores) {
+          if (!wordWithScore) continue;
+          if (Referencer.nameWithHyphenToFoamId.has(wordWithScore.k)) {
+            d.keyConceptsScores.push(wordWithScore);
+          }
+        }
+        /*
         keyWordsScores.forEach((wordWithScore) => {
           if (Referencer.nameWithHyphenToFoamId.has(wordWithScore.k)) {
             d.keyConceptsScores.push(wordWithScore);
             //console.log(wordWithScore);
           }
-        });
+        });*/
         d.keyConceptsScores.sort((a, b) => b.v - a.v);
         d.lastKeyConceptsRequest = Date.now();
         DefinerStore.definitions.set(nameWithHyphen, d);
