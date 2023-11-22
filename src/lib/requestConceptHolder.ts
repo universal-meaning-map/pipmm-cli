@@ -1,19 +1,20 @@
 import { Key } from "readline";
-import DefinerStore, { KeyValuePair, Definition } from "../lib/definerStore";
+import DefinerStore, { ConceptScore, Definition } from "../lib/definerStore";
 import Definer from "./definer";
 import { sectionInstructions } from "./composer";
+import { GPT35TURBO } from "./llm";
 
 export default class RequestConceptHolder {
-  given: KeyValuePair[];
-  givenParents: KeyValuePair[];
-  guessed: KeyValuePair[];
-  guessedParents: KeyValuePair[];
-  all: KeyValuePair[];
+  given: ConceptScore[];
+  givenParents: ConceptScore[];
+  guessed: ConceptScore[];
+  guessedParents: ConceptScore[];
+  all: ConceptScore[];
   text: string;
 
   constructor(_given: string[], _text: string) {
     this.given = _given.map((c) => {
-      return { k: c, v: 1 };
+      return { c: c, s: 1 };
     });
     this.givenParents = [];
     this.guessed = [];
@@ -50,7 +51,7 @@ export default class RequestConceptHolder {
   }
 
   async processGuesed(): Promise<void> {
-    this.guessed = await Definer.guessTextKeyConcepts(this.text);
+    this.guessed = await Definer.guessMuFromText(GPT35TURBO, this.text);
     this.guessedParents = await this.getParentScoresForConcepts(
       this.guessed,
       0.8
@@ -61,38 +62,41 @@ export default class RequestConceptHolder {
   }
 
   async getParentScoresForConcepts(
-    conceptScores: KeyValuePair[],
+    conceptScores: ConceptScore[],
     compensation: number
-  ): Promise<KeyValuePair[]> {
-    const process = conceptScores.map(async (cs: KeyValuePair) => {
+  ): Promise<ConceptScore[]> {
+    const process = conceptScores.map(async (cs: ConceptScore) => {
+      console.log(cs.c);
+
       const d = await DefinerStore.getDefinition(
-        cs.k,
+        cs.c,
         true,
         false,
         true,
         false
       );
+
       if (d) {
-        let pcs = this.penalizeConceptScores(d.keyConceptsScores, cs.v);
+        let pcs = this.penalizeConceptScores(d.keyConceptsScores, cs.s);
         pcs = this.penalizeConceptScores(pcs, compensation);
         return pcs;
       } else {
-        console.log(cs.k + " not found");
-        return [] as KeyValuePair[]; // Return an empty array with the correct type
+        console.log(cs.c + " not found");
+        return [] as ConceptScore[]; // Return an empty array with the correct type
       }
     });
 
     const all = await Promise.all(process);
-    let concatenatedArray: KeyValuePair[] = ([] as KeyValuePair[]).concat(
+    let concatenatedArray: ConceptScore[] = ([] as ConceptScore[]).concat(
       ...all
     );
 
     return Definer.sortConceptScores(concatenatedArray);
   }
 
-  penalizeConceptScores(conceptScores: KeyValuePair[], penalty: number) {
+  penalizeConceptScores(conceptScores: ConceptScore[], penalty: number) {
     for (let c of conceptScores) {
-      c.v = c.v * penalty;
+      c.s = c.s * penalty;
     }
     return conceptScores;
   }
@@ -100,7 +104,7 @@ export default class RequestConceptHolder {
 
 export async function parallelRCH(
   sectionsInstructions: sectionInstructions[]
-): Promise<KeyValuePair[]> {
+): Promise<ConceptScore[]> {
   const process = sectionsInstructions.map(async (s: sectionInstructions) => {
     const text = s.title + "\n" + s.coverage;
     const rch = new RequestConceptHolder(s.givenConcepts, text);
@@ -108,9 +112,9 @@ export async function parallelRCH(
     return rch.all;
   });
 
-  const r: KeyValuePair[][] = await Promise.all(process);
+  const r: ConceptScore[][] = await Promise.all(process);
 
-  let all: KeyValuePair[] = ([] as KeyValuePair[]).concat(...r);
+  let all: ConceptScore[] = ([] as ConceptScore[]).concat(...r);
   let allUnique = Definer.removeRepeatsAndNormalizeScore(all);
 
   return Definer.sortConceptScores(allUnique);

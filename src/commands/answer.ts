@@ -71,19 +71,40 @@ export default class AnswerCommand extends Command {
     );
 
     // Load compiled definitions
-    await DefinerStore.load();
 
     //QUESTION and KEY CONCEPTS
     const question = args.question;
+    //REQUEST ANALYSIS
+
+    /*
+    const questionAnalysisRequest = Definer.questionAnalysisRequest;
+    questionAnalysisRequest.identifierVariable = question;
+    let questionAnalysis = await callLlm(GPT35TURBO, questionAnalysisRequest, {
+      request: question,
+    });
+
+    console.log(questionAnalysis);
+    const qa = JSON.parse(questionAnalysis);
+    const questions: string[] = qa.Output1;
+    const mainQuestion: string = qa.Output2;
+    const request = questions[questions.length - 1]; //mainQuestion + "\n" + questions.join("\n");
+*/
+    const request = question;
+    console.log(request);
+
+    //RCH
+    await DefinerStore.load();
     const givenConcepts: string[] = args.keyConcepts.split(", ");
 
-    let rch = new RequestConceptHolder(givenConcepts, question);
+    let rch = new RequestConceptHolder(givenConcepts, request);
     await rch.proces();
 
     await DefinerStore.save();
 
     //ANSWER
-    const answerRequest = Definer.respondToQuestionRequest;
+
+    console.log(request);
+    const answerRequest = Definer.meaningMakingRq;
     answerRequest.identifierVariable = question;
     const answerModel = GPT4TURBO;
     const promptTemplateChars = answerRequest.template.length;
@@ -95,16 +116,33 @@ export default class AnswerCommand extends Command {
 
     let allDefinitions: Definition[] =
       await DefinerStore.getDefinitionsByConceptScoreList(rch.all);
+
     let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
       allDefinitions,
       maxPromptContextChars
     );
     let definitionsText = maxedOutTextDefinitions.join("\n");
     definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
+    /*const answerInputVariables = {
+            question: request,
+            definitions: definitionsText,
+        };
+        */
     const answerInputVariables = {
-      question: question,
-      definitions: definitionsText,
+      request: request,
+      perspective: definitionsText,
     };
+
+    let rationales = await callLlm(
+      GPT4TURBO,
+      answerRequest,
+      answerInputVariables
+    );
+    console.log(rationales);
+
+    outputLlmStats();
+
+    return;
 
     //SUCCESSION
     const successionModel = GPT4TURBO;

@@ -17,14 +17,14 @@ export interface Definition {
   usageClauses: string[];
   compiledDefinition: string;
   lastCompiledRequest: number;
-  keyConceptsScores: KeyValuePair[];
+  keyConceptsScores: ConceptScore[];
   lastKeyConceptsRequest: number;
   backLinkScore: number;
 }
 
-export interface KeyValuePair {
-  k: string;
-  v: number;
+export interface ConceptScore {
+  c: string;
+  s: number;
 }
 
 export default class DefinerStore {
@@ -103,7 +103,7 @@ export default class DefinerStore {
     nameWithHyphen: string,
     score: number
   ): Promise<void> => {
-    //    console.log("Start backlink: " + nameWithHyphen);
+    //console.log("Start backlink: " + nameWithHyphen + " " + score);
     const d = await DefinerStore.getDefinition(
       nameWithHyphen,
       false,
@@ -196,7 +196,7 @@ export default class DefinerStore {
 
         for (let wordWithScore of keyWordsScores) {
           if (!wordWithScore) continue;
-          if (Referencer.nameWithHyphenToFoamId.has(wordWithScore.k)) {
+          if (Referencer.nameWithHyphenToFoamId.has(wordWithScore.c)) {
             d.keyConceptsScores.push(wordWithScore);
           }
         }
@@ -207,7 +207,7 @@ export default class DefinerStore {
             //console.log(wordWithScore);
           }
         });*/
-        d.keyConceptsScores.sort((a, b) => b.v - a.v);
+        d.keyConceptsScores.sort((a, b) => b.s - a.s);
         d.lastKeyConceptsRequest = Date.now();
         DefinerStore.definitions.set(nameWithHyphen, d);
       } else {
@@ -245,9 +245,10 @@ export default class DefinerStore {
 
     if (needsKeyConcepts) {
       for (let w of d.keyConceptsScores) {
-        await DefinerStore.addBackLinkScore(w.k, w.v);
+        await DefinerStore.addBackLinkScore(w.c, w.s);
       }
     }
+
     return d;
 
     //directIntensions
@@ -273,7 +274,7 @@ export default class DefinerStore {
     //Filter only the ones with high score.
     let keyConcepts: string[] = [];
     for (let ks of rootDefinition!.keyConceptsScores) {
-      if (ks.v > 0.7) keyConcepts.push(ks.k);
+      if (ks.s > 0.7) keyConcepts.push(ks.c);
     }
 
     //filter key concepts
@@ -385,11 +386,11 @@ export default class DefinerStore {
   }
 
   static filterKeyConceptByScore(
-    keyConcepts: KeyValuePair[],
+    keyConcepts: ConceptScore[],
     minScore: number
   ) {
-    function keyConceptsFitler(keyConcept: KeyValuePair): boolean {
-      if (keyConcept.v >= minScore) return true;
+    function keyConceptsFitler(keyConcept: ConceptScore): boolean {
+      if (keyConcept.s >= minScore) return true;
       return false;
     }
 
@@ -397,12 +398,12 @@ export default class DefinerStore {
   }
 
   static async getDefinitionsByConceptScoreList(
-    conceptsScoreList: KeyValuePair[]
+    conceptsScoreList: ConceptScore[]
   ): Promise<Definition[]> {
     let definitions: Definition[] = [];
     for (let cs of conceptsScoreList) {
       const d = await DefinerStore.getDefinition(
-        cs.k,
+        cs.c,
         false,
         false,
         false,

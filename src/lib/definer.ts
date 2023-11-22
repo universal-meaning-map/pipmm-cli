@@ -7,13 +7,13 @@ import {
   SEARCH_ORIGIN_SEMANTIC,
   callLlm,
   GPT4TURBO,
-  GPT35TURBO,
 } from "./llm";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
-import { KeyValuePair } from "./definerStore";
+import { ConceptScore } from "./definerStore";
 import { ChainValues } from "langchain/dist/schema";
 import DocsUtils from "./docsUtils";
+import { Model } from "openai";
 export default class Definer {
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
     let intensions: string[] = [];
@@ -58,7 +58,8 @@ export default class Definer {
       identifierVariable: concept,
       inputVariableNames: ["context"],
       temperature: 0.2,
-      maxCompletitionChars: 3000, //minimum chars saved for response
+      maxCompletitionChars: 3000,
+      maxPromptChars: -1,
       template: `- In the following occurrances an unknown term ${Tokenizer.unknownTermToken} is used.
   - Find commonalities betwen X usage in occurance and abstract them.
   - Use one bullet point per abstraction to define what ${Tokenizer.unknownTermToken} is.
@@ -106,7 +107,7 @@ Definition of "{concept}":
 Top words:`,
     };
 
-    let out = await callLlm2(GPT4, keyConceptsRequest, inputVariables);
+    let out = await ca  lm2(GPT4, keyConceptsRequest, inputVariables);
     return out.split(", ");
   };
 */
@@ -114,7 +115,7 @@ Top words:`,
     concept: string,
     definition: string,
     keyConcepts: string[]
-  ): Promise<KeyValuePair[]> => {
+  ): Promise<ConceptScore[]> => {
     const terms = keyConcepts.join(", ");
     const inputVariables: ChainValues = {
       concept: concept,
@@ -128,6 +129,7 @@ Top words:`,
       inputVariableNames: ["concept", "conceptDefinition", "terms"],
       temperature: 0.0,
       maxCompletitionChars: 3000, //minimum chars saved for response
+      maxPromptChars: -1,
       template: `- The following is a particular definition of "{concept}"
 - Score the following list of Terms, prerequisits to understand "{concept}".
     - Score from 0 to 1 based on their prerequisit-score.
@@ -139,11 +141,11 @@ Top words:`,
         - Are used more than once
     - The prequisit-score is lower if:
         - It is used as example.
-- Output a list JSON object with an array of objects named "scores" with concept (k) and its prerequist-score (v).
+- Output a list JSON object with an array of objects named "scores" with concept (c) and its prerequist-score (s).
     - Do not write the JSON object inside Markdown code syntax.
     - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
     - Transform each word to its singular form.
-    - Use the format: {{"k": "apple", "v": 0.7}}
+    - Use the format: {{"c": "apple", "s": 0.7}}
 
 Definition of "{concept}":
 {conceptDefinition}
@@ -157,7 +159,7 @@ JSON array of terms with prerequisit-score:
 
     let j = await callLlm(GPT4TURBO, request, inputVariables);
     try {
-      const out = JSON.parse(j).scores as KeyValuePair[];
+      const out = JSON.parse(j).scores as ConceptScore[];
       return out;
     } catch (e) {
       console.log(e);
@@ -165,9 +167,11 @@ JSON array of terms with prerequisit-score:
     }
   };
 
-  static getTextRelatedConceptsRequest = async (
+  static getTextRelatedConceptsRq = async (
+    model: ModelConfig, //USE GPT3.5TURBO or GPT4. GPT4Turbo can't recongize unique terms like "minfromation"
     text: string
-  ): Promise<KeyValuePair[]> => {
+  ): Promise<ConceptScore[]> => {
+    if (!text) return [];
     const inputVariables: ChainValues = {
       text: text,
     };
@@ -177,63 +181,82 @@ JSON array of terms with prerequisit-score:
       inputVariableNames: ["text"],
       temperature: 0.0,
       maxCompletitionChars: 3000, //minimum chars saved for response
+      maxPromptChars: -1,
       template: `"INSTRUCTIONS
-Suggest:
-- concepts and ideas that may be related to the TEXT.
-- concepts and ideas in the TEXT.
-- key words in the TEXT
-- concepts and ideas that can capture the meaning of the TEXT in different words.
+- Your goal is to rate concepts and ideas that important in TEXT.
+- TEXT uses unique unusual words. They are not misspelled. 
 
-Output a list JSON object with an array of objects named "scores" with concept (k) and its prerequist-score (v).
+1. Suggest key ideas in the TEXT
+- A key idea is:
+    - a technical term.
+    - an unusual or strange or misspelled word.
+    - ideas that are not in the text but maybe releated.
+    - concepts contained in the TEXT.
+    - ideas that can capture the meaning of the TEXT in different words.
+2. Score each idea.
+    - Score from 0 to 1 based on its relevancy to the TEXT.
+    - Relevancy is calculated based:
+        - How much of a prerequisit is to understand TEXT
+        - How unique the idea is.
+
+Output:
+- A JSON object with an "scores" object containing an array of objects with concept (c) and its relevancy score (s) as fields.
+- JSON signature:
+    {{
+        "scores":[
+            {{ "c": "apple", "s": 0.7 }}
+        ]
+    }} 
 - Do not write the JSON object inside Markdown code syntax.
 - Write in singular and lower-case.
-- Score from 0 to 1 based on its relevancy to the TEXT.
-- Use the format: {{"k": "apple", "v": 0.7}}
 
 TEXT
 {text}
 .
-CONCEPTS`,
+JSON`,
     };
 
-    let json = await callLlm(GPT4TURBO, guessedScoredConcepts, inputVariables);
+    let json = await callLlm(model, guessedScoredConcepts, inputVariables);
 
     try {
-      const out = JSON.parse(json).scores as KeyValuePair[];
-      for (let kv of out) {
-        kv.v = Utils.mapRange(kv.v, 0, 1, 0.5, 1);
+      const out = JSON.parse(json);
+      const scores = out.scores as ConceptScore[];
+      for (let cs of scores) {
+        cs.s = Utils.mapRange(cs.s, 0, 1, 0.5, 1);
       }
-      return out;
+      return scores;
     } catch (e) {
+      console.log(json);
       console.log(e);
       return [];
     }
   };
 
-  static guessTextKeyConcepts = async (
+  static guessMuFromText = async (
+    model: ModelConfig,
     text: string
-  ): Promise<KeyValuePair[]> => {
-    const model = GPT4;
+  ): Promise<ConceptScore[]> => {
     //Get scored list of related concepts
-    const relatedConceptScored = await Definer.getTextRelatedConceptsRequest(
+    const relatedConceptScored = await Definer.getTextRelatedConceptsRq(
+      model,
       text
     );
 
-    //console.log("Guessed key words");
-    //console.log(relatedConceptScored);
+    console.log("Guessed key words");
+    console.log(relatedConceptScored);
 
     let allDocs: Document<Record<string, any>>[] = [];
     for (let concept of relatedConceptScored) {
       //We get all the docs related to the semantic search
-      let docsForConcept = await DocsUtils.getContextDocsForConcept(concept.k, [
+      let docsForConcept = await DocsUtils.getContextDocsForConcept(concept.c, [
         SEARCH_ORIGIN_SEMANTIC,
       ]);
 
       // we give the doc the score
       // we recalculate confidence based on that.
       for (let d of docsForConcept) {
-        d.metadata.textRelevanceScore = concept.v;
-        d.metadata.confidence = d.metadata.confidence * concept.v;
+        d.metadata.textRelevanceScore = concept.s;
+        d.metadata.confidence = d.metadata.confidence * concept.s;
       }
 
       allDocs = allDocs.concat(docsForConcept);
@@ -242,10 +265,10 @@ CONCEPTS`,
     allDocs = DocsUtils.sortDocsByConfidence(allDocs);
     allDocs = DocsUtils.filterDocsByConfindence(allDocs, 0.6);
 
-    let guessedConcepts: KeyValuePair[] = [];
+    let guessedConcepts: ConceptScore[] = [];
 
     for (let d of allDocs) {
-      guessedConcepts.push({ k: d.metadata.name, v: d.metadata.confidence });
+      guessedConcepts.push({ c: d.metadata.name, s: d.metadata.confidence });
     }
 
     //guessedConcepts = [...new Set(guessedConcepts)]; //remove duplicates
@@ -254,43 +277,43 @@ CONCEPTS`,
     );
   };
 
-  static sortConceptScores(conceptScores: KeyValuePair[]): KeyValuePair[] {
+  static sortConceptScores(conceptScores: ConceptScore[]): ConceptScore[] {
     conceptScores.sort((a, b) => {
-      if (a.v < b.v) return 1;
+      if (a.s < b.s) return 1;
       return -1;
     });
     return conceptScores;
   }
 
   static removeRepeatsAndNormalizeScore(
-    concepts: KeyValuePair[]
-  ): KeyValuePair[] {
+    concepts: ConceptScore[]
+  ): ConceptScore[] {
     concepts.sort((a, b) => {
-      let A = a.k.split(Tokenizer.hyphenToken).join();
-      let B = b.k.split(Tokenizer.hyphenToken).join();
+      let A = a.c.split(Tokenizer.hyphenToken).join();
+      let B = b.c.split(Tokenizer.hyphenToken).join();
       if (A < B) return -1;
       if (A > B) return 1;
       return 1;
     });
 
-    let uniques: KeyValuePair[] = [];
+    let uniques: ConceptScore[] = [];
     let count = 1;
     let hv = 0;
 
     //increases k.v base on repetitions, taking the highest score as base
-    let prevC = { k: "", v: 0 };
+    let prevC = { c: "", s: 0 };
     for (let i = 0; i < concepts.length; i++) {
       let c = concepts[i];
-      if (c.k != prevC.k || i == concepts.length - 1) {
+      if (c.c != prevC.c || i == concepts.length - 1) {
         //calculate the previous
-        if (prevC.v > hv) hv = prevC.v; // get the highest score
+        if (prevC.s > hv) hv = prevC.s; // get the highest score
         let f = 1 + Math.log(count) * 0.1; // 2x = 1.0693, 10x = 1.2
-        let v = hv * f;
-        if (v > 1) v = 1;
+        let s = hv * f;
+        if (s > 1) s = 1;
 
         //console.log(prevC);
         //console.log(count + " " + v);
-        uniques.push({ k: prevC.k, v: v });
+        uniques.push({ c: prevC.c, s: s });
         prevC = c;
         count = 1;
         hv = 0;
@@ -307,7 +330,8 @@ CONCEPTS`,
     name: "Respond",
     inputVariableNames: ["question", "definitions"],
     temperature: 0.0,
-    maxCompletitionChars: 3000, //minimum chars saved for response
+    maxCompletitionChars: 3000, //minimum chars saved for response,
+    maxPromptChars: -1,
     template: `INSTRUCTIONS
 
 - You will give a RESPONSE to YOUR AUDIENCE about the QUESTION they asked.
@@ -417,6 +441,7 @@ RESPONSE`,
 
       temperature: 0.0,
       maxCompletitionChars: 3000, //minimum chars saved for response
+      maxPromptChars: -1,
       template: `
 Write {textType} about: {topic}.
 Do it for {targetAudience} in the style of {style}, capturing its tone, voice, vocabulary and sentence structure.
@@ -453,6 +478,8 @@ RESPONSE`,
     ],
     temperature: 0.0,
     maxCompletitionChars: 3000, //minimum chars saved for response
+
+    maxPromptChars: -1,
     template: `INSTRUCTIONS
 
 - You act as a resarcher assistant in charge of providing comprehensive background knowledge for YOUR AUDIENCE, so they can fully understand the deep meaning of "{term}" when reading its TERM DEFINITION.
@@ -488,6 +515,7 @@ SYNTHESIS IDEAS NOT INCLUDED IN TERM DEFINITION`,
     inputVariableNames: ["text", "request", "perspective"],
     temperature: 0.0,
     maxCompletitionChars: 15000, //minimum chars saved for response
+    maxPromptChars: -1,
     template: `INSTRUCTIONS
 
 The ORIGINAL TEXT is a response to the REQUEST
@@ -537,11 +565,12 @@ The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
     inputVariableNames: ["request", "perspective"],
     temperature: 0.0,
     maxCompletitionChars: 20000, //minimum chars saved for response
+    maxPromptChars: -1,
     template: `GOAL
 - The ultimate goal is to create a writing composition in response to the REQUEST. COMPOSITION from now on.
     
 INSTRUCTIONS
-- You will follow all the STEPS (7) to progressively create the foundations of the COMPOSITION.
+- You will follow all the STEPS (8) to progressively create the foundations of the COMPOSITION.
 - All your responses are based on IMPERSONATED PERSPECTIVE, unless explicitly said the opposite.
 - IMPERSONATED PERSPECTIVE may contain some information that is not relevant to the request and you need to discard.
 - The relevant information may be anywhere in the IMPERSONATED PERSPECTIVE.
@@ -557,39 +586,395 @@ INSTRUCTIONS
     "Output 4":{{<Step 4 object>}},
     "Output 5":{{<Step 5 object>}},
     "Output 6":{{<Step 6 object>}},
+    "Output 7":{{<Step 7 object>}},
+    "Output 8":{{<Step 8 object>}},
 }}
 
 STEPS
 
-Step 0. Propose the COMPOSITION titles
+Step 0. Rewrite REQUEST as a single question
     Guidelines:
-    - A title must be highly representative of the REQUEST.
-    - The title is not based on IMPERSONATED PERSPECTIVE.
-    - The title should be an elaborate clause.
+    - It will serve as a title and main question.
     - A title must be in a question form.
+    - The title can be a complex clause if needed, but cannot be over complicated.
     Output:
-    - Write the title
+    - Write the main question.
     Format:
     - A string
 
-Step 1. Propose general guiding questions
+Step 1. Generate Refinement Questions
     Guidelines:
+    - Generate good Refinement Questions about the REQUEST.
+    - Do not base them on IMPERSONATED PERSPECTIVE.
+    Output:
+    - A list of 7 Refinement Questions.
+    Format:
+    - An array of strings.
 
-    - Qualties of a good guiding questions:
-        - Clarity: Clearly formulated and easily understood.
-        - Relevance: Directly related to the REQUEST.
-        - Open-ended: Encourages detailed responses, avoiding yes/no answers.
-        - Focused: Targets a specific aspect of the REQUEST.
-        - Neutral: Phrased in a way that avoids bias.
-        - Engaging: Sparks interest and involvement.
-        - Complexity: Thought-provoking without being overly complex.
-        - Connection to Goals: Aligns with the overall .
-        - Encourages Reflection: Prompts participants to reflect on thoughts or experiences.
-        - Unique and diverse: Each question should cover a unique aspect, creating diversity
-        - Foundational: Reveal background knowledge.
+Step 2. Synthesise questions
+    Guidelines:
+    - Missing Question: If one single foundational Refinement Question can be added into Output 1 what will it be? to 
+    - Rewrite questions:
+        - Rewrite Output 1 in order to accomodate Missing Question
+        - The list should cover the same scope as Output 1 and Missing Question together in just 7 questions without simply combining multiple questions into one.
+        - Synthesise questions to abstract the relevant patterns in one or more questions into a new patter that capture them all.
     
-    - A good guiding question assists in highliting elements that will help answer the REQUEST such as:
-        - Elements that give more resolution and clarity in order to answer the REQUEST
+    Output:
+    - Missing Question and Rewriten Questions .
+    Format:
+    - A JSON object with the fields "Missing Question"(string) and  "Rewriten Questions" (string array)
+
+Step 3. Synthesise questions
+    Guidelines:
+    - Missing Question: If one single foundational Refinement Question can be added into Output 2 Rewritten Questions what will it be? to 
+    - Rewrite questions:
+        - Rewrite  "Output 2 Rewritten Questions" in order to accomodate Missing Question
+        - The list should cover the same scope as "Output 2 Rewritten Questions" and Missing Question together in just 7 questions without simply combining multiple questions into one.
+        - Synthesise questions to abstract the relevant patterns in one or more questions into a new patter that capture them all.
+    
+    Output:
+    - Missing Question and Rewriten Questions .
+    Format:
+    - A JSON object with the fields "Missing Question"(string) and  "Rewriten Questions" (string array)
+
+
+Step 4. Synthesise questions
+    Guidelines:
+    - Missing Question: If one single foundational Refinement Question can be added into Output 3 Rewritten Questions what will it be? to 
+    - Rewrite questions:
+        - Rewrite  "Output 3 Rewritten Questions" in order to accomodate Missing Question
+        - The list should cover the same scope as "Output 2 Rewritten Questions" and Missing Question together in just 7 questions without simply combining multiple questions into one.
+        - Synthesise questions to abstract the relevant patterns in one or more questions into a new patter that capture them all.
+    
+    Output:
+    - Missing Question and Rewriten Questions .
+    Format:
+    - A JSON object with the fields "Missing Question"(string) and  "Rewriten Questions" (string array)
+
+
+Step 5. Generate a narrative outline
+    Guidelines:
+    - Output 4 Rewriten Questions is the body of knowledge necessary t comply with the REQUEST.
+    Th narrative goal is to organize the body of knowledge to to create an outline that complies with the REQUEST and maximizes the integration of the body of knowledge.
+    - Generate the outline of a narrative that covers all the questions of Ouput 5.
+    - The goal of the narrative is to connect all the body of knowledge in a coherent and smooth way.
+    - Rewrite the questions if it helps to improve the flow of ideas.
+    - The narrative will combine the Output 4 Rewriten Questions  with "connectors"
+    - A connector is a question or statement used to logically connect two questions of Output 4 Rewriten Questions .
+    - A connector is not a literary element but a logical one founded on IMPERSONATED PERSPECTIVE.
+    - The goal of the connector is to create a logica flow of information.
+    - Evaluate if is necessary to ad connectors to introduce the topic or to draw conclusions.
+    - Add elements that may be necessary to facilitate the reading flow.
+    
+    Output:
+    - A narrative made of a list of clauses (questions, connectors, statements...)
+    Format:
+    - An array of strings
+
+Step 6. Write the final composition
+    Guidelines:
+    - Write a comprehensive piece about REQUEST
+    - Use Output 0 as title.
+    - Use the Output 4 Rewriten Questions as background knowledge to cover.
+    - Use Output Output5 as guiding narrative.
+    - Use paragraphs headings and sub-headings to organize the text and improve readability.
+    
+    Output:
+    - Final writing composition
+    Format:
+    - A Markdown text.
+
+GENERAL GUIDELINES
+
+Refinement Question:
+- It aims to extend the REQUEST in order to extract more detailed and focused information to provide a nuanced and comprehensive response.
+- Good Refinement Questions qualities:
+    - Synthetic. Is able to capture many different patterns into one.
+    - Contextual Alignment: Tailored to fit REQUEST CONTEXT.
+    - Dedicated and simple: Address one specific aspect in a single query.
+    - Purposeful Clarity: Formulated to enhance understanding and eliminate ambiguity.
+    - Strategic Detailing: Aimed at uncovering specific, relevant facts for a comprehensive view.
+    - Logical Flow: Structured to progress logically, from broader inquiries to finer details.
+    - Open-Ended Nature: Encourages elaboration and additional information for a thorough exploration.
+    - Neutrality: Crafted to be unbiased, avoiding leading language for genuine responses.
+    - Application Focus: Serve a purpose in problem-solving, decision-making, or deepening comprehension.
+    
+REQUEST
+    
+{request}
+
+REQUEST CONTEXT
+
+    
+IMPERSONATED PERSPECTIVE
+    
+The following terminology is the basis of IMPERSONATED PERSPECTIVE:
+    
+    
+    
+JSON`,
+  };
+
+  static questionAnalysisRequest: LlmRequest = {
+    //USE GPT3.5TURBO or GPT4. GPT4Turbo can't recongize unique terms like "minfromation"
+    name: "Analize request",
+    identifierVariable: "<not set>",
+    inputVariableNames: ["request"],
+    temperature: 0.0,
+    maxCompletitionChars: 20000, //minimum chars saved for response
+    maxPromptChars: -1,
+    template: `INSTRUCTIONS
+- You will follow all the STEPS(2)
+- Only write what is instructed under the "Output:" section of each Step.
+- Use precise, technical and straightforward language. No unnecessary jargon and complexity.
+- REQUEST uses unusual terms. They are critical and may look similar from common words. They are not misspelled.
+- Be concise, don't use fillers.
+- Answer with a JSON object (no Markdown code)
+- The JSON object will have with the following signature:
+{{
+    "Output1": [],
+    "Output2": "",
+}}
+
+STEPS
+
+Step 1. Separate request into multiple subrequest
+    Guidelines:
+    - Preserve
+    - The REQUEST may hide multiple request. Identify each of them.
+    - Analize the deep meaning behind.
+    - Rehrase subrequest as concise question, without missing important details.
+
+    Output:
+    - A list of subrequest questions.
+    - Output goes into "Ouput1".
+    Format:
+    - An array of strings.
+
+Step 2. Summarize REQUEST as one question.
+    Guidelines:
+    - Create a question that captures the REQUEST intent based on Output1.
+    - The question is a summary of the request.
+    Ouput
+    - Summary question.
+    - Output goes into "Ouput2".
+    Format:
+    - string
+
+REQUEST
+    
+{request}
+    
+JSON`,
+  };
+
+  static meaningMakingRq: LlmRequest = {
+    name: "Meaning making",
+    identifierVariable: "<not set>",
+    inputVariableNames: ["request", "perspective"],
+    temperature: 0.0,
+    maxCompletitionChars: 20000, //minimum chars saved for response
+    maxPromptChars: -1,
+    template: `INSTRUCTIONS
+- You will follow all the STEPS.
+- All your responses are based on PERSPECTIVE
+- The audience is not familiar with any of the PERSPECTIVE terminology.
+- IMPERSONATED PERSPECTIVE may contain some information that is not relevant to the request, and you need to discard.
+- Only write what is instructed under the "Output:" section of each Step.
+- Answer with a JSON object.
+- The JSON object should not be inside Markdown code.
+- The JSON object will have the following signature:
+{{
+    "Output1": <Step 1 output>,
+    "Output2": <Step 2 output>,
+}}
+
+STEPS
+
+Step 1. List main statements related to REQUEST
+    Guidelines:
+    - Statements are made by synthesising elements in PERSPECTIVE.
+    - An element can be an idea, a relationship, a connection, analogies...
+    - Elements to use: 
+        - Directly suport REQUEST.
+        - Suport another element that supports REQUEST.
+        - Is related to the REQUEST.
+        - Is an analogy in a different domain.
+    - Sort them by relevancey
+    - Be as comprhensive as possible. If in doubt add it. List as many as possible.
+
+    Output:
+    - A bullet list of the main statements.
+
+Format:
+- An string
+
+Step 2. List new statements that related to the main statement in Output 1
+    Guidelines:
+    - For each main statement, list all the new statements that are supporting it.
+    - Use Step1 guidelines. applied to each main statement.
+    - New statment are also based on PERSPECTIVE
+    - Be as comprhensive as possible. If in doubt add it. List as many as possible.
+
+Output:
+- A bullet list of the main statements.
+- Under each bullet point a tabulated bullet list of the statements supporting it.
+
+Format:
+- An string
+
+    
+Step 2. Write a rationale  1 (Extended rewrite)
+Guidelines:
+- Based on Output1 write a rationale to satisfy REQUEST
+- Rewrite general requirements:
+    - Rewrite must directly respond to the REQUEST.
+    - Rewrite must extend Output1
+    - Uses logical arguments and connections based on PERSPECTIVE.
+    - Is exclusively founded on PERSPECTIVE. No outside information can be used.
+    - Is extensive and comprehensive.
+    - At least 2000 characthers.
+    - Does not use filler content or unnecessary wording.
+    - The logic flow goes from familiar to unfamiliar.
+    - A rewrite should have at least 3 paragraphs.
+    - Use short phrases.
+    - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
+- Ideas requirements
+    - Identify each idea in Output 1 explanation
+    - Extend each idea deeper.
+        - express why the idea is true
+        - express why is important
+        - use logical arguments in PERSPECTIVE
+    - Organize each explanation idea onto it own paragraph.
+    - Start with the most familiar idea.
+    - Use paragraphs to encapsulate ideas.
+    - A paragraph can contain only one idea.
+    - Each new idea must be connected with the previous one.
+    - Use logical arguments and clear transitions between ideas.
+- Concepts requirements:
+    - Identify each relevant concept.
+    - A phrase can only introduce a single concept at a time.
+    - Start with the most familiar concept.
+    - Introduce concepts progressively.
+    - Do not use a concept if it has not been introduced.
+    
+Output:
+- A rewrite of Output1    
+Format:
+- A string
+
+REQUEST
+
+{request}
+
+PERSPECTIVE
+
+The following terminology is the basis of PERSPECTIVE:
+
+{perspective}
+
+JSON
+`,
+  };
+}
+/*`
+
+Step 3. Analyze Output2 extended rewrites
+    Guidelines:
+    - Analyze based on General requirements, Ideas requirements, and Concepts requirements in Step 2.
+    - Based on Output2 extended rewrite:
+        - Make a deep extensive analysis about why it does not satisfy General requirements
+        - Suggest improvements.
+        - For each idea or paragraph:
+            - Make a deep extensive analysis for why it does not satisfy Ideas requirements.
+            - Suggest improvements.
+            - For each concept or phrase:
+                - Make a deep extensive analysis for why it does not satisfy Concepts requirements.
+                - Suggest improvements.
+
+    Output:
+    - Extended rewrite analysis is a valid JSON object with the following signature:
+    {{
+        "generalAnalysis": <extended rewrite analyisis>,
+        "ideas":[
+            {{
+                "idea": <idea referring to>,
+                "ideaAnalysis": <Idea analyisis>,
+                "improvements":[<improvement>],
+                "concepts": [
+                        {{
+                            "concept": <concept referring to>,
+                            "conceptAnalysis": <Concept analysis>,
+                            improvements:[<improvement>]
+                        }}
+                    ]
+                
+            }}
+        ]
+    }}
+
+    Format:
+    - A rewrite analyses objects.
+
+Step 4. Improve extended rewrites
+    Guidelines:
+    - Improve Output2 rewrite based on Output3 analyses
+
+    Output:
+    - Three improved rewrites.
+
+    Format:
+    - A string.
+---
+
+Step 3. Suggest many key ideas from Output1.
+    Guidelines:
+    - Key ideas are:
+        - A technical term.
+        - An unusual, strange or misspelled words..
+        - Ideas that are not captured in Outpu1 but may be related.
+        - Concepts contained in  Output1.
+        - Key words in the Output1.
+        - Ideas that can capture the meaning of the REQUEST with different words.
+    - Score each key concept
+        - From 0 to 1 based on its relevancy to the Output 1.
+        - Relevancy is calculated based:
+            - How much of a prerequisit is to understand TEXT
+            - How unique the idea is.
+    Output:
+        - A list of JSON objects with concept (c) and its prerequist-score (s) as fields
+        - Write key concepts in singular and lower-case.
+        - Use the format: {{"c": "apple", "s": 0.7}}
+
+
+        
+- Adaptability: Can be adjusted based on responses or evolving conversation dynamics.
+
+ Clarity: Clearly formulated and easily understood.
+- Relevance: Directly related to the REQUEST.
+- Open-ended: Encourages detailed responses, avoiding yes/no answers.
+- Focused: Targets a specific aspect of the REQUEST.
+- Neutral: Phrased in a way that avoids bias.
+- Engaging: Sparks interest and involvement.
+- Complexity: Thought-provoking without being overly complex.
+- Connection to Goals: Aligns with the overall .
+- Encourages Reflection: Prompts participants to reflect on thoughts or experiences.
+- Unique and diverse: Each question should cover a unique aspect, creating diversity
+- Foundational: Reveal background knowledge.
+
+- Elements that a good Refinement Question should uncover:
+- Clarify the specific details of the request.
+- Explore request's scope and purpose.
+- Address any doubts or uncertainties about the request.
+- Key questions directly related to the request to gather necessary information.
+- Explore the underlying needs or motivations driving the request.
+- Evaluate the validity, relevance, and clarity of the request.
+- Seek clarification on basic knowledge or background information related to the request.
+- Emphasize practical actions or steps that can be taken to fulfill the request.
+- Clearly define the essence or nature of the subject matter in the request.
+
+
+        - Elements that give more resolution and clarity in order to answer the REQUEST.
         - Base understanding of the concepts at play.
         - Doubts that the reader may have in relation to the REQUEST.
         - Essential inquirie in relation to the REQUEST.
@@ -597,65 +982,6 @@ Step 1. Propose general guiding questions
         - Questioning if the REQUEST itself.
         - Clarify background knowledge.
         - Highlights functional actions.
-    Output:
-    - A list of 10-20 guiding questions agnostic to IMPERSONATED PERSPECTIVE
-    Format:
-    - An array of strings.
-
-Step 2. Analize questions
-    Guidelines:
-    - General analysis: What fundamental guiding questions are missing from Output 1?
-    - Per question analysis: For each question in Output 1 analize, how can this question be improved?
-    
-    Output:
-    - General analysis and per question analyis
-    Format:
-    - A JSON object with a "General analysis" and "Per questions analysis"
-
-Step 3. Rewrite questions
-    Guidelines:
-    - Based on the General analysis of Output 2. Create new questions to cover the missing ones.
-    - Based on the Per question analysis of Output 2. Rewrite each question accordingly.
-    Output:
-    - New questions that were missing
-    - Rewriten list of guiding questions
-    Format:
-    - An array of strings.
-
-Step 4. Synthesise guiding questions
-    Guidelines:
-    - Take Ouput 3  and transform them into a single list with half of the questions.
-    - Discard questions that are the least relevant.
-    - Merge similar questions into one.
-    Output:
-    - A list of questions
-    Format:
-    - An array of strings
-
-Step 5. Group questions
-    Guidelines:
-    - Group the guiding questions of Output 4 based in common themes.
-    - Each theme is expressed as a question that is representative of its guiding questions.
-
-    Output:
-    - The rewriten list of guiding questions
-    Format:
-    - An array of objects with "grouping question" and "guiding questions" fields:
-
-Step 6. Genearte a narrative
-    Guidelines:
-    - Output 4 represents the body of knowledge that should be covered in the COMPOSITION
-    - Generate the overarching narrative that covers the body of knowledge in order to answer the REQUEST.
-    - The narrative should be fully comprehensive of Output 4
-    - The narrative should streamline the reading.
-    - Use a logical flow and clear transitions between ideas.
-    - The title of the narrative is Outcome 0.
-   
-    Output:
-    - A narrative based on Output 4
-    Format:
-    - A Markdown document with sections and subsectioms.
-    - Under each section explain the narrative
 
 
 Step 5. Generate an Outline
@@ -668,30 +994,8 @@ Step 5. Generate an Outline
     - Add new elements that may be necessary to facilitate the reading flow. (connectors, introduction, ending...)
     - The outline can contain sections and subsections
 
-    Output:
-    - A list of guiding questions
-    Format:
-    - A Markdown document 
 
-
-REQUEST
-
-{request}
-
-IMPERSONATED PERSPECTIVE
-
-The following terminology is the basis of IMPERSONATED PERSPECTIVE:
-
-{perspective}
-
-JSON`,
-  };
-}
-
-/*
-
-
-Step 5. Sort guiding questions
+Step 5. Sort Refinement Questions
     Guidelines:
     - Background understanding / conceptual before practical
     - Abstract before specific
@@ -708,7 +1012,7 @@ Step 5. Compose the first outline
     - The outline is a high level representation of what the strcuture of the COMPOSITION should be.
     - The outline is made of nested sections.
     - Each section is represented by a heading.
-    - Each headings must be an elaborate clause reflecting the guiding Questions of Output 5.
+    - Each headings must be an elaborate clause reflecting the Refinement Questions of Output 5.
     - Each section contains a list of the concepts and ideas that the section should cover.
     - The ideas to be included should be complex caluses based on IMPERSONATED PERSPECTVE.
     - The headings and the contents always should aim to best explain the REQUEST. This is the top priority.

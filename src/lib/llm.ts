@@ -36,7 +36,8 @@ export interface LlmRequest {
   identifierVariable: string;
   template: string; //langchain prompt template
   inputVariableNames: string[]; //variable names used in the prompt template
-  maxCompletitionChars: number; //minimum chars saved for response
+  maxCompletitionChars: number; //maximum chars saved for response
+  maxPromptChars: number; //maximum chars used for prompt. Will be used to prune context. -1 will max out until Model maxTokens.  maxCompletitionChars preceeds maxPromptChars
   temperature?: number; //model temperature
   frequencyPenalty?: number;
   presencePenalty?: number;
@@ -71,10 +72,20 @@ export async function callLlm(
   llmRequest: LlmRequest,
   inputVariables: ChainValues
 ): Promise<string> {
-  const promptTemplate = new PromptTemplate({
-    template: llmRequest.template,
-    inputVariables: llmRequest.inputVariableNames,
-  });
+  let promptTemplate: PromptTemplate;
+  try {
+    promptTemplate = new PromptTemplate({
+      template: llmRequest.template,
+      inputVariables: llmRequest.inputVariableNames,
+    });
+  } catch (e) {
+    console.log(e);
+    console.log(llmRequest.name + ": " + llmRequest.identifierVariable);
+    return "LLM fail";
+  }
+  console.log("Input varibles ok.");
+  const verbose = false;
+
 
   const openAiModel = new OpenAI({
     temperature: llmRequest.temperature ? llmRequest.temperature : 0,
@@ -90,10 +101,12 @@ export async function callLlm(
     openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
   });
 
-  const verbose = false;
+  let chain: LLMChain;
+  let finalPrompt = "";
 
-  const chain = new LLMChain({ llm: openAiModel, prompt: promptTemplate });
-  const finalPrompt = (await chain.prompt.format(inputVariables)).toString();
+  chain = new LLMChain({ llm: openAiModel, prompt: promptTemplate });
+
+  finalPrompt = (await chain.prompt.format(inputVariables)).toString();
 
   if (verbose) console.log(finalPrompt);
 
@@ -103,28 +116,26 @@ REQUEST
 Name: ${llmRequest.name}
 Id: ${llmRequest.identifierVariable}
 
-IN
 In chars: ${finalPrompt.length}
 In tokens: ${finalPrompt.length / modelConfig.tokenToChar}
-Cost in: ${Utils.round(
-      (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
-    )}$
+In cost: ${Utils.round(
+    (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
+  )}$
 
-OUT
 Max. out chars: ${llmRequest.maxCompletitionChars} 
 Max. out tokens: ${llmRequest.maxCompletitionChars / modelConfig.tokenToChar}
 Max. cost out: ${Utils.round(
-      (llmRequest.maxCompletitionChars / modelConfig.tokenToChar) *
-        modelConfig.tokenOutCost
-    )}$
+    (llmRequest.maxCompletitionChars / modelConfig.tokenToChar) *
+      modelConfig.tokenOutCost
+  )}$
   
-MODEL
-Id: ${modelConfig.modelName}
-Max chars: ${modelConfig.maxTokens * modelConfig.tokenToChar}
-Max tokens: ${modelConfig.maxTokens}
+Model Id: ${modelConfig.modelName}
+Model maax chars: ${modelConfig.maxTokens * modelConfig.tokenToChar}
+Model max tokens: ${modelConfig.maxTokens}
 `);
 
   const t = Date.now();
+
   const res = await chain.call(inputVariables);
   const duration = Date.now() - t;
 
