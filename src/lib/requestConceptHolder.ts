@@ -2,7 +2,8 @@ import { Key } from "readline";
 import DefinerStore, { ConceptScore, Definition } from "../lib/definerStore";
 import Definer from "./definer";
 import { sectionInstructions } from "./composer";
-import { GPT35TURBO } from "./llm";
+import { GPT35TURBO, GPT4TURBO } from "./llm";
+import Utils from "./utils";
 
 export default class RequestConceptHolder {
   given: ConceptScore[];
@@ -25,11 +26,15 @@ export default class RequestConceptHolder {
   async proces() {
     await Promise.all([this.processGiven(), this.processGuesed()]);
     this.all = Definer.removeRepeatsAndNormalizeScore(
-      this.given.concat(this.givenParents, this.guessed, this.guessedParents)
+      (this.given = this.given.concat(
+        this.givenParents,
+        this.guessed,
+        this.guessedParents
+      ))
     );
 
     this.all = Definer.sortConceptScores(this.all);
-    /*
+
     console.log("GIVEN");
     console.log(this.given);
     console.log("GIVEN PARENTS");
@@ -40,19 +45,23 @@ export default class RequestConceptHolder {
     console.log(this.guessedParents);
     console.log("FINAL");
     console.log(this.all);
-    */
   }
 
   async processGiven(): Promise<void> {
-    this.givenParents = await this.getParentScoresForConcepts(this.given, 0.85);
+    this.givenParents = await this.getCloneParentScoresForConcepts(
+      this.given,
+      0.9
+    );
+
     this.givenParents = Definer.removeRepeatsAndNormalizeScore(
       this.givenParents
     );
   }
 
   async processGuesed(): Promise<void> {
-    this.guessed = await Definer.guessMuFromText(GPT35TURBO, this.text);
-    this.guessedParents = await this.getParentScoresForConcepts(
+    let guessed = await Definer.guessMuFromText(GPT4TURBO, this.text);
+    this.guessed = this.penalizeConceptScores(guessed, 0.85);
+    this.guessedParents = await this.getCloneParentScoresForConcepts(
       this.guessed,
       0.8
     );
@@ -61,7 +70,7 @@ export default class RequestConceptHolder {
     );
   }
 
-  async getParentScoresForConcepts(
+  async getCloneParentScoresForConcepts(
     conceptScores: ConceptScore[],
     compensation: number
   ): Promise<ConceptScore[]> {
@@ -95,10 +104,15 @@ export default class RequestConceptHolder {
   }
 
   penalizeConceptScores(conceptScores: ConceptScore[], penalty: number) {
+    let cs: ConceptScore[] = [];
     for (let c of conceptScores) {
-      c.s = c.s * penalty;
+      let newCS: ConceptScore = {
+        c: c.c,
+        s: c.s * penalty,
+      };
+      cs.push(newCS);
     }
-    return conceptScores;
+    return cs;
   }
 }
 

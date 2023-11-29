@@ -29,7 +29,7 @@ export interface ConceptScore {
 
 export default class DefinerStore {
   static hoursToMilis = 3600000;
-  static defaultLlmUpdatePeriod: number = 4 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
+  static defaultLlmUpdatePeriod: number = 10 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
   static definitions: Map<string, Definition> = new Map();
 
   static save = async (): Promise<void> => {

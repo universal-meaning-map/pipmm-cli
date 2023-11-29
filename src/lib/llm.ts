@@ -1,31 +1,29 @@
 import Utils from "./utils";
 import ConfigController from "../lib/configController";
-import { LLMChain } from "langchain/chains";
-import { PromptTemplate } from "langchain/prompts";
-import { OpenAI } from "langchain/llms/openai";
+import OpenAI from "openai";
 import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
 import { ChainValues } from "langchain/dist/schema";
-import { request } from "http";
-import { template } from "@oclif/plugin-help/lib/util";
-
+import { PromptTemplate } from "langchain/prompts";
+import { finished } from "stream";
 export const SEARCH_ORIGIN_DIRECT = "direct";
 export const SEARCH_ORIGIN_BACKLINK = "backlink";
 export const SEARCH_ORIGIN_SEMANTIC = "semantic";
 
 const llmHistory: LlmRecord[] = [];
 export interface LlmRecord {
-  name: string;
-  id: string;
   tokenOut: number;
   tokenIn: number;
   model: ModelConfig;
   duration: number; //ms
+  finishReason: string;
+  request: LlmRequest;
 }
 
 export interface ModelConfig {
   modelName: string;
-  maxTokens: number;
+  maxPrompTokens: number;
+  maxCompletitionTokens: number;
   tokenToChar: number;
   tokenInCost: number;
   tokenOutCost: number;
@@ -45,7 +43,8 @@ export interface LlmRequest {
 
 export const GPT35TURBO: ModelConfig = {
   modelName: "gpt-3.5-turbo-1106",
-  maxTokens: 8000, //16000
+  maxPrompTokens: 8000, //16000
+  maxCompletitionTokens: 4096,
   tokenToChar: 4,
   tokenInCost: 0.001 / 1000,
   tokenOutCost: 0.002 / 1000,
@@ -53,7 +52,8 @@ export const GPT35TURBO: ModelConfig = {
 
 export const GPT4: ModelConfig = {
   modelName: "gpt-4-0613",
-  maxTokens: 8000,
+  maxPrompTokens: 8000,
+  maxCompletitionTokens: 8000,
   tokenToChar: 4,
   tokenInCost: 0.03 / 1000,
   tokenOutCost: 0.06 / 1000,
@@ -61,127 +61,14 @@ export const GPT4: ModelConfig = {
 
 export const GPT4TURBO: ModelConfig = {
   modelName: "gpt-4-1106-preview",
-  maxTokens: 16000, //128000
+  maxPrompTokens: 32000, //128000
+  maxCompletitionTokens: 4096,
   tokenToChar: 4,
   tokenInCost: 0.01 / 1000,
   tokenOutCost: 0.03 / 1000,
 };
 
-export async function callLlm(
-  modelConfig: ModelConfig,
-  llmRequest: LlmRequest,
-  inputVariables: ChainValues
-): Promise<string> {
-  let promptTemplate: PromptTemplate;
-  try {
-    promptTemplate = new PromptTemplate({
-      template: llmRequest.template,
-      inputVariables: llmRequest.inputVariableNames,
-    });
-  } catch (e) {
-    console.log(e);
-    console.log(llmRequest.name + ": " + llmRequest.identifierVariable);
-    return "LLM fail";
-  }
-  console.log("Input varibles ok.");
-  const verbose = false;
-
-
-  const openAiModel = new OpenAI({
-    temperature: llmRequest.temperature ? llmRequest.temperature : 0,
-    frequencyPenalty: llmRequest.frequencyPenalty
-      ? llmRequest.frequencyPenalty
-      : 0,
-    presencePenalty: llmRequest.presencePenalty
-      ? llmRequest.presencePenalty
-      : 0,
-    topP: 1,
-    modelName: modelConfig.modelName,
-    maxTokens: -1,
-    openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
-  });
-
-  let chain: LLMChain;
-  let finalPrompt = "";
-
-  chain = new LLMChain({ llm: openAiModel, prompt: promptTemplate });
-
-  finalPrompt = (await chain.prompt.format(inputVariables)).toString();
-
-  if (verbose) console.log(finalPrompt);
-
-  if (verbose)
-    console.log(`
-REQUEST
-Name: ${llmRequest.name}
-Id: ${llmRequest.identifierVariable}
-
-In chars: ${finalPrompt.length}
-In tokens: ${finalPrompt.length / modelConfig.tokenToChar}
-In cost: ${Utils.round(
-    (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
-  )}$
-
-Max. out chars: ${llmRequest.maxCompletitionChars} 
-Max. out tokens: ${llmRequest.maxCompletitionChars / modelConfig.tokenToChar}
-Max. cost out: ${Utils.round(
-    (llmRequest.maxCompletitionChars / modelConfig.tokenToChar) *
-      modelConfig.tokenOutCost
-  )}$
-  
-Model Id: ${modelConfig.modelName}
-Model maax chars: ${modelConfig.maxTokens * modelConfig.tokenToChar}
-Model max tokens: ${modelConfig.maxTokens}
-`);
-
-  const t = Date.now();
-
-  const res = await chain.call(inputVariables);
-  const duration = Date.now() - t;
-
-  const totalCost = Utils.round(
-    (res.text.length / modelConfig.tokenToChar) * modelConfig.tokenOutCost +
-      (finalPrompt.length / modelConfig.tokenToChar) * modelConfig.tokenInCost
-  );
-  if (verbose)
-    console.log(`
-RESPONSE:
-Name: ${llmRequest.name}
-Id: ${llmRequest.identifierVariable}
-Duration: ${(Math.round(duration / 1000), 10)}s
-Chars: ${res.text.length}
-Tokens: ${res.text.length / modelConfig.tokenToChar}
-Cost out: ${
-      Utils.round(res.text.length / modelConfig.tokenToChar) *
-      modelConfig.tokenOutCost
-    }$
-Cost total: ${totalCost}$`);
-
-  if (verbose) console.log(res);
-
-  if (!verbose)
-    console.log(
-      "💬" +
-        totalCost +
-        "$  " +
-        llmRequest.name +
-        ": " +
-        llmRequest.identifierVariable
-    );
-
-  const record: LlmRecord = {
-    name: llmRequest.name,
-    id: llmRequest.identifierVariable,
-    duration: duration,
-    model: modelConfig,
-    tokenIn: finalPrompt.length / modelConfig.tokenToChar,
-    tokenOut: llmRequest.maxCompletitionChars / modelConfig.tokenToChar,
-  };
-  llmHistory.push(record);
-  return res.text;
-}
-
-export function outputLlmStats() {
+export function logLlmStats() {
   let totalCalls = 0;
   let totalCost = 0;
   let totalDuration = 0;
@@ -191,7 +78,9 @@ export function outputLlmStats() {
     totalCalls++;
     totalCost = totalCost + costIn + costOut;
     totalDuration = totalDuration + r.duration;
-    console.log(totalCalls + ". " + r.name + ": " + r.id);
+    console.log(
+      totalCalls + ". " + r.request.name + ": " + r.request.identifierVariable
+    );
     console.log(
       Utils.round(costIn + costOut) +
         "$\t" +
@@ -206,12 +95,87 @@ export function outputLlmStats() {
   );
 }
 
+export function logSuccintRequest(r: LlmRecord) {
+  const costOut = r.model.tokenOutCost * r.tokenOut;
+  const costIn = r.model.tokenInCost * r.tokenIn;
+  const cost = costIn + costOut;
+  let warning = "";
+  if (r.finishReason != "stop") warning = "❗";
+
+  console.log(
+    "💬" +
+      cost +
+      "$  " +
+      r.request.name +
+      ": " +
+      r.request.identifierVariable +
+      ". " +
+      warning +
+      r.finishReason
+  );
+}
+export function logRequest(
+  request: LlmRequest,
+  model: ModelConfig,
+  prompt: string
+) {
+  console.log(`
+    REQUEST
+    Name: ${request.name}
+    Id: ${request.identifierVariable}
+    
+    In chars: ${prompt.length}
+    In tokens: ${prompt.length / model.tokenToChar}
+    In cost: ${Utils.round(
+      (prompt.length / model.tokenToChar) * model.tokenInCost
+    )}$
+    
+    Max. out chars: ${request.maxCompletitionChars} 
+    Max. out tokens: ${request.maxCompletitionChars / model.tokenToChar}
+    Max. cost out: ${Utils.round(
+      (request.maxCompletitionChars / model.tokenToChar) * model.tokenOutCost
+    )}$
+      
+    Model Id: ${model.modelName}
+    Model maax chars: ${model.maxPrompTokens * model.tokenToChar}
+    Model max tokens: ${model.maxPrompTokens}
+    `);
+}
+
+export function logResponse(
+  request: LlmRequest,
+  model: ModelConfig,
+  duration: number,
+  res: string
+) {
+  /*
+    console.log(`
+    RESPONSE:
+    Name: ${request.name}
+    Id: ${request.identifierVariable}
+    Duration: ${(Math.round(duration / 1000), 10)}s
+    Chars: ${}
+    Tokens: ${}
+    Cost out: ${
+          Utils.round(res.text.length / model.tokenToChar) *
+          model.tokenOutCost
+        }$
+    Cost total: ${totalCost}$`);
+    */
+}
+
 export function getPromptContextMaxChars(
+  promptCharsCap: number,
   reservedResponseChars: number,
   promptTemplateChars: number,
   model: ModelConfig
 ) {
-  const maxTotalChars = model.maxTokens * model.tokenToChar;
+  let maxTotalChars = model.maxPrompTokens * model.tokenToChar;
+  if (promptCharsCap > 0) {
+    if (promptCharsCap < maxTotalChars) {
+      maxTotalChars = promptCharsCap;
+    }
+  }
   const maxPromptChars = maxTotalChars - reservedResponseChars;
   const promptContextMaxChars = maxPromptChars - promptTemplateChars;
   return promptContextMaxChars;
@@ -250,4 +214,101 @@ export function textToFoamText(corpus: string): string {
     corpus = corpus.replaceAll("\n" + name, "\n[[" + foamId + "]]");
   }
   return corpus;
+}
+
+export async function callLlm(
+  model: ModelConfig,
+  request: LlmRequest,
+  inputVariables: ChainValues
+): Promise<string> {
+  const requestMaxCompletitionTokens = Math.round(
+    request.maxCompletitionChars / model.tokenToChar
+  );
+
+  if (requestMaxCompletitionTokens > model.maxCompletitionTokens) {
+    throw new Error(
+      "CallLLm: Request completition tokens is larger than model's\n" +
+        request.name +
+        ": " +
+        request.identifierVariable +
+        ". Completition: " +
+        requestMaxCompletitionTokens +
+        "\n" +
+        model.modelName +
+        ": " +
+        model.maxCompletitionTokens
+    );
+  }
+
+  const openai = new OpenAI({
+    apiKey: ConfigController._configFile.llm.openAiApiKey,
+  });
+
+  const promptTemplate = PromptTemplate.fromTemplate(request.template);
+  const prompt = await promptTemplate.format(inputVariables);
+  const promptTokens = Math.round(prompt.length / model.tokenToChar);
+
+  //  console.log(prompt);
+
+  const maxCompletitonTokens =
+    request.maxCompletitionChars == 0
+      ? model.maxPrompTokens - promptTokens - 200
+      : requestMaxCompletitionTokens;
+
+  console.log("\nToken forecast");
+  console.log(
+    "Prompt used/cap:" +
+      promptTokens +
+      "/" +
+      request.maxPromptChars / model.tokenToChar
+  );
+  console.log(
+    "Completion: " + maxCompletitonTokens + " / " + model.maxCompletitionTokens
+  );
+  console.log(
+    "Total used/model: " +
+      (promptTokens + maxCompletitonTokens) +
+      " / " +
+      model.maxPrompTokens +
+      " " +
+      model.modelName +
+      "\n"
+  );
+
+  const t = Date.now();
+
+  //CALL
+  let completion = await openai.chat.completions.create({
+    model: model.modelName,
+    messages: [{ role: "user", content: prompt }],
+    n: 1,
+    temperature: request.temperature,
+    stream: false,
+    max_tokens: maxCompletitonTokens,
+    seed: 0,
+  });
+  /*
+if(model.modelName == GPT4TURBO.modelName || model.modelName == GPT35TURBO.modelName){
+    completion.response_format = { type: "json_object" },
+}*/
+
+  const duration = Date.now() - t;
+  const finishReason = completion.choices[0].finish_reason;
+  const out = completion.choices[0].message!.content;
+  const usage = completion.usage!;
+  const record: LlmRecord = {
+    request: request,
+    duration: duration,
+    model: model,
+    tokenIn: usage.prompt_tokens,
+    tokenOut: usage.completion_tokens,
+    finishReason: finishReason,
+  };
+
+  logSuccintRequest(record);
+  llmHistory.push(record);
+  console.log(usage);
+
+  if (out) return out;
+  return "FAIL";
 }

@@ -10,11 +10,10 @@ import {
   GPT4TURBO,
   callLlm,
   getPromptContextMaxChars,
-  outputLlmStats,
+  logLlmStats,
 } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import RequestConceptHolder from "../lib/requestConceptHolder";
-import { request } from "http";
 
 export default class AnswerCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -98,18 +97,18 @@ export default class AnswerCommand extends Command {
 
     let rch = new RequestConceptHolder(givenConcepts, request);
     await rch.proces();
-
     await DefinerStore.save();
 
     //ANSWER
 
     console.log(request);
-    const answerRequest = Definer.meaningMakingRq;
-    answerRequest.identifierVariable = question;
+    const mmRq = Definer.meaningMakingRq;
+    mmRq.identifierVariable = question;
     const answerModel = GPT4TURBO;
-    const promptTemplateChars = answerRequest.template.length;
+    const promptTemplateChars = mmRq.template.length;
     const maxPromptContextChars = getPromptContextMaxChars(
-      answerRequest.maxCompletitionChars,
+      mmRq.maxPromptChars,
+      mmRq.maxCompletitionChars,
       promptTemplateChars,
       answerModel
     );
@@ -123,6 +122,16 @@ export default class AnswerCommand extends Command {
     );
     let definitionsText = maxedOutTextDefinitions.join("\n");
     definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
+
+    for (let i = 0; i < maxedOutTextDefinitions.length; i++) {
+      console.log(i + ". " + allDefinitions[i].name);
+    }
+    console.log(`
+    DEFINITIONS:
+    Name: ${mmRq.name}
+    Id: ${mmRq.identifierVariable}
+    Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
+    `);
     /*const answerInputVariables = {
             question: request,
             definitions: definitionsText,
@@ -133,14 +142,10 @@ export default class AnswerCommand extends Command {
       perspective: definitionsText,
     };
 
-    let rationales = await callLlm(
-      GPT4TURBO,
-      answerRequest,
-      answerInputVariables
-    );
+    let rationales = await callLlm(answerModel, mmRq, answerInputVariables);
     console.log(rationales);
 
-    outputLlmStats();
+    logLlmStats();
 
     return;
 
@@ -149,6 +154,7 @@ export default class AnswerCommand extends Command {
     const successionRequest = Definer.successionRequest;
     successionRequest.identifierVariable = question;
     const successionMaxPromptContextChars = getPromptContextMaxChars(
+      successionRequest.maxPromptChars,
       successionRequest.maxCompletitionChars,
       successionRequest.template.length,
       successionModel
@@ -171,13 +177,6 @@ export default class AnswerCommand extends Command {
       perspective: successionPerspective,
     };
 
-    console.log(`
-DEFINITIONS:
-Name: ${answerRequest.name}
-Id: ${answerRequest.identifierVariable}
-Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
-`);
-
     // let text = await callLlm(answerModel, answerRequest, answerInputVariables);
     let text = await callLlm(
       GPT4TURBO,
@@ -186,7 +185,7 @@ Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
     );
     console.log(text);
 
-    outputLlmStats();
+    logLlmStats();
 
     return;
 
@@ -195,6 +194,7 @@ Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
     const codModel = GPT35TURBO;
 
     const codMaxPromptContextChars = getPromptContextMaxChars(
+      codRequest.maxPromptChars,
       codRequest.maxCompletitionChars,
       promptTemplateChars,
       codModel
@@ -221,7 +221,7 @@ Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
     let out = await callLlm(codModel, codRequest, codInputVariables);
     console.log(out);
 
-    outputLlmStats();
+    logLlmStats();
 
     //Translate back into format X
     //const usedDocsNameIidMap = getDocsNameIidList(edContextDocs);

@@ -13,7 +13,6 @@ import Utils from "./utils";
 import { ConceptScore } from "./definerStore";
 import { ChainValues } from "langchain/dist/schema";
 import DocsUtils from "./docsUtils";
-import { Model } from "openai";
 export default class Definer {
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
     let intensions: string[] = [];
@@ -35,7 +34,7 @@ export default class Definer {
     );
 
     if (contextDocs.length == 0) {
-      console.log("No backlink statements for " + concept);
+      console.log("No backlink Notions for " + concept);
       return "";
     }
 
@@ -59,7 +58,7 @@ export default class Definer {
       inputVariableNames: ["context"],
       temperature: 0.2,
       maxCompletitionChars: 3000,
-      maxPromptChars: -1,
+      maxPromptChars: 0,
       template: `- In the following occurrances an unknown term ${Tokenizer.unknownTermToken} is used.
   - Find commonalities betwen X usage in occurance and abstract them.
   - Use one bullet point per abstraction to define what ${Tokenizer.unknownTermToken} is.
@@ -123,16 +122,21 @@ Top words:`,
       terms: terms,
     };
 
+    if (definition == "") {
+      console.log("Score  " + concept + " " + "had empty definition");
+      return [];
+    }
+
     const request: LlmRequest = {
       name: "Score def concepts",
       identifierVariable: concept,
       inputVariableNames: ["concept", "conceptDefinition", "terms"],
       temperature: 0.0,
-      maxCompletitionChars: 3000, //minimum chars saved for response
-      maxPromptChars: -1,
+      maxCompletitionChars: 8000, //minimum chars saved for response
+      maxPromptChars: 0,
       template: `- The following is a particular definition of "{concept}"
 - Score the following list of Terms, prerequisits to understand "{concept}".
-    - Score from 0 to 1 based on their prerequisit-score.
+    - Score from 0 to 1 based on their prerequisit-score (2 decimal precision).
     - The prerequisit-score is higher if:
         - It uses "${Tokenizer.hyphenToken}" (hyphen).
         - It is rare.
@@ -141,11 +145,11 @@ Top words:`,
         - Are used more than once
     - The prequisit-score is lower if:
         - It is used as example.
-- Output a list JSON object with an array of objects named "scores" with concept (c) and its prerequist-score (s).
+- Output a valid JSON object with an array of objects named "scores" with concept (c) and its prerequist-score (s).
     - Do not write the JSON object inside Markdown code syntax.
     - Be technical. Preserve used jargon. Preserve "${Tokenizer.hyphenToken}".
     - Transform each word to its singular form.
-    - Use the format: {{"c": "apple", "s": 0.7}}
+    - Use the format: {{"c": "apple", "s": 0.75}}
 
 Definition of "{concept}":
 {conceptDefinition}
@@ -158,9 +162,14 @@ JSON array of terms with prerequisit-score:
     };
 
     let j = await callLlm(GPT4TURBO, request, inputVariables);
+
     try {
-      const out = JSON.parse(j).scores as ConceptScore[];
-      return out;
+      const scores = JSON.parse(j).scores as ConceptScore[];
+      for (let cs of scores) {
+        cs.s = Utils.mapRange(cs.s, 0, 1, 0.5, 1);
+      }
+
+      return scores;
     } catch (e) {
       console.log(e);
       return [];
@@ -181,20 +190,21 @@ JSON array of terms with prerequisit-score:
       inputVariableNames: ["text"],
       temperature: 0.0,
       maxCompletitionChars: 3000, //minimum chars saved for response
-      maxPromptChars: -1,
+      maxPromptChars: 0,
       template: `"INSTRUCTIONS
 - Your goal is to rate concepts and ideas that important in TEXT.
 - TEXT uses unique unusual words. They are not misspelled. 
 
 1. Suggest key ideas in the TEXT
 - A key idea is:
+    - important words in TEXT.
     - a technical term.
     - an unusual or strange or misspelled word.
     - ideas that are not in the text but maybe releated.
     - concepts contained in the TEXT.
     - ideas that can capture the meaning of the TEXT in different words.
 2. Score each idea.
-    - Score from 0 to 1 based on its relevancy to the TEXT.
+    - Score from 0 to 1 based on its relevancy to the TEXT (2 decimal precision).
     - Relevancy is calculated based:
         - How much of a prerequisit is to understand TEXT
         - How unique the idea is.
@@ -204,7 +214,7 @@ Output:
 - JSON signature:
     {{
         "scores":[
-            {{ "c": "apple", "s": 0.7 }}
+            {{ "c": "apple", "s": 0.75 }}
         ]
     }} 
 - Do not write the JSON object inside Markdown code syntax.
@@ -331,7 +341,7 @@ JSON`,
     inputVariableNames: ["question", "definitions"],
     temperature: 0.0,
     maxCompletitionChars: 3000, //minimum chars saved for response,
-    maxPromptChars: -1,
+    maxPromptChars: 0,
     template: `INSTRUCTIONS
 
 - You will give a RESPONSE to YOUR AUDIENCE about the QUESTION they asked.
@@ -441,7 +451,7 @@ RESPONSE`,
 
       temperature: 0.0,
       maxCompletitionChars: 3000, //minimum chars saved for response
-      maxPromptChars: -1,
+      maxPromptChars: 0,
       template: `
 Write {textType} about: {topic}.
 Do it for {targetAudience} in the style of {style}, capturing its tone, voice, vocabulary and sentence structure.
@@ -479,7 +489,7 @@ RESPONSE`,
     temperature: 0.0,
     maxCompletitionChars: 3000, //minimum chars saved for response
 
-    maxPromptChars: -1,
+    maxPromptChars: 0,
     template: `INSTRUCTIONS
 
 - You act as a resarcher assistant in charge of providing comprehensive background knowledge for YOUR AUDIENCE, so they can fully understand the deep meaning of "{term}" when reading its TERM DEFINITION.
@@ -515,7 +525,7 @@ SYNTHESIS IDEAS NOT INCLUDED IN TERM DEFINITION`,
     inputVariableNames: ["text", "request", "perspective"],
     temperature: 0.0,
     maxCompletitionChars: 15000, //minimum chars saved for response
-    maxPromptChars: -1,
+    maxPromptChars: 0,
     template: `INSTRUCTIONS
 
 The ORIGINAL TEXT is a response to the REQUEST
@@ -565,7 +575,7 @@ The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
     inputVariableNames: ["request", "perspective"],
     temperature: 0.0,
     maxCompletitionChars: 20000, //minimum chars saved for response
-    maxPromptChars: -1,
+    maxPromptChars: 0,
     template: `GOAL
 - The ultimate goal is to create a writing composition in response to the REQUEST. COMPOSITION from now on.
     
@@ -660,14 +670,14 @@ Step 5. Generate a narrative outline
     - The goal of the narrative is to connect all the body of knowledge in a coherent and smooth way.
     - Rewrite the questions if it helps to improve the flow of ideas.
     - The narrative will combine the Output 4 Rewriten Questions  with "connectors"
-    - A connector is a question or statement used to logically connect two questions of Output 4 Rewriten Questions .
+    - A connector is a question or Notion used to logically connect two questions of Output 4 Rewriten Questions .
     - A connector is not a literary element but a logical one founded on IMPERSONATED PERSPECTIVE.
     - The goal of the connector is to create a logica flow of information.
     - Evaluate if is necessary to ad connectors to introduce the topic or to draw conclusions.
     - Add elements that may be necessary to facilitate the reading flow.
     
     Output:
-    - A narrative made of a list of clauses (questions, connectors, statements...)
+    - A narrative made of a list of clauses (questions, connectors, Notions...)
     Format:
     - An array of strings
 
@@ -710,8 +720,6 @@ IMPERSONATED PERSPECTIVE
     
 The following terminology is the basis of IMPERSONATED PERSPECTIVE:
     
-    
-    
 JSON`,
   };
 
@@ -722,7 +730,7 @@ JSON`,
     inputVariableNames: ["request"],
     temperature: 0.0,
     maxCompletitionChars: 20000, //minimum chars saved for response
-    maxPromptChars: -1,
+    maxPromptChars: 80000,
     template: `INSTRUCTIONS
 - You will follow all the STEPS(2)
 - Only write what is instructed under the "Output:" section of each Step.
@@ -732,7 +740,8 @@ JSON`,
 - Answer with a JSON object (no Markdown code)
 - The JSON object will have with the following signature:
 {{
-    "Output1": [],
+    "Output1": "",
+    "Output2": "",
     "Output2": "",
 }}
 
@@ -773,63 +782,189 @@ JSON`,
     identifierVariable: "<not set>",
     inputVariableNames: ["request", "perspective"],
     temperature: 0.0,
-    maxCompletitionChars: 20000, //minimum chars saved for response
-    maxPromptChars: -1,
+    maxCompletitionChars: 16000, //minimum chars saved for response
+    maxPromptChars: 0,
     template: `INSTRUCTIONS
-- You will follow all the STEPS.
-- All your responses are based on PERSPECTIVE
-- The audience is not familiar with any of the PERSPECTIVE terminology.
-- IMPERSONATED PERSPECTIVE may contain some information that is not relevant to the request, and you need to discard.
+- You act as a writer. You will iterate over a Response, improving it every time, following the STEPS.
+- You will follow 5 STEPS, writing an the Output of each Step (finishing with Output5:Response)
 - Only write what is instructed under the "Output:" section of each Step.
-- Answer with a JSON object.
-- The JSON object should not be inside Markdown code.
-- The JSON object will have the following signature:
-{{
-    "Output1": <Step 1 output>,
-    "Output2": <Step 2 output>,
-}}
+- The final outcome will have multiple Markdown headers representing each step.
+- The final outcome will have the following signature:
+
+## Output1:Response
+<Step 1 output>
+## Output2:Improvements
+<Step 2 output>
+## Output3:Response
+<Step 3 output>
+## Output4:Improvements
+<Step 4 output>
+## Output5:Response
+<Step 5 output>
+
 
 STEPS
 
-Step 1. List main statements related to REQUEST
+Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
+
     Guidelines:
-    - Statements are made by synthesising elements in PERSPECTIVE.
-    - An element can be an idea, a relationship, a connection, analogies...
-    - Elements to use: 
-        - Directly suport REQUEST.
-        - Suport another element that supports REQUEST.
-        - Is related to the REQUEST.
-        - Is an analogy in a different domain.
-    - Sort them by relevancey
-    - Be as comprhensive as possible. If in doubt add it. List as many as possible.
+    - The goal is to provide a clear answer to REQUEST exclusively based on TERMINOLOGY.
+    - The logic flow goes from familiar to unfamiliar.
+    - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
+    - Response CAN'T make evaluations beyond what can directly be inferred in TERMINOLOGY.
+    - Response must be impersonal and can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
+    - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
+    - Use a logical flow and clear transitions between ideas.
+    - Transitions must express specifically why two ideas are related. Do not just say "they are related" explain how.
+    - Make extensive usage of paragraphs to separate ideas. 
+    - Response should be self-contained (be understood without the TERMINOLIGY)
+    - Use short phrases. Does not use filler content or unnecessary wording.
+    - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
 
     Output:
-    - A bullet list of the main statements.
+    - Under "#1 Output1:Response", the response in Markdown format.
 
-Format:
-- An string
+Step 2. List improvements about initial response.
 
-Step 2. List new statements that related to the main statement in Output 1
     Guidelines:
-    - For each main statement, list all the new statements that are supporting it.
-    - Use Step1 guidelines. applied to each main statement.
-    - New statment are also based on PERSPECTIVE
-    - Be as comprhensive as possible. If in doubt add it. List as many as possible.
+    - Suggest the top 7 improvements about the previous Output Response.
+    - Improvements:
+        - Must be clear and actionable and directly address, with detail, how to fix it.
+        - Must directly support the REQUEST.
+        - Must signfically improve the previous Output Response.
+        - The solution to the improvement must be found within TERMINOLOGY.
+        - Does not tell what to focus on based on pre-concieve assumption of what matters (unless expressed in REQUEST or TERMINOLOGY).
+    - Provide a list of explicit improvements to particular fragments  based on the following questions.
+        - What order of ideas will improve logical flow and go from familiar to unfamiliar? 
+        - What paragraphs and phrases need to be rewriten to match Step 1 guidelines.
+        - What phrases need to be rewriten without comma splice?
+        - Is the statement really true? (based on TERMINOLOGY)
 
-Output:
-- A bullet list of the main statements.
-- Under each bullet point a tabulated bullet list of the statements supporting it.
+    Output:
+        - Under "# Output2:Improvements" a bullet point list of Improvements.
 
-Format:
-- An string
+Step 3. Rewrite initial response parts that need improvements.
 
+    Guidelines:
+    - Rewrite the elements of Output1:Response by applying Output2:Improvements and Step 1 guidelines.
+    - Preserve the elements that do not require improvement.
+    - Don't remove important nuances and ideas.
+    - The new response must be longer than Output1:Response, never shorter.
+    - New ideas must fit within Output1:Response length, make space with removal of uninformative phrases and fillers.
+
+    Output:
+    - Under "# Output3:Response" the improved response in Markdown format.
+
+Step 4. Improve response again:
+
+    Guidelines:
+    - Apply Step2 Guidelines to Output3.
+
+    Output:
+    - Under "# Output4:Improvements" a bullet point list of improvements.
+
+Step 5. Rewrite the parts that need improvements.
+
+    Guidelines:
+    - Rewrite Output3:Response applying Output4:Improvements and following Step 3 Guidelines.
+
+    Output:
+    - Under "# Output5:Response" the improved response in Markdown format.
+
+
+REQUEST
+
+{request}
     
-Step 2. Write a rationale  1 (Extended rewrite)
+TERMINOLOGY
+    
+The following terminology is coherent within itself.
+    
+{perspective}
+    
+OUTPUTS
+    `,
+  };
+}
+/*`
+
+Step 2. Add CSIs to each idea of the last Output.
+
+    Guidelines:
+    - PSs are all the ideas of the last Output (regardless of its indentation level).
+    - For each PS generate an extensive and comprehensive lists of CSIs that support the PS
+    - Add "CONCLUSIVE" as last CSI if you have certainity that no more CSI can be extracted from PERSPECTIVE.
+
+    Output:
+    - A bullet list of all the Synthetic Ideas
+    - Each CSI goes tabulated, one level indentation deeper in relation to its corresponding PS.
+
+    Format:
+    - An string
+
+        - Child Element has a direct relationship with Parent Statement. For instance:
+            - Defines a concept in the Parent Statement.
+            - Gives additional information or evidence to reinforce and substantiate the Parent Statement.
+            - Gives background to enhance understanding of the Parent Statement.
+            - Justifies Parent Statement with a coherent and rational sequence of thought.
+            - Gives a aluable or perceptive or understanding that enhances the interpretation of the Parent Statement.
+            - Draws parallels or makes comparisons with the Parent Statement.
+            - Uses symbolic representation in relation to the Parent Statement for emphasis.
+            - Highlights differences between concepts mentioned in the Parent Statement.
+            - Illustrates similarities or differences in the Parent Statement through comparison.
+            - Provides additional details or characteristics related to the Parent Statement.
+            - Elicits similar ideas or emotions without a direct logical link to the Parent Statement.
+- No comma splice. A phrase should include subject and predicate, and finish with a full stop.
+
+Step 2. Add CSs
+
+    Guidelines:
+    - PSs are all the Notions of the last Output as well as the REQUEST, regardless of its indentation level.
+    - For each PS list multiple new (2-5) CS.
+    - Add "CONCLUSIVE" as last CS if you have certainity that no more CS can be extracted from PERSPECTIVE.
+
+    Output:
+    - A bullet list of all the Notions
+    - CS go tabulated , one level indentation deeper in relation to their PSs.
+
+    Format:
+    - An string
+
+Step 3. Add more CSs
+
+    Guidelines:
+    - Repeat Step2 on the previous Output
+
+    Output:
+    - A bullet list Notions.
+  
+    Format:
+    - A string
+
+Step 4. Add more CSs
+
+    Guidelines:
+    - Repeat Step2 on the previous Output
+
+    Output:
+    - A bullet list Notions.
+  
+    Format:
+    - A string
+    
+Step 4. Explain relevance.
+    Guidelines:
+    - For each Notion of the last Outuput explain its relevancy:
+        - Why this Notion is true?
+        - Why this Notion is relevant?
+    - Output:
+    - Bullet point list of Notions and relevance explanations.
+
+Step 4. Write a rationale 
 Guidelines:
-- Based on Output1 write a rationale to satisfy REQUEST
+- Based on the last Output write a rationale to satisfy REQUEST
 - Rewrite general requirements:
     - Rewrite must directly respond to the REQUEST.
-    - Rewrite must extend Output1
     - Uses logical arguments and connections based on PERSPECTIVE.
     - Is exclusively founded on PERSPECTIVE. No outside information can be used.
     - Is extensive and comprehensive.
@@ -862,22 +997,6 @@ Output:
 - A rewrite of Output1    
 Format:
 - A string
-
-REQUEST
-
-{request}
-
-PERSPECTIVE
-
-The following terminology is the basis of PERSPECTIVE:
-
-{perspective}
-
-JSON
-`,
-  };
-}
-/*`
 
 Step 3. Analyze Output2 extended rewrites
     Guidelines:
@@ -1040,8 +1159,8 @@ Step 6. Compose the second outline
     Format: 
     - Same format as Output 5
 
-AUDIENCE
 
+AUDIENCE
 - Critical thinkers who engage in intellectual discussions.
 - Interest in depth of the human condition.
 - Diverse global community with various backgrounds and cultures.

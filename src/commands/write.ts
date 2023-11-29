@@ -9,7 +9,7 @@ import {
   GPT4TURBO,
   callLlm,
   getPromptContextMaxChars,
-  outputLlmStats,
+  logLlmStats,
 } from "../lib/llm";
 import Tokenizer from "../lib/tokenizer";
 import { ChainValues } from "langchain/dist/schema";
@@ -142,6 +142,6 @@ export default class WriteCommand extends Command {
 
     let out = await callLlm(model, request, inputVariables);
     console.log(out);
-    outputLlmStats();
+    logLlmStats();
   }
 }
