@@ -785,10 +785,8 @@ JSON`,
     maxCompletitionChars: 16000, //minimum chars saved for response
     maxPromptChars: 0,
     template: `INSTRUCTIONS
-- You act as a writer. You will iterate over a Response, improving it every time, following the STEPS.
 - You will follow 5 STEPS, writing an the Output of each Step (finishing with Output5:Response)
 - Only write what is instructed under the "Output:" section of each Step.
-- The final outcome will have multiple Markdown headers representing each step.
 - The final outcome will have the following signature:
 
 ## Output1:Response
@@ -808,15 +806,16 @@ STEPS
 Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
 
     Guidelines:
-    - The goal is to provide a clear answer to REQUEST exclusively based on TERMINOLOGY.
-    - The logic flow goes from familiar to unfamiliar.
+    - The goal is to provide a direct and clear answer to REQUEST exclusively based on TERMINOLOGY.
+    - Make extensive usage of paragraphs to separate ideas. 
+    - Response must synthesise the key relationships (not concepts or definitions) in TERMINOLOGY into a cohesive argument.
+    - The logic flow is smooth and goes from familiar to unfamiliar ideas.
+    - Prioritize few key relationships and insights over expressing many ideas.
     - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
     - Response CAN'T make evaluations beyond what can directly be inferred in TERMINOLOGY.
     - Response must be impersonal and can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
     - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
-    - Use a logical flow and clear transitions between ideas.
     - Transitions must express specifically why two ideas are related. Do not just say "they are related" explain how.
-    - Make extensive usage of paragraphs to separate ideas. 
     - Response should be self-contained (be understood without the TERMINOLIGY)
     - Use short phrases. Does not use filler content or unnecessary wording.
     - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
