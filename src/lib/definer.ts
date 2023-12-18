@@ -782,7 +782,7 @@ JSON`,
     identifierVariable: "<not set>",
     inputVariableNames: ["request", "perspective"],
     temperature: 0.0,
-    maxCompletitionChars: 16000, //minimum chars saved for response
+    maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
     template: `INSTRUCTIONS
 - You will follow 5 STEPS, writing an the Output of each Step (finishing with Output5:Response)
@@ -807,16 +807,18 @@ Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
 
     Guidelines:
     - The goal is to provide a direct and clear answer to REQUEST exclusively based on TERMINOLOGY.
+    - The key ideas for the response may be anywhere within TERMINOLOGY, appearing first does not necessarly imply being more important.
     - Make extensive usage of paragraphs to separate ideas. 
-    - Response must synthesise the key relationships (not concepts or definitions) in TERMINOLOGY into a cohesive argument.
-    - The logic flow is smooth and goes from familiar to unfamiliar ideas.
-    - Prioritize few key relationships and insights over expressing many ideas.
-    - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
-    - Response CAN'T make evaluations beyond what can directly be inferred in TERMINOLOGY.
-    - Response must be impersonal and can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
-    - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
+    - Response must synthesise the key relationships (not concepts or definitions) within the TERMINOLOGY into a cohesive argument.
+    - The flow must go from familiar to unfamiliar ideas.
+    - Organize the information in a structured way, with clear reasoning in with each idea leads logically to the next.
     - Transitions must express specifically why two ideas are related. Do not just say "they are related" explain how.
-    - Response should be self-contained (be understood without the TERMINOLIGY)
+    - Avoid abrupt shifts and make sure each idea naturally flows into the next.
+    - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
+    - Response CAN'T make evaluations beyond what can directly be inferred in TERMINOLOGY, unless REQUEST asks for.
+    - Response must be impersonal and can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "... is considered ..."
+    - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
+    - Response should be self-contained (be understood without the TERMINOLIGY).
     - Use short phrases. Does not use filler content or unnecessary wording.
     - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
 
@@ -870,7 +872,6 @@ Step 5. Rewrite the parts that need improvements.
     Output:
     - Under "# Output5:Response" the improved response in Markdown format.
 
-
 REQUEST
 
 {request}
@@ -886,6 +887,9 @@ OUTPUTS
   };
 }
 /*`
+
+    - Prioritize few key relationships and insights over expressing many ideas.
+
 
 Step 2. Add CSIs to each idea of the last Output.
 
