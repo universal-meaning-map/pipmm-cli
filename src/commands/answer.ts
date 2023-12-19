@@ -77,7 +77,7 @@ export default class AnswerCommand extends Command {
       answerModel
     );
 
-    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.6);
+    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.7);
 
     let allDefinitions: Definition[] =
       await DefinerStore.getDefinitionsByConceptScoreList(trimedByScore);

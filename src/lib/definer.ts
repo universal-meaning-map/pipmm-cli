@@ -785,21 +785,22 @@ JSON`,
     maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
     template: `INSTRUCTIONS
-- You will follow 5 STEPS.
+- You act as a writer. You will iterate over a Response, improving it every time, following the STEPS.
+- You will follow 5 STEPS, writing an the Output of each Step (finishing with Output5:Response)
 - Only write what is instructed under the "Output:" section of each Step.
-- You will finish after "Output5:Response"
-- The final outcome will have the following outline:
+- The final outcome will have multiple Markdown headers representing each step.
+- The final outcome will have the following signature:
 
-Output1:Response
-< Step 1 Output >
-Output2:Improvements
-< Step 2 Output >
-Output3:Response
-< Step 3 Output >
-Output4:Improvements
-< Step 4 Output >
-Output5:Response
-< Step 5 Output >
+## Output1:Response
+<Step 1 output>
+## Output2:Improvements
+<Step 2 output>
+## Output3:Response
+<Step 3 output>
+## Output4:Improvements
+<Step 4 output>
+## Output5:Response
+<Step 5 output>
 
 
 STEPS
@@ -808,43 +809,42 @@ Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
 
     Guidelines:
     - The goal is to provide a direct and clear answer to REQUEST exclusively based on TERMINOLOGY.
-    - The key ideas for the response may be anywhere within TERMINOLOGY, appearing first does not necessarly imply being more important.
     - Make extensive usage of paragraphs to separate ideas. 
     - Response must synthesise the key relationships (not concepts or definitions) within the TERMINOLOGY into a cohesive argument.
     - The flow must go from familiar to unfamiliar ideas.
     - Organize the information in a structured way, with clear reasoning in with each idea leads logically to the next.
-    - Transitions must express specifically why two ideas are related. Do not just say "they are related" explain how.
-    - Avoid abrupt shifts and make sure each idea naturally flows into the next.
     - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
-    - Response CAN'T make evaluations beyond what can directly be inferred in TERMINOLOGY, unless REQUEST asks for.
-    - Response must be impersonal and can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "... is considered ..."
+    - Response CAN'T make evaluations beyond what can directly be inferred in TERMINOLOGY.
+    - Response must be impersonal and can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
     - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
+    - Use a logical flow and clear transitions between ideas.
     - Response should be self-contained (be understood without the TERMINOLIGY).
     - Use short phrases. Does not use filler content or unnecessary wording.
     - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
 
     Output:
-    - Response text.
-    - "Output2:Improvements"
+    - Under "##1 Output1:Response", the response in Markdown format.
 
-Step 2. Suggest the top 7 improvements about the Output1:Response.
+Step 2. List improvements about initial response.
 
     Guidelines:
-    - Improvements requirements:
+    - Suggest the top 7 improvements about the previous Output Response.
+    - Improvements:
         - Must be clear and actionable and directly address, with detail, how to fix it.
         - Must directly support the REQUEST.
         - Must signfically improve the previous Output Response.
         - The solution to the improvement must be found within TERMINOLOGY.
         - Does not tell what to focus on based on pre-concieve assumption of what matters (unless expressed in REQUEST or TERMINOLOGY).
-    - Use the following questions for the improvements:
+    - Provide a list of explicit improvements to particular fragments  based on the following questions.
+        - Identify reasoning fallacies.
         - What order of ideas will improve logical flow and go from familiar to unfamiliar? 
         - What paragraphs and phrases need to be rewriten to match Step 1 guidelines.
         - What phrases need to be rewriten without comma splice?
         - Is the statement really true? (based on TERMINOLOGY)
 
+
     Output:
-        - A bullet point list of improvements.
-        - "Output3:Response"
+        - Under "## Output2:Improvements" a bullet point list of Improvements.
 
 Step 3. Rewrite initial response parts that need improvements.
 
@@ -856,17 +856,15 @@ Step 3. Rewrite initial response parts that need improvements.
     - New ideas must fit within Output1:Response length, make space with removal of uninformative phrases and fillers.
 
     Output:
-    - The improved response text.
-    - "Output4:Improvements"
+    - Under "## Output3:Response" the improved response in Markdown format.
 
-Step 4. Suggest the top 7 improvements about Output3:Response:
+Step 4. Improve response again:
 
     Guidelines:
-    - Apply Step2 Guidelines to Output3:Response.
+    - Apply Step2 Guidelines to Output3.
 
     Output:
-    -  A bullet point list of improvements.
-    - "Output5:Response"
+    - Under "# Output4:Improvements" a bullet point list of improvements.
 
 Step 5. Rewrite the parts that need improvements.
 
@@ -874,7 +872,8 @@ Step 5. Rewrite the parts that need improvements.
     - Rewrite Output3:Response applying Output4:Improvements and following Step 3 Guidelines.
 
     Output:
-    - The improved response text.
+    - Under "## Output5:Response" the improved response in Markdown format.
+
 
 REQUEST
 
@@ -887,8 +886,7 @@ The following terminology is coherent within itself.
 {perspective}
     
 OUTPUTS
-
-Output1:Response`,
+        `,
   };
 }
 /*`

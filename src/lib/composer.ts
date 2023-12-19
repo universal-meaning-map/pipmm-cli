@@ -29,10 +29,12 @@ export default class Composer {
   ): Promise<SubSection> {
     console.log("Here " + idx);
     if (!currentSS.isGoodEnough) {
+      console.log("Answering");
       const output = await AnswerCommand.answer(
         currentSS.request,
         currentSS.givenConcepts
       );
+      console.log("there");
       currentSS.historic.push(output);
     }
 

@@ -49,12 +49,17 @@ export default class WriteCommand extends Command {
     await DefinerStore.load();
 
     let originalDrafter = Composer.loadDrafter(args.uri);
-    let newDrafter = await Composer.writeSubSections(
+    let newsections = await Composer.writeSubSections(
       originalDrafter.subSections[0],
       [0]
     );
 
-    console.log(newDrafter);
+    originalDrafter.subSections = [newsections];
+
     await DefinerStore.save();
+    const json = JSON.stringify(originalDrafter, null, 2);
+    console.log(originalDrafter);
+    console.log(json);
+    Utils.saveFile(json, args.uri);
   }
 }
