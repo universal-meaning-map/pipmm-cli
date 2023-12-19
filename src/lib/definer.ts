@@ -780,7 +780,7 @@ JSON`,
   static meaningMakingRq: LlmRequest = {
     name: "Meaning making",
     identifierVariable: "<not set>",
-    inputVariableNames: ["request", "perspective", "continue"],
+    inputVariableNames: ["request", "context", "perspective", "continue"],
     temperature: 0.0,
     maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
@@ -811,7 +811,7 @@ Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
     - The goal is to provide a clear answer to REQUEST exclusively based on TERMINOLOGY.
     - The logic flow goes from familiar to unfamiliar.
     - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
-    - Do not make evaluations on subjective interpretations such as beauty, innovation, revolutionary... unless expressed as such in TERMINOLOGY.
+    - Never make subjective evaluations unless expressed as such in TERMINOLOGY. For example never say something is beautiful, innovative, revolutionary, ambitious...
     - Response can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
     - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
     - Use a logical flow and clear transitions between ideas.
@@ -840,8 +840,7 @@ Step 2. List improvements about initial response.
         - What paragraphs and phrases need to be rewriten to match Step 1 guidelines.
         - What phrases need to be rewriten without comma splice?
         - Is the statement really true? (based on TERMINOLOGY)
-
-
+q
     Output:
         - Under "## Output2:Improvements" a bullet point list of Improvements.
 
@@ -876,7 +875,7 @@ Step 5. Rewrite the parts that need improvements.
 
 REQUEST
 
-{request}
+{context}{request}
     
 TERMINOLOGY
     
@@ -908,7 +907,7 @@ OUTPUTS
     } else {
       retry++;
       console.log("Unable to trim output. Continuing. Retry:" + retry);
-      if (retry > 2) return "Fail. Retried 2 times.";
+      if (retry > 2) return " 🌀 Fail. Retried 2 times.";
 
       const inputVariables = priorInputVariables;
       inputVariables.continue = output;

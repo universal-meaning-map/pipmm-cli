@@ -24,6 +24,7 @@ export default class Composer {
   }
 
   static async writeSubSections(
+    drafter: Drafter,
     currentSS: SubSection,
     idx: number[]
   ): Promise<SubSection> {
@@ -32,6 +33,7 @@ export default class Composer {
       console.log("Answering");
       const output = await AnswerCommand.answer(
         currentSS.request,
+        drafter.context,
         currentSS.givenConcepts
       );
       console.log("there");
@@ -44,7 +46,7 @@ export default class Composer {
       const s = currentSS.subSections[i];
       const newIdx = idx;
       newIdx.push(i);
-      let newSS = await Composer.writeSubSections(s, newIdx);
+      let newSS = await Composer.writeSubSections(drafter, s, newIdx);
       newSSs.push(newSS);
     }
     currentSS.subSections = newSSs;

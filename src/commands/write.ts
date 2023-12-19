@@ -50,6 +50,7 @@ export default class WriteCommand extends Command {
 
     let originalDrafter = Composer.loadDrafter(args.uri);
     let newsections = await Composer.writeSubSections(
+      originalDrafter,
       originalDrafter.subSections[0],
       [0]
     );
