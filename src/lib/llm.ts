@@ -248,7 +248,9 @@ export async function callLlm(
   const prompt = await promptTemplate.format(inputVariables);
   const promptTokens = Math.round(prompt.length / model.tokenToChar);
 
-  //  console.log(prompt);
+  console.log("---");
+  console.log(prompt);
+  console.log("---");
 
   const maxCompletitonTokens =
     request.maxCompletitionChars == 0

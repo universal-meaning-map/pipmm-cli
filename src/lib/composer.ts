@@ -1,29 +1,56 @@
-import { LlmRequest, callLlm, GPT4, GPT4TURBO } from "./llm";
-import { ChainValues } from "langchain/dist/schema";
+import AnswerCommand from "../commands/answer";
+import Utils from "./utils";
 
-export interface sectionInstructions {
+export interface SubSection {
+  isGoodEnough: boolean;
   title: string;
-  instructions: string;
-  coverage: string;
+  request: string;
   givenConcepts: string[];
+  baseOutput: string;
+  subSections: SubSection[];
+  historic: string[];
+}
+
+export interface Drafter {
+  context: string;
+  subSections: SubSection[];
 }
 
 export default class Composer {
-  static makeSectionRequest = (
-    sectionInstructions: sectionInstructions[]
-  ): string => {
-    const instructionsContext: {}[] = [];
-    for (let s of sectionInstructions) {
-      const ic = {
-        instructions: s.instructions,
-        coverage: s.coverage,
-        title: s.title,
-      };
-      instructionsContext.push(ic);
-    }
-    return JSON.stringify(instructionsContext, null, 2);
-  };
+  static loadDrafter(uri: string) {
+    const drafterStr = Utils.getFile(uri);
+    const drafter: Drafter = JSON.parse(drafterStr) as Drafter;
+    return drafter;
+  }
 
+  static async writeSubSections(
+    currentSS: SubSection,
+    idx: number[]
+  ): Promise<SubSection> {
+    console.log("Here " + idx);
+    if (!currentSS.isGoodEnough) {
+      const output = await AnswerCommand.answer(
+        currentSS.request,
+        currentSS.givenConcepts
+      );
+      currentSS.historic.push(output);
+    }
+
+    let newSSs = [];
+
+    for (let i = 0; i < currentSS.subSections.length; i++) {
+      const s = currentSS.subSections[i];
+      const newIdx = idx;
+      newIdx.push(i);
+      let newSS = await Composer.writeSubSections(s, newIdx);
+      newSSs.push(newSS);
+    }
+    currentSS.subSections = newSSs;
+
+    return currentSS;
+  }
+}
+/*
   static composeRequest: LlmRequest = {
     name: "ComposeRequest",
     identifierVariable: "<not set>",
@@ -114,3 +141,4 @@ SECTIONS TO WRITE
 OUTPUT`,
   };
 }
+*/

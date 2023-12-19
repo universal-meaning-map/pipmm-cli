@@ -785,20 +785,21 @@ JSON`,
     maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
     template: `INSTRUCTIONS
-- You will follow 5 STEPS, writing an the Output of each Step (finishing with Output5:Response)
+- You will follow 5 STEPS.
 - Only write what is instructed under the "Output:" section of each Step.
-- The final outcome will have the following signature:
+- You will finish after "Output5:Response"
+- The final outcome will have the following outline:
 
-## Output1:Response
-<Step 1 output>
-## Output2:Improvements
-<Step 2 output>
-## Output3:Response
-<Step 3 output>
-## Output4:Improvements
-<Step 4 output>
-## Output5:Response
-<Step 5 output>
+Output1:Response
+< Step 1 Output >
+Output2:Improvements
+< Step 2 Output >
+Output3:Response
+< Step 3 Output >
+Output4:Improvements
+< Step 4 Output >
+Output5:Response
+< Step 5 Output >
 
 
 STEPS
@@ -823,26 +824,27 @@ Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
     - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
 
     Output:
-    - Under "#1 Output1:Response", the response in Markdown format.
+    - Response text.
+    - "Output2:Improvements"
 
-Step 2. List improvements about initial response.
+Step 2. Suggest the top 7 improvements about the Output1:Response.
 
     Guidelines:
-    - Suggest the top 7 improvements about the previous Output Response.
-    - Improvements:
+    - Improvements requirements:
         - Must be clear and actionable and directly address, with detail, how to fix it.
         - Must directly support the REQUEST.
         - Must signfically improve the previous Output Response.
         - The solution to the improvement must be found within TERMINOLOGY.
         - Does not tell what to focus on based on pre-concieve assumption of what matters (unless expressed in REQUEST or TERMINOLOGY).
-    - Provide a list of explicit improvements to particular fragments  based on the following questions.
+    - Use the following questions for the improvements:
         - What order of ideas will improve logical flow and go from familiar to unfamiliar? 
         - What paragraphs and phrases need to be rewriten to match Step 1 guidelines.
         - What phrases need to be rewriten without comma splice?
         - Is the statement really true? (based on TERMINOLOGY)
 
     Output:
-        - Under "# Output2:Improvements" a bullet point list of Improvements.
+        - A bullet point list of improvements.
+        - "Output3:Response"
 
 Step 3. Rewrite initial response parts that need improvements.
 
@@ -854,15 +856,17 @@ Step 3. Rewrite initial response parts that need improvements.
     - New ideas must fit within Output1:Response length, make space with removal of uninformative phrases and fillers.
 
     Output:
-    - Under "# Output3:Response" the improved response in Markdown format.
+    - The improved response text.
+    - "Output4:Improvements"
 
-Step 4. Improve response again:
+Step 4. Suggest the top 7 improvements about Output3:Response:
 
     Guidelines:
-    - Apply Step2 Guidelines to Output3.
+    - Apply Step2 Guidelines to Output3:Response.
 
     Output:
-    - Under "# Output4:Improvements" a bullet point list of improvements.
+    -  A bullet point list of improvements.
+    - "Output5:Response"
 
 Step 5. Rewrite the parts that need improvements.
 
@@ -870,7 +874,7 @@ Step 5. Rewrite the parts that need improvements.
     - Rewrite Output3:Response applying Output4:Improvements and following Step 3 Guidelines.
 
     Output:
-    - Under "# Output5:Response" the improved response in Markdown format.
+    - The improved response text.
 
 REQUEST
 
@@ -883,7 +887,8 @@ The following terminology is coherent within itself.
 {perspective}
     
 OUTPUTS
-    `,
+
+Output1:Response`,
   };
 }
 /*`

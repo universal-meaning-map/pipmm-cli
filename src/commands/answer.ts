@@ -52,6 +52,79 @@ export default class AnswerCommand extends Command {
     },
   ];
 
+  static async answer(
+    request: string,
+    givenConcepts: string[]
+  ): Promise<string> {
+    console.log(request);
+
+    //RCH
+
+    let rch = new RequestConceptHolder(givenConcepts, request);
+    await rch.proces();
+
+    //ANSWER
+
+    console.log(request);
+    const mmRq = Definer.meaningMakingRq;
+    mmRq.identifierVariable = request;
+    const answerModel = GPT4TURBO;
+    const promptTemplateChars = mmRq.template.length;
+    const maxPromptContextChars = getPromptContextMaxChars(
+      mmRq.maxPromptChars,
+      mmRq.maxCompletitionChars,
+      promptTemplateChars,
+      answerModel
+    );
+
+    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.6);
+
+    let allDefinitions: Definition[] =
+      await DefinerStore.getDefinitionsByConceptScoreList(trimedByScore);
+
+    let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
+      allDefinitions,
+      maxPromptContextChars
+    );
+    let definitionsText = maxedOutTextDefinitions.join("\n");
+    definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
+
+    for (let i = 0; i < maxedOutTextDefinitions.length; i++) {
+      console.log(i + ". " + allDefinitions[i].name);
+    }
+    console.log(`
+    DEFINITIONS:
+    Name: ${mmRq.name}
+    Id: ${mmRq.identifierVariable}
+    Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
+    `);
+
+    const answerInputVariables = {
+      request: request,
+      perspective: definitionsText,
+    };
+
+    let allOutputs = await callLlm(answerModel, mmRq, answerInputVariables);
+    console.log(allOutputs);
+    let finalOutput = "";
+
+    const keyword = "Output5:Response";
+    const keywordIndex = allOutputs.indexOf(keyword);
+    if (keywordIndex !== -1) {
+      const textAfterKeyword = allOutputs.substring(
+        keywordIndex + keyword.length
+      );
+      finalOutput = textAfterKeyword.trim();
+    } else {
+      finalOutput = "Trimming fail";
+      console.log("Unable to trim output");
+    }
+
+    logLlmStats();
+
+    return finalOutput;
+  }
+
   async run() {
     console.warn = () => {};
     const { args, flags } = this.parse(AnswerCommand);
@@ -72,164 +145,11 @@ export default class AnswerCommand extends Command {
     // Load compiled definitions
 
     //QUESTION and KEY CONCEPTS
-    const question = args.question;
-    //REQUEST ANALYSIS
-
-    /*
-    const questionAnalysisRequest = Definer.questionAnalysisRequest;
-    questionAnalysisRequest.identifierVariable = question;
-    let questionAnalysis = await callLlm(GPT35TURBO, questionAnalysisRequest, {
-      request: question,
-    });
-
-    console.log(questionAnalysis);
-    const qa = JSON.parse(questionAnalysis);
-    const questions: string[] = qa.Output1;
-    const mainQuestion: string = qa.Output2;
-    const request = questions[questions.length - 1]; //mainQuestion + "\n" + questions.join("\n");
-*/
-    const request = question;
-    console.log(request);
-
-    //RCH
-    await DefinerStore.load();
+    const request = args.question;
     const givenConcepts: string[] = args.keyConcepts.split(", ");
-
-    let rch = new RequestConceptHolder(givenConcepts, request);
-    await rch.proces();
+    await DefinerStore.load();
+    const response = await AnswerCommand.answer(request, givenConcepts);
     await DefinerStore.save();
-
-    //ANSWER
-
-    console.log(request);
-    const mmRq = Definer.meaningMakingRq;
-    mmRq.identifierVariable = question;
-    const answerModel = GPT4TURBO;
-    const promptTemplateChars = mmRq.template.length;
-    const maxPromptContextChars = getPromptContextMaxChars(
-      mmRq.maxPromptChars,
-      mmRq.maxCompletitionChars,
-      promptTemplateChars,
-      answerModel
-    );
-
-    let allDefinitions: Definition[] =
-      await DefinerStore.getDefinitionsByConceptScoreList(rch.all);
-
-    let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
-      allDefinitions,
-      maxPromptContextChars
-    );
-    let definitionsText = maxedOutTextDefinitions.join("\n");
-    definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
-
-    for (let i = 0; i < maxedOutTextDefinitions.length; i++) {
-      console.log(i + ". " + allDefinitions[i].name);
-    }
-    console.log(`
-    DEFINITIONS:
-    Name: ${mmRq.name}
-    Id: ${mmRq.identifierVariable}
-    Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
-    `);
-    /*const answerInputVariables = {
-            question: request,
-            definitions: definitionsText,
-        };
-        */
-    const answerInputVariables = {
-      request: request,
-      perspective: definitionsText,
-    };
-
-    let rationales = await callLlm(answerModel, mmRq, answerInputVariables);
-    console.log(rationales);
-
-    logLlmStats();
-
-    return;
-
-    //SUCCESSION
-    const successionModel = GPT4TURBO;
-    const successionRequest = Definer.successionRequest;
-    successionRequest.identifierVariable = question;
-    const successionMaxPromptContextChars = getPromptContextMaxChars(
-      successionRequest.maxPromptChars,
-      successionRequest.maxCompletitionChars,
-      successionRequest.template.length,
-      successionModel
-    );
-
-    let successionMaxedOutTextDefinitions: string[] =
-      DefinerStore.getMaxOutDefinitions(
-        allDefinitions,
-        successionMaxPromptContextChars
-      );
-    let successionPerspective = maxedOutTextDefinitions.join("\n");
-
-    successionPerspective = definitionsText.replaceAll(
-      Tokenizer.hyphenToken,
-      " "
-    );
-
-    const successionInputVariables = {
-      request: question,
-      perspective: successionPerspective,
-    };
-
-    // let text = await callLlm(answerModel, answerRequest, answerInputVariables);
-    let text = await callLlm(
-      GPT4TURBO,
-      successionRequest,
-      successionInputVariables
-    );
-    console.log(text);
-
-    logLlmStats();
-
-    return;
-
-    const codRequest = Definer.codRequest;
-    codRequest.identifierVariable = question;
-    const codModel = GPT35TURBO;
-
-    const codMaxPromptContextChars = getPromptContextMaxChars(
-      codRequest.maxPromptChars,
-      codRequest.maxCompletitionChars,
-      promptTemplateChars,
-      codModel
-    );
-
-    let codMaxedOutTextDefinitions: string[] =
-      DefinerStore.getMaxOutDefinitions(
-        allDefinitions,
-        codMaxPromptContextChars
-      );
-
-    let codDefinitionsText = codMaxedOutTextDefinitions.join("\n");
-    codDefinitionsText = codDefinitionsText.replaceAll(
-      Tokenizer.hyphenToken,
-      " "
-    );
-
-    const codInputVariables = {
-      request: question,
-      text: text,
-      perspective: codDefinitionsText,
-    };
-
-    let out = await callLlm(codModel, codRequest, codInputVariables);
-    console.log(out);
-
-    logLlmStats();
-
-    //Translate back into format X
-    //const usedDocsNameIidMap = getDocsNameIidList(edContextDocs);
-
-    //const ipt = await textToIptFromList(out, sortedNameIId);
-    //console.log(ipt);
-
-    // const foamText = textToFoamText(out);
-    // console.log(foamText);
+    console.log(response);
   }
 }

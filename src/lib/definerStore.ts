@@ -363,6 +363,7 @@ export default class DefinerStore {
 
       const intensionText = Definer.intensionsToText(d.directIntensions);
       const defText = d.nameWithHyphen + ":\n" + intensionText + "\n";
+
       if (currentChars + defText.length > maxChars) break;
       definitionsTexts.push(defText);
       currentChars = currentChars + defText.length + 1; //+1 is for the join character added after
@@ -410,6 +411,20 @@ export default class DefinerStore {
         false
       );
       if (d) definitions.push(d);
+    }
+    return definitions;
+  }
+
+  static trimScoreList(
+    conceptsScoreList: ConceptScore[],
+    minScore: number
+  ): ConceptScore[] {
+    let definitions: ConceptScore[] = [];
+    for (let cs of conceptsScoreList) {
+      console.log(cs.s + "> " + minScore + " " + (cs.s > minScore));
+      if (cs.s > minScore) {
+        definitions.push(cs);
+      }
     }
     return definitions;
   }
