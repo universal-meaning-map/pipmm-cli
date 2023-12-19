@@ -1,7 +1,5 @@
-import { Key } from "readline";
 import DefinerStore, { ConceptScore, Definition } from "../lib/definerStore";
 import Definer from "./definer";
-import { sectionInstructions } from "./composer";
 import { GPT35TURBO, GPT4TURBO } from "./llm";
 import Utils from "./utils";
 
@@ -114,22 +112,4 @@ export default class RequestConceptHolder {
     }
     return cs;
   }
-}
-
-export async function parallelRCH(
-  sectionsInstructions: sectionInstructions[]
-): Promise<ConceptScore[]> {
-  const process = sectionsInstructions.map(async (s: sectionInstructions) => {
-    const text = s.title + "\n" + s.coverage;
-    const rch = new RequestConceptHolder(s.givenConcepts, text);
-    await rch.proces();
-    return rch.all;
-  });
-
-  const r: ConceptScore[][] = await Promise.all(process);
-
-  let all: ConceptScore[] = ([] as ConceptScore[]).concat(...r);
-  let allUnique = Definer.removeRepeatsAndNormalizeScore(all);
-
-  return Definer.sortConceptScores(allUnique);
 }

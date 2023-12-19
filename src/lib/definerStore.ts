@@ -5,7 +5,7 @@ import DirectSearch from "./directSearch";
 import Referencer from "./referencer";
 import Utils from "./utils";
 import * as fs from "fs";
-import { GPT4, callLlm } from "./llm";
+import { GPT4, LlmRequest, ModelConfig, callLlm } from "./llm";
 import { ChainValues } from "langchain/dist/schema";
 
 export interface Definition {
@@ -421,7 +421,6 @@ export default class DefinerStore {
   ): ConceptScore[] {
     let definitions: ConceptScore[] = [];
     for (let cs of conceptsScoreList) {
-      console.log(cs.s + "> " + minScore + " " + (cs.s > minScore));
       if (cs.s > minScore) {
         definitions.push(cs);
       }

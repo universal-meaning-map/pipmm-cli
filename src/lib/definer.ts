@@ -780,7 +780,7 @@ JSON`,
   static meaningMakingRq: LlmRequest = {
     name: "Meaning making",
     identifierVariable: "<not set>",
-    inputVariableNames: ["request", "perspective"],
+    inputVariableNames: ["request", "perspective", "continue"],
     temperature: 0.0,
     maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
@@ -808,17 +808,16 @@ STEPS
 Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
 
     Guidelines:
-    - The goal is to provide a direct and clear answer to REQUEST exclusively based on TERMINOLOGY.
-    - Make extensive usage of paragraphs to separate ideas. 
-    - Response must synthesise the key relationships (not concepts or definitions) within the TERMINOLOGY into a cohesive argument.
-    - The flow must go from familiar to unfamiliar ideas.
-    - Organize the information in a structured way, with clear reasoning in with each idea leads logically to the next.
+    - The goal is to provide a clear answer to REQUEST exclusively based on TERMINOLOGY.
+    - The logic flow goes from familiar to unfamiliar.
     - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
-    - Response CAN'T make evaluations beyond what can directly be inferred in TERMINOLOGY.
-    - Response must be impersonal and can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
+    - Do not make evaluations on subjective interpretations such as beauty, innovation, revolutionary... unless expressed as such in TERMINOLOGY.
+    - Response can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
     - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
     - Use a logical flow and clear transitions between ideas.
-    - Response should be self-contained (be understood without the TERMINOLIGY).
+    - Transitions must express specifically why two ideas are related. Do not just say "they are related" explain how.
+    - Make extensive usage of paragraphs to separate ideas. 
+    - Response should be self-contained (be understood without the TERMINOLIGY)
     - Use short phrases. Does not use filler content or unnecessary wording.
     - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
 
@@ -886,8 +885,46 @@ The following terminology is coherent within itself.
 {perspective}
     
 OUTPUTS
-        `,
+{continue}`,
   };
+
+  static async getFinalOutcomeOrRetry(
+    keyword: string,
+    priorOutcome: string,
+    model: ModelConfig,
+    llmRequest: LlmRequest,
+    priorInputVariables: ChainValues,
+    retry: number
+  ): Promise<string> {
+    const keywordIndex = priorOutcome.indexOf(keyword);
+    let output = "";
+    if (keywordIndex !== -1) {
+      const textAfterKeyword = priorOutcome.substring(
+        keywordIndex + keyword.length
+      );
+      output = textAfterKeyword.trim();
+
+      return output;
+    } else {
+      retry++;
+      console.log("Unable to trim output. Continuing. Retry:" + retry);
+      if (retry > 2) return "Fail. Retried 2 times.";
+
+      const inputVariables = priorInputVariables;
+      inputVariables.continue = output;
+
+      let continuedOutput = await callLlm(model, llmRequest, inputVariables);
+
+      return await Definer.getFinalOutcomeOrRetry(
+        keyword,
+        continuedOutput,
+        model,
+        llmRequest,
+        inputVariables,
+        retry
+      );
+    }
+  }
 }
 /*`
 

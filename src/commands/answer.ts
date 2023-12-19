@@ -102,27 +102,24 @@ export default class AnswerCommand extends Command {
     const answerInputVariables = {
       request: request,
       perspective: definitionsText,
+      continue: "",
     };
 
     let allOutputs = await callLlm(answerModel, mmRq, answerInputVariables);
     console.log(allOutputs);
-    let finalOutput = "";
 
-    const keyword = "Output5:Response";
-    const keywordIndex = allOutputs.indexOf(keyword);
-    if (keywordIndex !== -1) {
-      const textAfterKeyword = allOutputs.substring(
-        keywordIndex + keyword.length
-      );
-      finalOutput = textAfterKeyword.trim();
-    } else {
-      finalOutput = "Trimming fail";
-      console.log("Unable to trim output");
-    }
+    let out = Definer.getFinalOutcomeOrRetry(
+      "Output5:Response",
+      allOutputs,
+      answerModel,
+      mmRq,
+      answerInputVariables,
+      0
+    );
 
     logLlmStats();
 
-    return finalOutput;
+    return out;
   }
 
   async run() {
