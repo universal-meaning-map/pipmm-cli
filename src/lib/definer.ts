@@ -777,10 +777,17 @@ REQUEST
 JSON`,
   };
 
+  //Assumes: Explicit questions, narrow focused responses.
   static meaningMakingRq: LlmRequest = {
     name: "Meaning making",
     identifierVariable: "<not set>",
-    inputVariableNames: ["request", "context", "perspective", "continue"],
+    inputVariableNames: [
+      "request",
+      "context",
+      "guidelines",
+      "perspective",
+      "continue",
+    ],
     temperature: 0.0,
     maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
@@ -793,11 +800,11 @@ JSON`,
 
 ## Output1:Response
 <Step 1 output>
-## Output2:Improvements
+## Output2:Evaluation
 <Step 2 output>
 ## Output3:Response
 <Step 3 output>
-## Output4:Improvements
+## Output4:Evaluation
 <Step 4 output>
 ## Output5:Response
 <Step 5 output>
@@ -805,77 +812,79 @@ JSON`,
 
 STEPS
 
-Step 1. Generate initial response to REQUEST based on TERMINOLOGY.
+Step 1:
+    Instructions: Respond to REQUEST (and Request Requirements) following the RESPONSE GUIDELINES
+    Output: Under "##1 Output1:Response", the response in Markdown format.
 
-    Guidelines:
-    - The goal is to provide a clear answer to REQUEST exclusively based on TERMINOLOGY.
-    - The logic flow goes from familiar to unfamiliar.
-    - Response CAN'T be based on external pre-conceptions or assumptions for what matters or what a word means. Only what the REQUEST and TERMINOLOGY express.
-    - Never make subjective evaluations unless expressed as such in TERMINOLOGY. For example never say something is beautiful, innovative, revolutionary, ambitious...
-    - Response can't make reference to subject behind TERMINOLOGY in itself only its content. Therefore can't use expressions such as "...is considered..."
-    - Response must be extensive and comprehensive, covering all possible domains in which elements of TERMINOLOGY supports the REQUEST.
-    - Use a logical flow and clear transitions between ideas.
-    - Transitions must express specifically why two ideas are related. Do not just say "they are related" explain how.
-    - Make extensive usage of paragraphs to separate ideas. 
-    - Response should be self-contained (be understood without the TERMINOLIGY)
-    - Use short phrases. Does not use filler content or unnecessary wording.
-    - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
+Step 2.
+    Instructions: Follow the EVALUATION INSTRUCTIONS to answer the Evaluation Questions about Output1:Response.
+    Output: Under "## Output2:Evaluation" a bullet point list with all the answers to the Evaluation Questions.
 
-    Output:
-    - Under "##1 Output1:Response", the response in Markdown format.
+Step 3.
+    Instructions: Modify Output1:Response based on Output2:Evaluation and RESPONSE GUIDELINES following IMPROVEMENT INSTRUCTIONS
+    Output: Under "## Output3:Response" the improved response in Markdown format.
 
-Step 2. List improvements about initial response.
+Step 4.
+    Instructions: Follow the EVALUATION INSTRUCTIONS to answer the Evaluation Questions about Output3:Response.
+    Output: Under "## Output4:Evaluation" a bullet point list with all the answers to the Evaluation Questions.
 
-    Guidelines:
-    - Suggest the top 7 improvements about the previous Output Response.
-    - Improvements:
-        - Must be clear and actionable and directly address, with detail, how to fix it.
-        - Must directly support the REQUEST.
-        - Must signfically improve the previous Output Response.
-        - The solution to the improvement must be found within TERMINOLOGY.
-        - Does not tell what to focus on based on pre-concieve assumption of what matters (unless expressed in REQUEST or TERMINOLOGY).
-    - Provide a list of explicit improvements to particular fragments  based on the following questions.
-        - Identify reasoning fallacies.
-        - What order of ideas will improve logical flow and go from familiar to unfamiliar? 
-        - What paragraphs and phrases need to be rewriten to match Step 1 guidelines.
-        - What phrases need to be rewriten without comma splice?
-        - Is the statement really true? (based on TERMINOLOGY)
-q
-    Output:
-        - Under "## Output2:Improvements" a bullet point list of Improvements.
+Step 5.
+    Instructions: Modify Output3:Response based on Output2:Evaluation and RESPONSE GUIDELINES following IMPROVEMENT INSTRUCTIONS
+    Output: Under "## Output5:Response" the improved response in Markdown format.
 
-Step 3. Rewrite initial response parts that need improvements.
+RESPONSE GUIDELINES
 
-    Guidelines:
-    - Rewrite the elements of Output1:Response by applying Output2:Improvements and Step 1 guidelines.
-    - Preserve the elements that do not require improvement.
-    - Don't remove important nuances and ideas.
-    - The new response must be longer than Output1:Response, never shorter.
-    - New ideas must fit within Output1:Response length, make space with removal of uninformative phrases and fillers.
+Respond based on the following guidelines unless REQUEST explicitely ask for different ones.
 
-    Output:
-    - Under "## Output3:Response" the improved response in Markdown format.
+Logic:
+- Must synthesise the key relationships (not concepts or definitions) in TERMINOLOGY into a cohesive argument.
+- Prioritize few key relationships and insights over expressing many ideas.
+- Must use a logical flow and clear transitions between ideas.
 
-Step 4. Improve response again:
+Flow:
+- Start with a concise summary of the response, a conclusion.
+- Then, the logic flow goes from familiar to unfamiliar.
+- Organize the information in a structured way, with clear reasoning in with each idea leads logically to the next.
+- Avoid abrupt shifts and make sure each idea naturally flows into the next.
 
-    Guidelines:
-    - Apply Step2 Guidelines to Output3.
+Perspective:
+- The insights to respond to REQUEST may be anywhere in TERMINOLOGY, filter the relevant content and ignore the rest.
+- Write with a Third Person Omniscient perspective, being TERMINOLOGY your understanding of the world.
 
-    Output:
-    - Under "# Output4:Improvements" a bullet point list of improvements.
+Content:
+- Must be very focused on the REQUEST and Request Requirements, without going into tangencial topics (unless explictely stated in the REQUEST)
+- Must be comprehensive, capturing all the important nuances.
+- Should be self-contained (be understood without the TERMINOLIGY)
 
-Step 5. Rewrite the parts that need improvements.
+Style:
+- Use plain an simple language.
+- Minimize the use of many different concepts.
+- Choose words carefully to be as precise and nuanced as possible using the minimal amount.
+- No comma splice. A phrase should include subject and predicate, and finish with a full stop.
+- Phrases must be very short.
+- Make extensive usage of paragraphs to separate ideas.
 
-    Guidelines:
-    - Rewrite Output3:Response applying Output4:Improvements and following Step 3 Guidelines.
+EVALUATION INSTRUCTIONS
 
-    Output:
-    - Under "## Output5:Response" the improved response in Markdown format.
+- Answer each of the following Evaluation Questions (don't repeat the question).
+- Give multiple answers if needed.
+- Make deep evaluations.
+- The answer must clearly identify the specific fragment evaluated and provide a clear and actionable solution to address it.
 
+Evaluation Questions:
+- Is it directly addressing the REQUEST?
+- What Request Requirements are not met?
+- Are ALL the Step1 Guidelines met? Can it be improved?
+- What statements are not really true, exagerations or subjective evaluations? Which one can be phrased more accurately?
+- How does this text exhibit any reasoning fallacies?
+- What phrases are too long or need to be rewriten without comma splice?
+
+IMPROVEMENT INSTRUCTIONS
+- Unless a full rewrite is necessary to meet the REQUEST, try to preserve as much text as possible (wording, tone, flow), and we need to ensure that the response is still centered on the REQUEST.
 
 REQUEST
 
-{context}{request}
+{request}{context}{guidelines}
     
 TERMINOLOGY
     
@@ -895,6 +904,7 @@ OUTPUTS
     priorInputVariables: ChainValues,
     retry: number
   ): Promise<string> {
+    console.log("ATTEMPT:  " + retry);
     const keywordIndex = priorOutcome.indexOf(keyword);
     let output = "";
     if (keywordIndex !== -1) {
@@ -902,15 +912,29 @@ OUTPUTS
         keywordIndex + keyword.length
       );
       output = textAfterKeyword.trim();
+      console.log("ATTEMPT SUCCESS");
+      console.log("Final output");
+      console.log(output);
+      console.log("---");
 
       return output;
     } else {
+      const accumulatedOutput =
+        priorInputVariables.continue + "\n\n" + priorOutcome;
+      console.log("ATTEMPT FAIL (" + retry + ")");
+      if (retry > 2) {
+        console.log("Stopped retrying");
+        return "🔴" + accumulatedOutput;
+      }
       retry++;
-      console.log("Unable to trim output. Continuing. Retry:" + retry);
-      if (retry > 2) return " 🌀 Fail. Retried 2 times.";
+      console.log("Retrying...");
+
+      console.log("Accumulated output");
+      console.log(accumulatedOutput);
+      console.log("---");
 
       const inputVariables = priorInputVariables;
-      inputVariables.continue = output;
+      inputVariables.continue = accumulatedOutput;
 
       let continuedOutput = await callLlm(model, llmRequest, inputVariables);
 

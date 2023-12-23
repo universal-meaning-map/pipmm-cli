@@ -5,10 +5,11 @@ export interface SubSection {
   isGoodEnough: boolean;
   title: string;
   request: string;
+  guidelines: string;
   givenConcepts: string[];
   baseOutput: string;
-  subSections: SubSection[];
   historic: string[];
+  subSections: SubSection[];
 }
 
 export interface Drafter {
@@ -33,10 +34,11 @@ export default class Composer {
       console.log("Answering");
       const output = await AnswerCommand.answer(
         currentSS.request,
+        currentSS.guidelines,
         drafter.context,
+        currentSS.baseOutput,
         currentSS.givenConcepts
       );
-      console.log("there");
       currentSS.historic.push(output);
     }
 

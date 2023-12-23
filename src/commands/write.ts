@@ -59,8 +59,6 @@ export default class WriteCommand extends Command {
 
     await DefinerStore.save();
     const json = JSON.stringify(originalDrafter, null, 2);
-    console.log(originalDrafter);
-    console.log(json);
     Utils.saveFile(json, args.uri);
   }
 }

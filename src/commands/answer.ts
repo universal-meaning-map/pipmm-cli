@@ -54,11 +54,16 @@ export default class AnswerCommand extends Command {
 
   static async answer(
     request: string,
+    guidelines: string,
     context: string,
+    baseOutput: string,
     givenConcepts: string[]
   ): Promise<string> {
     if (context != "") {
-      context = context + "\n\n";
+      context = "\n\nContext: " + context;
+    }
+    if (guidelines != "") {
+      guidelines = "\n\nRequest Requirements:" + guidelines;
     }
 
     //RCH
@@ -77,7 +82,7 @@ export default class AnswerCommand extends Command {
       answerModel
     );
 
-    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.6);
+    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.8);
 
     let allDefinitions: Definition[] =
       await DefinerStore.getDefinitionsByConceptScoreList(trimedByScore);
@@ -102,8 +107,9 @@ export default class AnswerCommand extends Command {
     const inputVariables = {
       request: request,
       context: context,
+      guidelines: guidelines,
       perspective: definitionsText,
-      continue: "",
+      continue: "## Output1:Response\n\n" + baseOutput,
     };
 
     let allOutputs = await callLlm(answerModel, mmRq, inputVariables);
@@ -146,7 +152,13 @@ export default class AnswerCommand extends Command {
     const request = args.question;
     const givenConcepts: string[] = args.keyConcepts.split(", ");
     await DefinerStore.load();
-    const response = await AnswerCommand.answer(request, " ", givenConcepts);
+    const response = await AnswerCommand.answer(
+      request,
+      "",
+      "",
+      "",
+      givenConcepts
+    );
     await DefinerStore.save();
     console.log(response);
   }
