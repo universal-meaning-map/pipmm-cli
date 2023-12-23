@@ -54,25 +54,17 @@ export default class AnswerCommand extends Command {
 
   static async answer(
     request: string,
-    guidelines: string,
-    context: string,
+    semanticRequest: string,
     baseOutput: string,
     givenConcepts: string[]
   ): Promise<string> {
-    if (context != "") {
-      context = "\n\nContext: " + context;
-    }
-    if (guidelines != "") {
-      guidelines = "\n\nRequest Requirements:" + guidelines;
-    }
-
     //RCH
-    let rch = new RequestConceptHolder(givenConcepts, request);
+    let rch = new RequestConceptHolder(givenConcepts, semanticRequest);
     await rch.proces();
 
     //ANSWER
     const mmRq = Definer.meaningMakingRq;
-    mmRq.identifierVariable = request;
+    mmRq.identifierVariable = semanticRequest;
     const answerModel = GPT4TURBO;
     const promptTemplateChars = mmRq.template.length;
     const maxPromptContextChars = getPromptContextMaxChars(
@@ -106,23 +98,23 @@ export default class AnswerCommand extends Command {
 
     const inputVariables = {
       request: request,
-      context: context,
-      guidelines: guidelines,
       perspective: definitionsText,
-      continue: "## Output1:Response\n\n" + baseOutput,
+      continue: "--- Output1:Response\n\n" + baseOutput,
     };
 
     let allOutputs = await callLlm(answerModel, mmRq, inputVariables);
+    console.log("ALL OUTPUT");
     console.log(allOutputs);
-
-    let out = Definer.getFinalOutcomeOrRetry(
-      "Output5:Response",
+    let out = await Definer.getFinalOutcomeOrRetry(
+      "--- Output3:Improved response",
       allOutputs,
       answerModel,
       mmRq,
       inputVariables,
       0
     );
+    console.log("TRImME OUTPUT");
+    console.log(out);
 
     logLlmStats();
 
@@ -154,8 +146,7 @@ export default class AnswerCommand extends Command {
     await DefinerStore.load();
     const response = await AnswerCommand.answer(
       request,
-      "",
-      "",
+      request,
       "",
       givenConcepts
     );

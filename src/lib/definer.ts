@@ -781,60 +781,56 @@ JSON`,
   static meaningMakingRq: LlmRequest = {
     name: "Meaning making",
     identifierVariable: "<not set>",
-    inputVariableNames: [
-      "request",
-      "context",
-      "guidelines",
-      "perspective",
-      "continue",
-    ],
+    inputVariableNames: ["request", "perspective", "continue"],
     temperature: 0.0,
     maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
     template: `INSTRUCTIONS
-- You act as a writer. You will iterate over a Response, improving it every time, following the STEPS.
-- You will follow 5 STEPS, writing an the Output of each Step (finishing with Output5:Response)
+- You will follow 3 STEPS, writing an the Output of each Step (finishing with Output3:Response)
 - Only write what is instructed under the "Output:" section of each Step.
-- The final outcome will have multiple Markdown headers representing each step.
 - The final outcome will have the following signature:
 
-## Output1:Response
+--- Output1:Response
 <Step 1 output>
-## Output2:Evaluation
+--- Output2:Evaluation
 <Step 2 output>
-## Output3:Response
+--- Output3:Improved response
 <Step 3 output>
-## Output4:Evaluation
-<Step 4 output>
-## Output5:Response
-<Step 5 output>
+---
+
 
 
 STEPS
 
 Step 1:
-    Instructions: Respond to REQUEST (and Request Requirements) following the RESPONSE GUIDELINES
-    Output: Under "##1 Output1:Response", the response in Markdown format.
+    Instructions: Follow the RESPONSE INSTRUCTIONS to respond the Question of each section of the SECTIONS OUTLINE.
+
+    Output: 
+    - "--- 1 Output1:Response"
+    - The response in Markdown format.
 
 Step 2.
     Instructions: Follow the EVALUATION INSTRUCTIONS to answer the Evaluation Questions about Output1:Response.
-    Output: Under "## Output2:Evaluation" a bullet point list with all the answers to the Evaluation Questions.
+
+    Output:
+   - "--- Output2:Evaluation"
+   - A bullet point list with all the answers to the Evaluation Questions.
 
 Step 3.
-    Instructions: Modify Output1:Response based on Output2:Evaluation and RESPONSE GUIDELINES following IMPROVEMENT INSTRUCTIONS
-    Output: Under "## Output3:Response" the improved response in Markdown format.
+    Instructions: Modify Output1:Response based on Output2:Evaluation and RESPONSE INSTRUCTIONS following IMPROVEMENT INSTRUCTIONS
 
-Step 4.
-    Instructions: Follow the EVALUATION INSTRUCTIONS to answer the Evaluation Questions about Output3:Response.
-    Output: Under "## Output4:Evaluation" a bullet point list with all the answers to the Evaluation Questions.
+    Output: 
+    - "--- Output3:Improved response"
+    - The improved response in Markdown format.
+    - "---"
 
-Step 5.
-    Instructions: Modify Output3:Response based on Output2:Evaluation and RESPONSE GUIDELINES following IMPROVEMENT INSTRUCTIONS
-    Output: Under "## Output5:Response" the improved response in Markdown format.
+
+RESPONSE INSTRUCTIONS
+
+- You are writting the sections of a page based on the SECTIONS OUTLINE by responding to each section Question.
+- Question must be asked by strictly adhering to its Requirements first and then to RESPONSE GUIDELINES.
 
 RESPONSE GUIDELINES
-
-Respond based on the following guidelines unless REQUEST explicitely ask for different ones.
 
 Logic:
 - Must synthesise the key relationships (not concepts or definitions) in TERMINOLOGY into a cohesive argument.
@@ -842,53 +838,50 @@ Logic:
 - Must use a logical flow and clear transitions between ideas.
 
 Flow:
-- Start with a concise summary of the response, a conclusion.
-- Then, the logic flow goes from familiar to unfamiliar.
+- Consider the section hierchy within the page. Preserve the Markdown heading level.
+- The logic flow goes from familiar to unfamiliar.
 - Organize the information in a structured way, with clear reasoning in with each idea leads logically to the next.
 - Avoid abrupt shifts and make sure each idea naturally flows into the next.
 
 Perspective:
-- The insights to respond to REQUEST may be anywhere in TERMINOLOGY, filter the relevant content and ignore the rest.
+- The insights to respond to the section Question may be anywhere in TERMINOLOGY, filter the relevant content and ignore the rest.
 - Write with a Third Person Omniscient perspective, being TERMINOLOGY your understanding of the world.
 
 Content:
-- Must be very focused on the REQUEST and Request Requirements, without going into tangencial topics (unless explictely stated in the REQUEST)
+- Must be very focused on the section Question and its Requirements, without going into tangencial topics (unless explictely stated in the Question)
 - Must be comprehensive, capturing all the important nuances.
 - Should be self-contained (be understood without the TERMINOLIGY)
 
 Style:
+- Make extensive usage of paragraphs to separate ideas.
 - Use plain an simple language.
 - Minimize the use of many different concepts.
 - Choose words carefully to be as precise and nuanced as possible using the minimal amount.
 - No comma splice. A phrase should include subject and predicate, and finish with a full stop.
 - Phrases must be very short.
-- Make extensive usage of paragraphs to separate ideas.
 
 EVALUATION INSTRUCTIONS
 
-- Answer each of the following Evaluation Questions (don't repeat the question).
+- Answer each of the following Evaluation Questions (no need to repeat the question).
 - Give multiple answers if needed.
-- Make deep evaluations.
 - The answer must clearly identify the specific fragment evaluated and provide a clear and actionable solution to address it.
 
 Evaluation Questions:
-- Is it directly addressing the REQUEST?
+- Is it directly addressing the Question?
 - What Request Requirements are not met?
 - Are ALL the Step1 Guidelines met? Can it be improved?
-- What statements are not really true, exagerations or subjective evaluations? Which one can be phrased more accurately?
+- What statements are not really true, exagerations or subjective evaluations? Find them ALL! Which one can be phrased more accurately?
 - How does this text exhibit any reasoning fallacies?
 - What phrases are too long or need to be rewriten without comma splice?
 
-IMPROVEMENT INSTRUCTIONS
-- Unless a full rewrite is necessary to meet the REQUEST, try to preserve as much text as possible (wording, tone, flow), and we need to ensure that the response is still centered on the REQUEST.
+RESPONSE IMPROVEMENT INSTRUCTIONS
+- Unless a full rewrite is necessary to meet the Question, try to preserve as much text as possible (wording, tone, flow), and we need to ensure that the response is still centered on the Question.
 
-REQUEST
+SECTIONS OUTLINE
 
-{request}{context}{guidelines}
+{request}
     
 TERMINOLOGY
-    
-The following terminology is coherent within itself.
     
 {perspective}
     
@@ -913,9 +906,11 @@ OUTPUTS
       );
       output = textAfterKeyword.trim();
       console.log("ATTEMPT SUCCESS");
-      console.log("Final output");
+      /*
+      console.log("Final output:");
       console.log(output);
       console.log("---");
+      */
 
       return output;
     } else {
@@ -928,11 +923,11 @@ OUTPUTS
       }
       retry++;
       console.log("Retrying...");
-
-      console.log("Accumulated output");
+      /*
+      console.log("Accumulated output:");
       console.log(accumulatedOutput);
       console.log("---");
-
+*/
       const inputVariables = priorInputVariables;
       inputVariables.continue = accumulatedOutput;
 

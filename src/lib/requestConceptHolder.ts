@@ -24,7 +24,7 @@ export default class RequestConceptHolder {
   async proces() {
     await Promise.all([this.processGiven(), this.processGuesed()]);
     this.all = Definer.removeRepeatsAndNormalizeScore(
-      (this.given = this.given.concat(
+      (this.all = this.given.concat(
         this.givenParents,
         this.guessed,
         this.guessedParents

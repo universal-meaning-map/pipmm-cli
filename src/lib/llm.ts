@@ -252,7 +252,6 @@ export async function callLlm(
   console.log("---");
   console.log(prompt);
   console.log("---");
-
   */
 
   const maxCompletitonTokens =

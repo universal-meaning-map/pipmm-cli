@@ -4,8 +4,8 @@ import Utils from "./utils";
 export interface SubSection {
   isGoodEnough: boolean;
   title: string;
-  request: string;
-  guidelines: string;
+  question: string;
+  requirements: string;
   givenConcepts: string[];
   baseOutput: string;
   historic: string[];
@@ -14,7 +14,7 @@ export interface SubSection {
 
 export interface Drafter {
   context: string;
-  subSections: SubSection[];
+  page: SubSection;
 }
 
 export default class Composer {
@@ -24,17 +24,108 @@ export default class Composer {
     return drafter;
   }
 
+  static buildRequest(drafter: Drafter): string {
+    let request = "";
+    request += "Context: " + drafter.context + "\n\n";
+    request += Composer.buildTocSection(drafter.page, 1);
+    return request;
+  }
+
+  static getHeading(level: number) {
+    let h = "";
+    for (let i = 0; i < level; i++) {
+      h = h + "#";
+    }
+    return h;
+  }
+
+  static buildTocSection(section: SubSection, level: number): string {
+    let t = Composer.getHeading(level) + " " + section.title + "\n\n";
+    t += "Question: " + section.question + "\n\n";
+    t += "Requirements: " + section.requirements + "\n\n";
+    level++;
+
+    for (let s of section.subSections) {
+      t += Composer.buildTocSection(s, level);
+    }
+    return t;
+  }
+
+  static extractGivenConcepts(section: SubSection) {
+    let givenConcepts = section.givenConcepts;
+    for (let s of section.subSections) {
+      givenConcepts = givenConcepts.concat(Composer.extractGivenConcepts(s));
+    }
+    return givenConcepts;
+  }
+
+  static extractQuestions(section: SubSection) {
+    let questions = section.question;
+    for (let s of section.subSections) {
+      questions += "\n" + Composer.extractQuestions(s);
+    }
+    return questions;
+  }
+
+  static getTextBetweenTokens(
+    input: string,
+    startToken: string,
+    endToken: string
+  ): string | null {
+    const startIdx = input.indexOf(startToken);
+
+    if (startIdx !== -1) {
+      const endIdx = input.indexOf(endToken, startIdx + startToken.length);
+
+      if (endIdx !== -1) {
+        return input.substring(startIdx + startToken.length, endIdx);
+      }
+    }
+
+    return null;
+  }
+
+  static extractOutputSections(
+    section: SubSection,
+    output: string
+  ): SubSection {
+    let newText = Composer.getTextBetweenTokens(
+      output,
+      section.title + "\n\n",
+      "#"
+    );
+    if (!newText) {
+      newText = Composer.getTextBetweenTokens(
+        output,
+        section.title + "\n\n",
+        "---"
+      );
+    }
+    if (!newText) newText = "FAIL";
+
+    section.historic.push(newText);
+
+    let newSubsections: SubSection[] = [];
+    for (let s of section.subSections) {
+      let newS = Composer.extractOutputSections(s, output);
+      newSubsections.push(newS);
+    }
+    section.subSections = newSubsections;
+    return section;
+  }
+}
+
+/*
   static async writeSubSections(
     drafter: Drafter,
     currentSS: SubSection,
     idx: number[]
   ): Promise<SubSection> {
-    console.log("Here " + idx);
     if (!currentSS.isGoodEnough) {
       console.log("Answering");
       const output = await AnswerCommand.answer(
-        currentSS.request,
-        currentSS.guidelines,
+        currentSS.question,
+        currentSS.requirements,
         drafter.context,
         currentSS.baseOutput,
         currentSS.givenConcepts

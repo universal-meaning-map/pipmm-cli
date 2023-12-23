@@ -4,6 +4,7 @@ import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import Composer, { SubSection } from "../lib/composer";
+import AnswerCommand from "./answer";
 
 export default class WriteCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -49,13 +50,29 @@ export default class WriteCommand extends Command {
     await DefinerStore.load();
 
     let originalDrafter = Composer.loadDrafter(args.uri);
-    let newsections = await Composer.writeSubSections(
-      originalDrafter,
-      originalDrafter.subSections[0],
-      [0]
+
+    let request = await Composer.buildRequest(originalDrafter);
+
+    let questions = Composer.extractQuestions(originalDrafter.page);
+
+    let givenConcepts = Composer.extractGivenConcepts(originalDrafter.page);
+
+    const output = await AnswerCommand.answer(
+      request,
+      questions,
+      "",
+      givenConcepts
     );
 
-    originalDrafter.subSections = [newsections];
+    console.log("FINAL");
+    console.log(output);
+
+    const newPage = Composer.extractOutputSections(
+      originalDrafter.page,
+      output
+    );
+
+    originalDrafter.page = newPage;
 
     await DefinerStore.save();
     const json = JSON.stringify(originalDrafter, null, 2);
