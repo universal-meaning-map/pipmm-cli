@@ -715,7 +715,7 @@ REQUEST
 
 REQUEST CONTEXT
 
-    
+
 IMPERSONATED PERSPECTIVE
     
 The following terminology is the basis of IMPERSONATED PERSPECTIVE:
@@ -786,106 +786,137 @@ JSON`,
     maxCompletitionChars: 10000, //minimum chars saved for response
     maxPromptChars: 0,
     template: `INSTRUCTIONS
-- You will follow 3 STEPS, writing an the Output of each Step (finishing with Output3:Response)
+- You will follow 3 STEPS, writing the Output of each Step.
 - Only write what is instructed under the "Output:" section of each Step.
 - The final outcome will have the following signature:
 
---- Output1:Response
+--- Output1:Last draft
 <Step 1 output>
---- Output2:Evaluation
+--- Output2:Improvements
 <Step 2 output>
---- Output3:Improved response
+--- Output3:Final text
 <Step 3 output>
 ---
-
 
 
 STEPS
 
 Step 1:
-    Instructions: Follow the RESPONSE INSTRUCTIONS to respond the Question of each section of the SECTIONS OUTLINE.
+    Instructions:
+    - Craft the section text for each "SectionSpecification" in "SECTION SPECIFICATIONS" by:
+        - Addressing each "SectionSpecification question" with precision.
+        - Adhering strictly to the specified "SectionSpecification guidelines" and "SectionSpecification length".
+        - Following rigorously the "SECTION WRITING GUIDELINES."
+        - If some section texts are already written, continue writing the missing ones based its "SectionSpecifications".
 
     Output: 
-    - "--- 1 Output1:Response"
-    - The response in Markdown format.
+    - "--- Output1:Last draft"
+    - The writing of each section in Markdown format.
 
 Step 2.
-    Instructions: Follow the EVALUATION INSTRUCTIONS to answer the Evaluation Questions about Output1:Response.
+    Instructions:
+    - Assess each section in "Output1: Last draft" against ALL criteria in "ISSUES CRITERION."
+    - If an issue arises according to the "ISSUES CRITERION," propose a clear improvement.
+        - Specify the fragment under evaluation.
+        - Provide precise instructions for issue resolution.
+        - Ensure thoroughness in the improvement suggestions.
+        - Offer multiple improvements per issue if needed.
 
     Output:
-   - "--- Output2:Evaluation"
-   - A bullet point list with all the answers to the Evaluation Questions.
+   - "--- Output2:Improvements"
+   - Under each section title, a bullet point list with all the necessary improvements.
 
 Step 3.
-    Instructions: Modify Output1:Response based on Output2:Evaluation and RESPONSE INSTRUCTIONS following IMPROVEMENT INSTRUCTIONS
+    Instructions:
+    - Revise "Output1: Last draft" using suggestions from "Output2: Improvements" and adhere to "SECTION WRITING GUIDELINES".
+    - Aim to retain original wording, tone, and flow as much as possible.
+    - Perform a complete rewrite of "Output1: Last draft" only if necessary to meet "SectionSpecification guidelines" or length criteria.
 
     Output: 
-    - "--- Output3:Improved response"
-    - The improved response in Markdown format.
+    - "--- Output3:Final text"
+    - The improved writing of each section in Markdown format.
     - "---"
 
 
-RESPONSE INSTRUCTIONS
+SECTION SPECIFICATIONS FORMAT
 
-- You are writting the sections of a page based on the SECTIONS OUTLINE by responding to each section Question.
-- Question must be asked by strictly adhering to its Requirements first and then to RESPONSE GUIDELINES.
+A "SectionSpecification" serves as an entity delineating the specifications for the written output.
 
-RESPONSE GUIDELINES
+Structure of a "SectionSpecification":
+- title: The title of the section.
+- question: The question that the written output should address.
+- length: The required length of the section text.
+- guidelines: A list of specific criteria that each section text should follow.
+- subSections: An array of "SectionSpecification" objects, each representing a subsection within the current section.
 
-Logic:
-- Must synthesise the key relationships (not concepts or definitions) in TERMINOLOGY into a cohesive argument.
-- Prioritize few key relationships and insights over expressing many ideas.
-- Must use a logical flow and clear transitions between ideas.
+
+SECTION WRITING GUIDELINES
+
+Logic Guidelines:
+
+- Synthesize the key relationships, focusing on relationships rather than concepts or definitions within "TERMINOLOGY," to form a cohesive argument.
+- Prioritize conveying key relationships and insights over introducing numerous ideas.
+- Utilize a logical flow with clear transitions between ideas for a coherent and structured presentation.
 
 Flow:
-- Consider the section hierchy within the page. Preserve the Markdown heading level.
-- The logic flow goes from familiar to unfamiliar.
-- Organize the information in a structured way, with clear reasoning in with each idea leads logically to the next.
-- Avoid abrupt shifts and make sure each idea naturally flows into the next.
+
+- Maintain the hierarchy outlined in "SECTION SPECIFICATIONS."
+- Within each section, structure the logic flow from the familiar to the unfamiliar.
+- Organize information in a structured manner, ensuring clear reasoning where each idea logically leads to the next.
+- Minimize abrupt shifts; ensure each idea seamlessly transitions into the next for a smooth and cohesive narrative flow.
 
 Perspective:
-- The insights to respond to the section Question may be anywhere in TERMINOLOGY, filter the relevant content and ignore the rest.
-- Write with a Third Person Omniscient perspective, being TERMINOLOGY your understanding of the world.
+
+- Extract insights from "TERMINOLOGY" to address the "SectionSpecification question," filtering relevant content and disregarding extraneous details.
+- Adopt a Third Person Omniscient perspective, with "TERMINOLOGY" serving as the lens through which you comprehend the world.
 
 Content:
-- Must be very focused on the section Question and its Requirements, without going into tangencial topics (unless explictely stated in the Question)
-- Must be comprehensive, capturing all the important nuances.
-- Should be self-contained (be understood without the TERMINOLIGY)
+
+- Adhere to the specified length outlined in "SectionSpecification length" for each section text.
+- Directly address the "SectionSpecification question" and adhere strictly to the "SectionSpecification guidelines," avoiding tangential topics unless explicitly mentioned in the question.
+- Ensure comprehensiveness, capturing all essential nuances within the defined "SectionSpecification length."
+- Maintain self-contained content, allowing for understanding without the need for terminology reference.
 
 Style:
-- Make extensive usage of paragraphs to separate ideas.
-- Use plain an simple language.
-- Minimize the use of many different concepts.
-- Choose words carefully to be as precise and nuanced as possible using the minimal amount.
-- No comma splice. A phrase should include subject and predicate, and finish with a full stop.
-- Phrases must be very short.
 
-EVALUATION INSTRUCTIONS
+- Utilize straightforward and simple language.
+- Maintain an impersonal and neutral style, refraining from subjective evaluations.
+- Choose words precisely, aiming for minimal yet nuanced expression.
+- Avoid comma splices; construct each phrase with a clear subject, predicate, and a concluding full stop.
+- Prioritize brevity with exceptionally short phrases for conciseness.
 
-- Answer each of the following Evaluation Questions (no need to repeat the question).
-- Give multiple answers if needed.
-- The answer must clearly identify the specific fragment evaluated and provide a clear and actionable solution to address it.
+Paragraphs:
 
-Evaluation Questions:
-- Is it directly addressing the Question?
-- What Request Requirements are not met?
-- Are ALL the Step1 Guidelines met? Can it be improved?
-- What statements are not really true, exagerations or subjective evaluations? Find them ALL! Which one can be phrased more accurately?
-- How does this text exhibit any reasoning fallacies?
-- What phrases are too long or need to be rewriten without comma splice?
+- Always include a blank line between two paragraphs.
+- Utilize paragraphs to delineate distinct ideas.
+- Ensure each paragraph is self-contained, expressing a complete thought.
+- Emphasize the frequent use of paragraphs to enhance clarity and readability.
 
-RESPONSE IMPROVEMENT INSTRUCTIONS
-- Unless a full rewrite is necessary to meet the Question, try to preserve as much text as possible (wording, tone, flow), and we need to ensure that the response is still centered on the Question.
 
-SECTIONS OUTLINE
+ISSUES CRITERION
+
+- Are each of the "SectionSpecification guidelines" met?
+- Is the "SectionSpecification length" respected?
+- Is it adhering to the "SECTION WRITING GUIDELINES"?
+- Are all the statements really true, and there is no exagerations or subjective evaluations?
+- Is there any stement that can be phrased more accurately?
+- Is there a phrase that is too long or need and is rewritten without comma splice?
+
+
+SECTION SPECIFICATIONS
 
 {request}
-    
+
+
 TERMINOLOGY
     
 {perspective}
-    
+
+
 OUTPUTS
+
+--- Output1:Last draft
+
 {continue}`,
   };
 

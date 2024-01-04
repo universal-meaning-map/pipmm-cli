@@ -5,7 +5,8 @@ export interface SubSection {
   isGoodEnough: boolean;
   title: string;
   question: string;
-  requirements: string;
+  length: string;
+  guidelines: string;
   givenConcepts: string[];
   baseOutput: string;
   historic: string[];
@@ -24,11 +25,57 @@ export default class Composer {
     return drafter;
   }
 
-  static buildRequest(drafter: Drafter): string {
-    let request = "";
-    request += "Context: " + drafter.context + "\n\n";
-    request += Composer.buildTocSection(drafter.page, 1);
-    return request;
+  static buildRequestYAML(drafter: Drafter): string {
+    return `
+{
+    "title": "IPMM overview",
+    "question": "What's IPMM?",
+    "length": "4 paragraphs",
+    "requirements": [
+      "A high level overview.",
+      "Do not talk about particular human needs but how its aim is to increase the signal-to-noise ratio by information not being mediated by others."
+    ],
+    "subSections": [
+      {
+        "title": "Current stage",
+        "question": "What's the current stage of development of IPMM?",
+        "length": "2 paragraphs",
+        "requirements": [
+          "Justify why the conceptual framework is the priority and by having a shared model we will be able to build a more resilient tool."
+        ],
+        "subSections": []
+      },
+      {
+        "title": "Terminology",
+        "question": "Why it is  relevant for IPMM to have its own terminology?",
+        "length": "1 paragraph",
+        "requirements": [
+          "Focus on explain why by defining things in explicit ways we can have a lot more subtlety and precision. We are not bound to existing definitions and we can evolve them as we need. "
+        ],
+        "subSections": []
+      }
+    ]
+  }
+`;
+  }
+
+  static buildRequest(s: SubSection): string {
+    return JSON.stringify(Composer.buildRequestObj(s), null, 2);
+  }
+
+  static buildRequestObj(s: SubSection): any {
+    let objs = [];
+    for (let ss of s.subSections) {
+      objs.push(Composer.buildRequestObj(ss));
+    }
+    let obj = {
+      title: s.title,
+      question: s.question,
+      length: s.length,
+      guidelines: s.guidelines,
+      subsections: objs,
+    };
+    return obj;
   }
 
   static getHeading(level: number) {
@@ -39,14 +86,19 @@ export default class Composer {
     return h;
   }
 
-  static buildTocSection(section: SubSection, level: number): string {
+  static buildBaseOutput(section: SubSection, level: number): string {
     let t = Composer.getHeading(level) + " " + section.title + "\n\n";
-    t += "Question: " + section.question + "\n\n";
-    t += "Requirements: " + section.requirements + "\n\n";
+
+    //Base output can't have gaps.
+    if (section.baseOutput == "") return "";
+
+    t += section.baseOutput + "\n";
     level++;
 
     for (let s of section.subSections) {
-      t += Composer.buildTocSection(s, level);
+      let bo = Composer.buildBaseOutput(s, level);
+      if (bo == "") return t;
+      t += bo;
     }
     return t;
   }

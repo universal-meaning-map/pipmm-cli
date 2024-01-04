@@ -51,21 +51,18 @@ export default class WriteCommand extends Command {
 
     let originalDrafter = Composer.loadDrafter(args.uri);
 
-    let request = await Composer.buildRequest(originalDrafter);
-
+    //let request = await Composer.buildRequest(originalDrafter);
+    let request = Composer.buildRequest(originalDrafter.page);
     let questions = Composer.extractQuestions(originalDrafter.page);
-
     let givenConcepts = Composer.extractGivenConcepts(originalDrafter.page);
+    let baseOutput = Composer.buildBaseOutput(originalDrafter.page, 1);
 
     const output = await AnswerCommand.answer(
       request,
       questions,
-      "",
+      baseOutput,
       givenConcepts
     );
-
-    console.log("FINAL");
-    console.log(output);
 
     const newPage = Composer.extractOutputSections(
       originalDrafter.page,

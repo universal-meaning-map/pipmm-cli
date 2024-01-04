@@ -5,7 +5,7 @@ import Referencer from "./referencer";
 import Tokenizer from "./tokenizer";
 import { ChainValues } from "langchain/dist/schema";
 import { PromptTemplate } from "langchain/prompts";
-import { finished } from "stream";
+import chalk from "chalk";
 export const SEARCH_ORIGIN_DIRECT = "direct";
 export const SEARCH_ORIGIN_BACKLINK = "backlink";
 export const SEARCH_ORIGIN_SEMANTIC = "semantic";
@@ -248,11 +248,9 @@ export async function callLlm(
   const prompt = await promptTemplate.format(inputVariables);
   const promptTokens = Math.round(prompt.length / model.tokenToChar);
 
-  /*
-  console.log("---");
-  console.log(prompt);
-  console.log("---");
-  */
+  console.log("--- LLM IN");
+  console.log(chalk.yellow(prompt));
+  console.log("--- ^");
 
   const maxCompletitonTokens =
     request.maxCompletitionChars == 0
@@ -313,6 +311,11 @@ if(model.modelName == GPT4TURBO.modelName || model.modelName == GPT35TURBO.model
   llmHistory.push(record);
   console.log(usage);
 
-  if (out) return out;
+  if (out) {
+    console.log("--- LLM OUT");
+    console.log(chalk.blue(out));
+    console.log("--- ^");
+    return out;
+  }
   return "FAIL";
 }

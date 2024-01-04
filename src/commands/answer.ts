@@ -99,22 +99,19 @@ export default class AnswerCommand extends Command {
     const inputVariables = {
       request: request,
       perspective: definitionsText,
-      continue: "--- Output1:Response\n\n" + baseOutput,
+      continue: baseOutput,
     };
 
     let allOutputs = await callLlm(answerModel, mmRq, inputVariables);
-    console.log("ALL OUTPUT");
-    console.log(allOutputs);
+
     let out = await Definer.getFinalOutcomeOrRetry(
-      "--- Output3:Improved response",
+      "--- Output3:Final text",
       allOutputs,
       answerModel,
       mmRq,
       inputVariables,
       0
     );
-    console.log("TRImME OUTPUT");
-    console.log(out);
 
     logLlmStats();
 
