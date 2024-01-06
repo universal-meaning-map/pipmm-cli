@@ -72,7 +72,7 @@ export default class Composer {
       title: s.title,
       question: s.question,
       length: s.length,
-      guidelines: s.guidelines,
+      gx3uidelines: s.guidelines,
       subsections: objs,
     };
     return obj;
