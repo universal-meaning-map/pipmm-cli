@@ -16,7 +16,8 @@ import Filter from "./filterController";
 export default class DirectSearch {
   static getIidByName = async (text: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
-    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+
+    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
 
     for (let [iid, note] of notes.entries()) {
       if (note.block.has(propNameIId)) {
@@ -76,9 +77,9 @@ export default class DirectSearch {
     });
 
     let docs: Document<Record<string, any>>[] = [];
-    let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FOAMID);
-    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-    let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
+    let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FILENAME);
+    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
+    let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FILENAME);
 
     for (let [iid, note] of repo.entries()) {
       if (note.block.has(propViewIId)) {
@@ -153,9 +154,9 @@ export default class DirectSearch {
     };
 
     let repo = Referencer.iidToNoteWrap;
-    let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FOAMID);
-    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-    let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
+    let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FILENAME);
+    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
+    let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FILENAME);
     let docs: Document<Record<string, any>>[] = [];
 
     const note = repo.get(iid);
@@ -220,7 +221,7 @@ export default class DirectSearch {
 
     const iidDependencies = await DirectSearch.getAllIidsDependencies(iid);
     const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
 
     let nameWithHyphenDependencies = iidDependencies.map((iid) => {
       const note = repoWithHyphen.get(iid);
@@ -236,8 +237,8 @@ export default class DirectSearch {
     let dependencyIids: string[] = [];
     const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
     const note = repoWithHyphen.get(iid);
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
-    const VIEW_IDD = await Referencer.makeIid(Referencer.PROP_VIEW_FOAMID);
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
+    const VIEW_IDD = await Referencer.makeIid(Referencer.PROP_VIEW_FILENAME);
 
     if (note && note.block && note.block.has(VIEW_IDD)) {
       const viewIPT = note.block.get(VIEW_IDD);

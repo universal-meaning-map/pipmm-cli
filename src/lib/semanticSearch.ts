@@ -145,8 +145,8 @@ export default class SemanticSearch {
     namesWithHyphen: boolean
   ) => {
     console.log("Renaming...");
-    const PIR_IID = await Referencer.makeIid(Referencer.PROP_PIR_FOAMID);
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+    const PIR_IID = await Referencer.makeIid(Referencer.PROP_PIR_FILENAME);
+    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
 
     if (namesWithHyphen) {
       repo = await Referencer.getRepoWithHyphenNames();

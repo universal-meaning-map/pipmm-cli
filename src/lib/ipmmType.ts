@@ -64,7 +64,7 @@ export default class IpmmType {
         type.enumDependencies = typeObj.enumDependencies;
         type.ipldSchema = typeObj.ipldSchema; // await IpmmType.replaceFoamIdForTypeIid(typeObj.ipldSchema, type.typeDependencies)
       }
-
+      /*
       if (type.typeDependencies && type.typeDependencies.length > 0) {
         try {
           type.ipldSchema = await type.replaceTypes();
@@ -72,6 +72,7 @@ export default class IpmmType {
           errorCallback(String(e));
         }
       }
+      */
       if (type.enumDependencies && type.enumDependencies.length > 0) {
         try {
           type.ipldSchema = await type.replaceEnums();
@@ -112,13 +113,15 @@ export default class IpmmType {
 
   //Fetches the type dependencies. Processess its types. Gets their schema.
   //Compiles all the schemas into one. Replaces all the property keys for their intent ids
+
+  /* //ONLY UDED by Reference type
   replaceTypes = async (): Promise<string> => {
     let compiledSchema = this.ipldSchema;
 
     for (const foamId of this.typeDependencies) {
       const typeIid = await Referencer.makeIid(foamId);
       if (!Referencer.typeExists(typeIid))
-        await Compiler.makeNote(foamId, true);
+        await Compiler.makeNote(foamId, fileName, true);
       if (!Referencer.typeExists(typeIid))
         throw "Type for " + foamId + " " + typeIid + " should exist already";
       const type = Referencer.getType(typeIid);
@@ -133,6 +136,8 @@ export default class IpmmType {
     );
     return compiledSchema;
   };
+
+  */
 
   replaceEnums = async (): Promise<string> => {
     let compiledSchema = this.ipldSchema;

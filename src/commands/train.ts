@@ -68,7 +68,7 @@ export default class TrainCommand extends Command {
 
     await SemanticSearch.index(
       filteredRepo,
-      Referencer.PROP_VIEW_FOAMID,
+      Referencer.PROP_VIEW_FILENAME,
       !flags.indexWithoutHyphen
     );
     /*await SemanticSearch.index(

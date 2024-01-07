@@ -28,14 +28,14 @@ export default class Compiler {
     let files = await fs.readdir(notesRepo);
     files = Utils.filterByExtensions(files, [".md"]);
 
-    for (let fileName of files) {
-      const foamId = Utils.removeFileExtension(fileName);
-      await Compiler.makeNote(foamId);
+    for (let fileNameWithExtension of files) {
+      const fileName = Utils.removeFileExtension(fileNameWithExtension);
+      await Compiler.makeNote(fileName);
     }
 
     //compile "always compile"
-    for (let foamId of ConfigController._configFile.misc.alwaysCompile) {
-      await Compiler.makeNote(foamId);
+    for (let fileName of ConfigController._configFile.misc.alwaysCompile) {
+      await Compiler.makeNote(fileName);
     }
   };
 
@@ -45,30 +45,25 @@ export default class Compiler {
     _fileName: string
   ): Promise<Res> => {
     notesRepo = _notesRepo;
-    Compiler.compileArefs = true;
 
-    const foamId = Utils.removeFileExtension(_fileName);
-    return await Compiler.makeNote(foamId, false, true);
+    if (ConfigController._configFile.interplanetaryText.compileArefs)
+      Compiler.compileArefs = true;
+
+    const fileName = Utils.removeFileExtension(_fileName);
+
+    return await Compiler.makeNote(fileName, false, true);
   };
 
   static makeNote = async (
-    foamId: string,
+    fileName: string,
     shouldBeAType: boolean = false,
     forceUpdate: Boolean = false,
     requesterFoamId?: string
   ): Promise<Res> => {
     try {
-      //UPDATE FOAMID TO INCLUDE FRIENDID
-      foamId = Referencer.updaterFoamIdWithFriendFolder(
-        foamId,
-        requesterFoamId
-      );
-
-      // console.log(foamId + "\tby\t" + requesterFoamId);
-
       //READ FILE
-      const filePath = path.join(notesRepo, foamId + ".md");
-      Compiler.checkFileName(foamId, filePath, requesterFoamId);
+      const filePath = path.join(notesRepo, fileName + ".md");
+      // Compiler.checkFileName(fileName, filePath, requesterFoamId);
       const fileData = await Res.async(
         fs.readFile(filePath, "utf8"),
         "Unable to read file: " + filePath + "\tRequester: " + requesterFoamId,
@@ -81,40 +76,53 @@ export default class Compiler {
         () => {
           return matter(fileData.value);
         },
-        "Unable to parse front-matter for: " + foamId,
+        "Unable to parse front-matter for: " + fileName,
         Res.saveError,
         { data: fileData.value }
       );
       if (frontMatterRes.isError()) return frontMatterRes;
       const frontMatter = frontMatterRes.value;
 
+      let fid = "NOT SET";
+      if (frontMatter.data.fid) {
+        fid = "" + frontMatter.data.fid; //forcing to be a string
+      } else {
+        // console.log("No fid: " + fileName);
+        // fid = Referencer.getFID(fileName);
+      }
+
       //CHECK IF IS A TYPE
       let isType = false;
-      let propTypeFoamId = Referencer.updaterFoamIdWithFriendFolder(
-        Referencer.PROP_TYPE_FOAMID,
-        requesterFoamId
-      );
-      if (
-        frontMatter.data[Referencer.PROP_TYPE_FOAMID] ||
-        frontMatter.data[Referencer.xaviId + "/" + Referencer.PROP_TYPE_FOAMID]
-      ) {
+
+      if (frontMatter.data[Referencer.PROP_TYPE_FILENAME]) {
         isType = true;
-        if (frontMatter.content || Object.keys(frontMatter.data).length > 1)
-          return Res.error(
-            "A Note with a type can't include other properties. Verify the note only contains " +
-              propTypeFoamId +
-              " data and has no content.",
-            Res.saveError
+        let content = frontMatter.content.trim();
+        if (content) {
+          console.log("Types can't have content: " + fileName);
+        }
+
+        if (Object.keys(frontMatter.data).length > 2) {
+          console.log(
+            "Types can only contain `fid`and `prop-ipfoam-type`: " + fileName
           );
+        }
+
+        /*return Res.error(
+                "A Note with a type can't include other properties (except fir fid). Verify the note only contains " +
+                Referencer.PROP_TYPE_FILENAME +
+                " data and has no content.",
+                Res.saveError
+                );*/
       }
 
       //because we can create notes recursively when looking for a type, we need to be able to warn
+
       if (shouldBeAType && !isType) {
         Res.error(
           "Note " +
-            foamId +
+            fid +
             " is used as a type but " +
-            propTypeFoamId +
+            Referencer.PROP_TYPE_FILENAME +
             " was not found.",
           Res.saveError
         );
@@ -122,7 +130,10 @@ export default class Compiler {
 
       /////////////////////////////////
 
-      let iid = await Referencer.makeIid(foamId);
+      //we set the nameToIid at the begining so when it parses wikilinks it exsts.
+      let name = fileName;
+      let iid = await Referencer.makeIid(fid);
+      Referencer.fileNameToIid.set(name, iid);
 
       if (forceUpdate == false && Referencer.iidToNoteWrap.has(iid)) {
         return Res.success(Referencer.iidToNoteWrap.get(iid));
@@ -139,46 +150,54 @@ export default class Compiler {
 
       //MAKE TYPE
       //If it contains a type we verify its schema and create and  catch an instance  in order to validate future notes
-      if (isType) {
-        let typeProps = frontMatter.data[Referencer.PROP_TYPE_FOAMID];
-        if (!typeProps)
-          typeProps =
-            frontMatter.data[
-              Referencer.xaviId + "/" + Referencer.PROP_TYPE_FOAMID
-            ];
 
-        const ipmmType = await Compiler.makeType(typeProps, foamId);
+      if (isType) {
+        let typeProps = frontMatter.data[Referencer.PROP_TYPE_FILENAME];
+        const ipmmType = await Compiler.makeType(typeProps, fid);
         Referencer.iidToTypeMap[iid] = ipmmType;
         noteBlock = ipmmType.getBlock();
       }
+
       // Content property
       else {
+        //Name is fileName
+        const prop = await Compiler.processProperty(
+          Referencer.PROP_NAME_FILENAME,
+          fileName,
+          iid,
+          fileName,
+          false
+        );
+        noteBlock.set(prop.key, prop.value);
+
         //Process the content of the .md file and convert it into the the type expressed in the first line or the "view" if not expressed.
         if (frontMatter.content) {
           //for FOAM repositories
           const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
-          let content = Tokenizer.getTypeAndValueForContent(removedFoodNotes);
+          let content =
+            Tokenizer.getTypeNameAndValueForContent(removedFoodNotes);
+
           let value = content.value.trim();
           if (value != "") {
             const contentProp = await Compiler.processProperty(
-              Referencer.updaterFoamIdWithFriendFolder(
-                content.type,
-                requesterFoamId
-              ),
+              content.type,
               value,
-              foamId,
+              iid,
+              fileName,
               false
             );
             noteBlock.set(contentProp.key, contentProp.value);
           }
         }
+
         //ALL other properties
         //The rest of the properties
-        for (let key in frontMatter.data) {
+        for (let propName in frontMatter.data) {
           const prop = await Compiler.processProperty(
-            Referencer.updaterFoamIdWithFriendFolder(key, foamId),
-            frontMatter.data[key],
-            foamId,
+            propName,
+            frontMatter.data[propName],
+            fileName,
+            iid,
             false
           );
           noteBlock.set(prop.key, prop.value);
@@ -186,13 +205,19 @@ export default class Compiler {
       }
 
       //Get the final CID of the note
-      const block = await IpldController.anyToDagJsonBlock(noteBlock);
+      let block;
+      try {
+        block = await IpldController.anyToDagJsonBlock(noteBlock);
+      } catch (e) {
+        console.log(fileName);
+        console.log(e);
+      }
       const cid = block.cid.toString();
       Referencer.iidToCidMap[iid] = cid;
 
       const noteWrap: NoteWrap = { iid: iid, cid: cid, block: block.value };
       Referencer.iidToNoteWrap.set(iid, noteWrap);
-      Referencer.iidToFoamId.set(iid, foamId);
+      Referencer.iidToFoamId.set(iid, fid);
 
       //Only once the note is created we can create the notes within the properties, otherwise we can end up in a recursive infinite loop
 
@@ -204,21 +229,23 @@ export default class Compiler {
           const trimmed = removedFoodNotes.trim();
 
           const viewProp = await Compiler.processProperty(
-            Referencer.updaterFoamIdWithFriendFolder(
-              Referencer.PROP_VIEW_FOAMID,
-              requesterFoamId
-            ),
+            Referencer.PROP_VIEW_FILENAME,
             trimmed,
-            foamId,
+            iid,
+            fileName,
             true
           );
         }
         //rest of properties
-        for (let key in frontMatter.data) {
+        for (let propName in frontMatter.data) {
+          if (propName == "iid") {
+            continue;
+          }
           const prop = await Compiler.processProperty(
-            Referencer.updaterFoamIdWithFriendFolder(key, foamId),
-            frontMatter.data[key],
-            foamId,
+            propName,
+            frontMatter.data[propName],
+            iid,
+            fileName,
             true
           );
         }
@@ -226,9 +253,13 @@ export default class Compiler {
 
       return Res.success(noteWrap);
     } catch (e) {
+      if (fileName == "prop-is-sensitive-1612698668") {
+        console.log("Found Pir");
+      }
+      console.log(e);
       return Res.error(
         "Exception creating note " +
-          foamId +
+          fileName +
           " requested by " +
           requesterFoamId,
         Res.saveError,
@@ -255,30 +286,43 @@ export default class Compiler {
   };
 
   static processProperty = async (
-    typeFoamId: string,
+    propertyFileName: string,
     propertyValue: any,
+    requesterIid: string,
     requesterFoamId: string,
     compileInterplanetaryTextArefs: boolean
     // errorCallabck: (error: string) => void
   ): Promise<{ key: string; value: string }> => {
     //indexing of name-foamId for LLM
-    if (typeFoamId == Referencer.PROP_NAME_FOAMID) {
-      Referencer.nameToFoamId.set(propertyValue, requesterFoamId);
+
+    if (propertyFileName == Referencer.PROP_FID) {
+      return { key: "", value: "" };
+    }
+
+    if (propertyFileName == Referencer.PROP_NAME_FILENAME) {
       Referencer.nameWithHyphenToFoamId.set(
         Utils.renameToHyphen(propertyValue),
         requesterFoamId
       );
     }
 
-    const typeIId = await Referencer.makeIid(typeFoamId);
+    const typeIId = await Referencer.getIidByFileName(
+      propertyFileName,
+      true,
+      requesterFoamId
+    );
+
+    if (!typeIId) throw propertyFileName + " file could not be found";
+
+    //const typeIId = await Referencer.makeIid(typeFid);
 
     //Create a Type for the propertyId if it doesn't exists yet
     if (!Referencer.iidToTypeMap[typeIId]) {
-      await Compiler.makeNote(typeFoamId, true, false, requesterFoamId);
+      await Compiler.makeNote(propertyFileName, true, false, requesterFoamId);
       if (!Referencer.iidToTypeMap[typeIId]) {
         Res.error(
           "The type for `" +
-            typeFoamId +
+            propertyFileName +
             "` was not found after attempting its creation. \tRequester: " +
             requesterFoamId,
           Res.saveError
@@ -300,13 +344,11 @@ export default class Compiler {
 
     //recursivelly process sub-properties
     else if (typeof propertyValue === "object" && propertyValue !== null) {
-      for (let subTypeFoamId in propertyValue) {
+      for (let subPropName in propertyValue) {
         const prop = await Compiler.processProperty(
-          Referencer.updaterFoamIdWithFriendFolder(
-            subTypeFoamId,
-            requesterFoamId
-          ),
-          propertyValue[subTypeFoamId],
+          subPropName,
+          propertyValue[subPropName],
+          requesterIid,
           requesterFoamId,
           compileInterplanetaryTextArefs
         );
@@ -355,7 +397,7 @@ export default class Compiler {
         (errorMessage, errorContext) => {
           Res.error(
             "Data don't match schema for property'" +
-              typeFoamId +
+              propertyFileName +
               "' for note: " +
               requesterFoamId,
 
@@ -367,7 +409,7 @@ export default class Compiler {
     } else {
       Res.error(
         "The type for " +
-          typeFoamId +
+          propertyFileName +
           " does not exist yet, \tRequester:" +
           requesterFoamId,
         Res.saveError
@@ -423,5 +465,20 @@ export default class Compiler {
         Res.saveError,
         { filepath: filePath }
       );
+  };
+
+  static getFidFromFile = async (fileName: string): Promise<string | null> => {
+    //READ FILE
+    const filePath = path.join(notesRepo, fileName + ".md");
+    let fileData;
+    try {
+      fileData = await fs.readFile(filePath, "utf8");
+    } catch (e) {
+      return null;
+    }
+
+    let frontMatter = matter(fileData);
+
+    return "" + frontMatter.data.fid;
   };
 }

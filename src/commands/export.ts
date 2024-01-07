@@ -101,10 +101,12 @@ export default class ExportCommand extends Command {
       foamId
     );
 
+    
     let iid = await Referencer.makeIid(foamId);
     let tiid = await Referencer.makeIid(propertyId);
     let expr = Referencer.makeExpr(iid, tiid);
 
+    const filterArefLinks = false; //?
     if (res.isOk()) {
       let note: NoteWrap = res.value;
       let ipt = note.block.get(tiid);
@@ -112,6 +114,7 @@ export default class ExportCommand extends Command {
         expr,
         exportTemplate!,
         iid,
+        filterArefLinks,
         args.filterArefLinks,
         args.v1,
         args.v2

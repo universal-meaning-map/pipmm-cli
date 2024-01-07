@@ -14,8 +14,9 @@ export default class LogsController {
 
   static loadErrorLogs = (): ErrorContext[] => {
     if (fs.existsSync(ConfigController._configFile.resources.logs)) {
-
-      let data = JSON.parse(fs.readFileSync(ConfigController._configFile.resources.logs, "utf8"));
+      let data = JSON.parse(
+        fs.readFileSync(ConfigController._configFile.resources.logs, "utf8")
+      );
 
       let logsFile: ErrorContext[] = [];
       let d: ErrorContext;
@@ -26,12 +27,19 @@ export default class LogsController {
       return logsFile;
     }
 
-    throw new Error("No logs file for " + ConfigController._configFile.resources.logs + " exists");
+    throw new Error(
+      "No logs file for " +
+        ConfigController._configFile.resources.logs +
+        " exists"
+    );
   };
 
   static saveErrorLogs(errorLogs: ErrorContext[]) {
-    const json = JSON.stringify(errorLogs);
-    Utils.saveFile(json, Utils.resolveHome(ConfigController._configFile.resources.logs ));
+    const json = JSON.stringify(errorLogs, null, 2);
+    Utils.saveFile(
+      json,
+      Utils.resolveHome(ConfigController._configFile.resources.logs)
+    );
   }
 
   static logNumberedList = (logs: ErrorContext[]) => {
@@ -67,6 +75,9 @@ export default class LogsController {
 
   static logSummary = (logs: ErrorContext[]) => {
     if (logs.length == 0) console.log("\n🌱 Success! No errors were found");
-    else console.log("💩 " +logs.length+" errors were found. Run 'ipmm log' to list them");
+    else
+      console.log(
+        "💩 " + logs.length + " errors were found. Run 'ipmm log' to list them"
+      );
   };
 }

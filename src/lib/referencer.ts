@@ -5,13 +5,15 @@ import IpmmType from "./ipmmType";
 import Utils from "./utils";
 import * as path from "path";
 import * as ipfs from "ipfs-core";
+import Compiler from "./compiler";
 
 export default class Referencer {
   static readonly xaviId = "xavi-YAxr3c";
-  static readonly PROP_TYPE_FOAMID = "prop-ipfoam-type-1630602741";
-  static readonly PROP_VIEW_FOAMID = "prop-view-1612698885";
-  static readonly PROP_NAME_FOAMID = "prop-name-1612697362";
-  static readonly PROP_PIR_FOAMID = "prop-pir-1643007904";
+  static readonly PROP_TYPE_FILENAME = "prop-ipfoam-type";
+  static readonly PROP_VIEW_FILENAME = "prop-view";
+  static readonly PROP_NAME_FILENAME = "prop-name";
+  static readonly PROP_PIR_FILENAME = "prop-pir";
+  static readonly PROP_FID = "fid";
   //static readonly SELF_FRIEND_ID = "x";
 
   static readonly basicTypeInterplanetaryText = "interplanetary-text";
@@ -31,8 +33,9 @@ export default class Referencer {
   static iidToNoteWrap: Map<string, NoteWrap> = new Map();
   static iidToNoteWrapWithHyphen: Map<string, NoteWrap> = new Map(); //to be used with getRepoWithHyphenNames
   static iidToFoamId: Map<string, string> = new Map();
-  static nameToFoamId: Map<string, string> = new Map();
+  static fileNameToIid: Map<string, string> = new Map();
   static nameWithHyphenToFoamId: Map<string, string> = new Map();
+  static missingFileNames: Map<string, number> = new Map();
 
   static miidSeparatorToken = "";
 
@@ -40,8 +43,8 @@ export default class Referencer {
     Referencer.iidToCidMap[iid] = cid;
   }
 
-  static makeIid = async (foamIdOrFileName: string): Promise<string> => {
-    const foamId = Utils.removeFileExtension(foamIdOrFileName);
+  static makeIid = async (fid: string): Promise<string> => {
+    /*  const foamId = Utils.removeFileExtension(fid);
     let iid = "";
 
     let runs = foamId.split("/");
@@ -56,15 +59,59 @@ export default class Referencer {
       iid = mid + Referencer.miidSeparatorToken + liid;
     }
     return iid;
+    */
+
+    let mid = ConfigController._configFile.identity.mid;
+    let liid = await Referencer.makeLocalIid(fid);
+    let iid = mid + Referencer.miidSeparatorToken + liid;
+    return iid;
   };
 
-  static makeLocalIid = async (foamId: string): Promise<string> => {
-    const onlyTheTimestamp = foamId.slice(-10); //This is to prevent an IID change if the foamId changes
-    const block = await IpldController.anyToDagJsonBlock(onlyTheTimestamp);
+  static getIidByFileName = async (
+    fileName: string,
+    shouldBeAType: boolean,
+    requesterName: string
+  ): Promise<string | null> => {
+    //We check if we have it
+    if (Referencer.fileNameToIid.has(fileName)) {
+      const iid = Referencer.fileNameToIid.get(fileName);
+      if (iid) return iid;
+    }
+
+    //We check if we know it doesn't exist
+    if (Referencer.missingFileNames.has(fileName)) {
+      Referencer.missingFileNames.set(
+        fileName,
+        Referencer.missingFileNames.get(fileName)! + 1
+      );
+      return null;
+    }
+
+    //await Compiler.makeNote(fileName, shouldBeAType, false, requesterName);
+    // We get
+    let iid = null;
+    let fid = await Compiler.getFidFromFile(fileName);
+    if (fid) {
+      iid = await Referencer.makeIid(fid);
+      Referencer.fileNameToIid.set(fileName, iid);
+      return iid;
+    }
+
+    Referencer.missingFileNames.set(fileName, 0);
+    return null;
+  };
+
+  static makeLocalIid = async (fid: string): Promise<string> => {
+    const block = await IpldController.anyToDagJsonBlock(fid);
     //console.log(onlyTheTimestamp + " - " + foamId + " - " + foamIdOrFileName);
     const trunkated = block.cid.toString().slice(-8);
     //return "i" + trunkated;
     return trunkated;
+  };
+
+  static getFID = (foamId: string): string => {
+    const onlyTheTimestamp = foamId.slice(-10);
+    return onlyTheTimestamp;
   };
 
   static getLocalIidFromIid(iid: string): string {
@@ -144,7 +191,7 @@ export default class Referencer {
 
   //Ads friend relative path if the requester contains it and no other friendPath is specified
   static updaterFoamIdWithFriendFolder = (
-    foamId: string,
+    fileName: string,
     requesterFoamId: string | undefined
   ): string => {
     let repoFolder = path.basename(
@@ -154,20 +201,20 @@ export default class Referencer {
     //the containing note lives in a friendFolder
     if (requesterFolder && requesterFolder != repoFolder) {
       //check if the reference is pointing to a friendFolder or to self
-      let runs = foamId.split("/");
+      let runs = fileName.split("/");
       if (runs.length == 1) {
-        return requesterFolder + "/" + foamId;
+        return requesterFolder + "/" + fileName;
       }
     }
 
-    return foamId;
+    return fileName;
   };
 
   static getRepoWithHyphenNames = async (): Promise<Map<string, NoteWrap>> => {
     if (Referencer.iidToNoteWrapWithHyphen.size === 0) {
       const newNotes: Map<string, NoteWrap> = new Map();
 
-      const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+      const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
       // let renamed: Map<string, NoteWrap> = new Map();
       for (let [iid, note] of Referencer.iidToNoteWrap.entries()) {
         const newNote: NoteWrap = Utils.deepCloneNoteWrap(note);

@@ -142,11 +142,11 @@ export default class WatchController {
       .on("unlink", (path) => console.log(`File ${path} has been removed`));
   };
 
-  importFile = async (foamId: string): Promise<NoteWrap> => {
+  importFile = async (fileName: string): Promise<NoteWrap> => {
     const res = await Compiler.compileFile(
       ConfigController.ipmmRepoPath,
       ConfigController.foamRepoPath,
-      foamId
+      fileName
     );
 
     let note: NoteWrap = res.value;

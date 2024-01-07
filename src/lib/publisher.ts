@@ -13,14 +13,14 @@ import axios from "axios";
 import Chunker from "./chunker";
 
 export default class Publisher {
-  static async toTwitter(foamId: string) {
-    const res = await Compiler.compileFile(
+  static async toTwitter(fileName: string) {
+    await Compiler.compileFile(
       ConfigController._configFile.resources.ipmmRepo,
       ConfigController._configFile.resources.notesRepo,
-      foamId
+      fileName
     );
 
-    let iid = await Referencer.makeIid(foamId);
+    let iid = await Referencer.makeIid(fileName);
     const namesWithHyphen = false;
     let body = await Publisher.makePublishElement(
       iid,
@@ -43,14 +43,14 @@ export default class Publisher {
     // Publisher.sendTwitterRequest(body);
   }
 
-  static async toTelegram(foamId: string) {
-    const res = await Compiler.compileFile(
+  static async toTelegram(fileName: string) {
+    await Compiler.compileFile(
       ConfigController._configFile.resources.ipmmRepo,
       ConfigController._configFile.resources.notesRepo,
-      foamId
+      fileName
     );
 
-    let iid = await Referencer.makeIid(foamId);
+    let iid = await Referencer.makeIid(fileName);
     const namesWithHyphen = false;
 
     let body = await Publisher.makePublishElement(
@@ -80,14 +80,14 @@ export default class Publisher {
     }
   }
 
-  static async toButtondown(foamId: string) {
-    const res = await Compiler.compileFile(
+  static async toButtondown(fileName: string) {
+    await Compiler.compileFile(
       ConfigController._configFile.resources.ipmmRepo,
       ConfigController._configFile.resources.notesRepo,
-      foamId
+      fileName
     );
 
-    let iid = await Referencer.makeIid(foamId);
+    let iid = await Referencer.makeIid(fileName);
     let namesWithHyphen = false;
 
     let subject = await Publisher.makePublishElement(

@@ -41,7 +41,7 @@ export default class DocsUtils {
     conceptDocs.push(
       ...(await SemanticSearch.search(
         concept,
-        Referencer.PROP_VIEW_FOAMID,
+        Referencer.PROP_VIEW_FILENAME,
         namesWithHyphen
       ))
     );

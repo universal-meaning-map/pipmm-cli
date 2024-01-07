@@ -191,7 +191,7 @@ export async function textToIptFromList(
   nameToIidList: [string, string][] //name, iid
 ): Promise<string[]> {
   //muoNames.sort longest to shoretes
-  const nameIId = await Referencer.makeIid(Referencer.PROP_NAME_FOAMID);
+  const nameIId = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
   for (const [name, iid] of nameToIidList) {
     corpus = corpus.replaceAll(
       name,

@@ -116,39 +116,67 @@ export default class Tokenizer {
     compileInterplanetaryTextArefs: boolean
   ): Promise<string> => {
     //folder/foamid|property/subProperty --> mid:iid/tiid/subProperty
+
     let runs = wikilink.split("|");
 
-    let foamId = Referencer.updaterFoamIdWithFriendFolder(
+    /*let foamId = Referencer.updaterFoamIdWithFriendFolder(
       runs[0],
+      requesterFoamId
+    );*/
+
+    let fileName = runs[0];
+
+    let iid = await Referencer.getIidByFileName(
+      fileName,
+      false,
       requesterFoamId
     );
 
-    await Tokenizer.checkFoamId(foamId, requesterFoamId);
+    if (!iid) {
+      return "[" + wikilink + "](doesn't exist)";
+    }
 
-    let iid = await Referencer.makeIid(foamId);
+    /*
+    await Tokenizer.checkFoamId(fileName, requesterFoamId);
+    const fid = Referencer.getFID(fileName);
 
     if (compileInterplanetaryTextArefs) {
       if (!Referencer.iidToNoteWrap.has(iid))
-        await Compiler.makeNote(foamId, false, false, requesterFoamId);
+        await Compiler.makeNote(fileName, false, false, requesterFoamId);
     }
+    */
 
     let exp = iid;
 
     if (runs.length == 1) {
       if (assumeAbstractionPointer) {
-        let abstractionPointer = await Referencer.makeIid(
-          Referencer.updaterFoamIdWithFriendFolder(
-            ConfigController._configFile.interplanetaryText
-              .defaultAbstractionPointer,
-            requesterFoamId
-          )
+        let deafultPointerName =
+          ConfigController._configFile.interplanetaryText
+            .defaultAbstractionPointer;
+        let abstractionPointer = await Referencer.getIidByFileName(
+          deafultPointerName,
+          true,
+          requesterFoamId
         );
+
         exp = exp + "/" + abstractionPointer;
       }
     } else if (runs.length > 1) {
       //let tiid = await Referencer.makeIid(backRuns[0]);
-      let tiid = await Referencer.makeIid(runs[1]);
+      let tiid = await Referencer.getIidByFileName(
+        runs[1],
+        true,
+        requesterFoamId
+      );
+      if (!tiid) {
+        tiid = await Referencer.getIidByFileName(
+          Referencer.PROP_NAME_FILENAME,
+          true,
+          requesterFoamId
+        );
+      }
       exp = exp + "/" + tiid;
+
       /*  let backRuns = runs[1].split("/");
       if (backRuns.length > 1) {
         for (let i = 1; i < backRuns.length; i++) {
@@ -282,7 +310,7 @@ export default class Tokenizer {
     return true;
   }
 
-  static getTypeAndValueForContent(str: string) {
+  static getTypeNameAndValueForContent(str: string) {
     let lines = str.split("\n");
     let expression = /\s*([^:]*?)\s*:\s*([^:\s]*)/g; //matches str in front of semicolon
     let regex = new RegExp(expression);
@@ -290,8 +318,12 @@ export default class Tokenizer {
 
     if (
       r == null ||
-      Tokenizer.idDoesNotContainTimestamp(Tokenizer.getLocalFoamId(r[1]))
+      r[1].indexOf(" ") != -1 ||
+      r[1].indexOf("[") != -1 ||
+      r[1].length <= 6
     ) {
+      //Tokenizer.idDoesNotContainTimestamp(Tokenizer.getLocalFoamId(r[1]))
+
       return {
         type: ConfigController._configFile.misc.defaultContentProperty,
         value: str,
