@@ -145,8 +145,19 @@ export default class SemanticSearch {
     namesWithHyphen: boolean
   ) => {
     console.log("Renaming...");
-    const PIR_IID = await Referencer.makeIid(Referencer.PROP_PIR_FILENAME);
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
+
+    const PIR_IID = await Referencer.getIidByFileName(
+      Referencer.PROP_PIR_FILENAME,
+      true,
+      "f:semantic indexing"
+    );
+    const NAME_IID = await Referencer.getIidByFileName(
+      Referencer.PROP_NAME_FILENAME,
+      true,
+      "f:semantic indexing"
+    );
+
+    if (!PIR_IID || !NAME_IID) throw "Pir or Name must exist";
 
     if (namesWithHyphen) {
       repo = await Referencer.getRepoWithHyphenNames();
@@ -188,8 +199,7 @@ export default class SemanticSearch {
     const metadatas = [];
 
     for (const doc of docs) {
-      console.log();
-      console.log("Splitting " + doc.metadata.iid + " " + doc.metadata.name);
+      //      console.log("Splitting " + doc.metadata.iid + " " + doc.metadata.name);
       const docTexts = await textSplitter.splitText(doc.pageContent);
       for (const text of docTexts) {
         texts.push(text);

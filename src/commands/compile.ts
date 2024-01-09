@@ -12,6 +12,7 @@ import LogsController from "../lib/logsController";
 import matter from "gray-matter";
 import * as path from "path";
 import { name } from "@ipld/dag-json/index";
+import { F_OK } from "constants";
 
 export default class CompileCommand extends Command {
   static description =
@@ -44,7 +45,7 @@ export default class CompileCommand extends Command {
     }
     if (!ConfigController.load(workingPath)) return;
 
-    /*
+    /* 
     //Migration
     let files = await fs.readdir(
       ConfigController._configFile.resources.notesRepo
@@ -111,7 +112,7 @@ export default class CompileCommand extends Command {
         const c = matter!.stringify(content, yaml);
 
         console.log(newName)
-        /*
+        
         Utils.saveFile(
             c,
             ConfigController._configFile.resources.notesRepo +
@@ -120,13 +121,185 @@ export default class CompileCommand extends Command {
             ".md"
             );
 
-            ^/
+            
         }
+        return
         
+*/
+
+    /*
+
+    //RENAME
+    let files = await fs.readdir(
+      ConfigController._configFile.resources.notesRepo
+    );
+    files = Utils.filterByExtensions(files, [".md"]);
+
+    let repeated: Map<string, number> = new Map();
+
+    let i = 0;
+    let j = 0;
+    for (let n of files) {
+      i++;
+      const name = Utils.removeFileExtension(n);
+      let serachFor: string = n;
+
+      if (name.indexOf("prop-") != -1) {
+        continue;
+      }
+
+      if (name.indexOf("trans-") != -1) {
+        continue;
+      }
+
+      if (name.indexOf("ref-") != -1) {
+        continue;
+      }
+
+      if (name.indexOf("!-") != -1) {
+        continue;
+      }
+
+      const filePath = path.join(
+        ConfigController._configFile.resources.notesRepo,
+        n
+      );
+      const currentData = await fs.readFile(filePath, "utf8");
+
+      let frontMatter;
+      try {
+        frontMatter = matter(currentData);
+      } catch (e) {
+        console.log("error: " + n);
+        console.log(e);
+      }
+
+      let newName = "";
+      if (frontMatter!.data[Referencer.PROP_NAME_FILENAME]) {
+        newName = frontMatter!.data[Referencer.PROP_NAME_FILENAME];
+      } else {
+        continue;
+      }
+
+      if (newName) {
+        if (repeated.has(newName)) {
+          repeated.set(newName, repeated.get(newName)! + 1);
+        } else {
+          repeated.set(newName, 1);
+        }
+      } else {
+        throw name;
+      }
+
+
+      //newName = name.substring(0, name.length - 11);
+      newName = newName.split("'").join(" ");
+      newName = newName.split("/").join("-");
+
+      console.log(name, newName);
+
+      for (let fileNameWithExtension of files) {
+        j++;
+        const filePath = path.join(
+          ConfigController._configFile.resources.notesRepo,
+          fileNameWithExtension
+        );
+        const fileData = await fs.readFile(filePath, "utf8");
+        let serachFor: string = `[[` + name + `]]`;
+
+        let replaceFor: string = `[[` + newName + `]]`;
+
+        const escpedSearchFor = serachFor.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          "\\$&"
+        );
+
+        // Create a regular expression with the global flag to replace all occurrences
+        const regex = new RegExp(escpedSearchFor, "g");
+
+        // Replace all occurrences of stringA with stringB
+        let modifiedDocument: string = fileData.replace(regex, replaceFor);
+
+        // console.log(modifiedDocument);
+
+        //console.log(modifiedDocument);
+
+        let pathr =
+          ConfigController._configFile.resources.notesRepo +
+          "/" +
+          fileNameWithExtension;
+
+        // console.log(pathr);
+        Utils.saveFile(modifiedDocument, pathr);
+      }
+    }
+
+    for (let n of files) {
+      const name = Utils.removeFileExtension(n);
+      let serachFor: string = n;
+
+      if (name.indexOf("prop-") != -1) {
+        continue;
+      }
+
+      if (name.indexOf("trans-") != -1) {
+        continue;
+      }
+
+      if (name.indexOf("ref-") != -1) {
+        continue;
+      }
+
+      if (name.indexOf("!-") != -1) {
+        continue;
+      }
+
+      const filePath = path.join(
+        ConfigController._configFile.resources.notesRepo,
+        n
+      );
+      const currentData = await fs.readFile(filePath, "utf8");
+
+      let frontMatter;
+      try {
+        frontMatter = matter(currentData);
+      } catch (e) {
+        console.log("error: " + n);
+        console.log(e);
+      }
+
+      let newName = "";
+      if (frontMatter!.data[Referencer.PROP_NAME_FILENAME]) {
+        newName = frontMatter!.data[Referencer.PROP_NAME_FILENAME];
+      } else {
+        continue;
+      }
+
+      if (newName) {
+        if (repeated.has(newName)) {
+          repeated.set(newName, repeated.get(newName)! + 1);
+        } else {
+          repeated.set(newName, 1);
+        }
+      } else {
+        throw name;
+      }
+
+      let old = ConfigController._configFile.resources.notesRepo + "/" + n;
+
+      let newp =
+        ConfigController._configFile.resources.notesRepo +
+        "/" +
+        newName +
+        ".md";
+
+      console.log(old, newp);
+      await fs.rename(old, newp);
+    }
 
     return;
-    */
 
+    */
     //compile a single filex
     if (args.fileName) {
       const res = await Compiler.compileFile(

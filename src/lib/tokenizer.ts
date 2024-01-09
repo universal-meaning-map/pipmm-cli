@@ -316,12 +316,7 @@ export default class Tokenizer {
     let regex = new RegExp(expression);
     let r = regex.exec(lines[0]);
 
-    if (
-      r == null ||
-      r[1].indexOf(" ") != -1 ||
-      r[1].indexOf("[") != -1 ||
-      r[1].length <= 6
-    ) {
+    if (r == null || r[1].indexOf(" ") != -1 || r[1].indexOf("prop") == -1) {
       //Tokenizer.idDoesNotContainTimestamp(Tokenizer.getLocalFoamId(r[1]))
 
       return {

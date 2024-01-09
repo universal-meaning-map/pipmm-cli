@@ -160,7 +160,7 @@ export default class Compiler {
 
       // Content property
       else {
-        //Name is fileName
+        //First we set the prop-name as filename. Later will override with prop-name
         const prop = await Compiler.processProperty(
           Referencer.PROP_NAME_FILENAME,
           fileName,
@@ -253,9 +253,6 @@ export default class Compiler {
 
       return Res.success(noteWrap);
     } catch (e) {
-      if (fileName == "prop-is-sensitive-1612698668") {
-        console.log("Found Pir");
-      }
       console.log(e);
       return Res.error(
         "Exception creating note " +
@@ -298,7 +295,6 @@ export default class Compiler {
     if (propertyFileName == Referencer.PROP_FID) {
       return { key: "", value: "" };
     }
-
     if (propertyFileName == Referencer.PROP_NAME_FILENAME) {
       Referencer.nameWithHyphenToFoamId.set(
         Utils.renameToHyphen(propertyValue),
