@@ -68,9 +68,7 @@ export default class Referencer {
   };
 
   static getIidByFileName = async (
-    fileName: string,
-    shouldBeAType: boolean,
-    requesterName: string
+    fileName: string
   ): Promise<string | null> => {
     //We check if we have it
     if (Referencer.fileNameToIid.has(fileName)) {
@@ -87,8 +85,7 @@ export default class Referencer {
       return null;
     }
 
-    //await Compiler.makeNote(fileName, shouldBeAType, false, requesterName);
-    // We get
+    //Still compiling, we get  it from the file without creating a
     let iid = null;
     let fid = await Compiler.getFidFromFile(fileName);
     if (fid) {
@@ -99,6 +96,14 @@ export default class Referencer {
 
     Referencer.missingFileNames.set(fileName, 0);
     return null;
+  };
+
+  static getTypeIdByFileName = async (fileName: string): Promise<string> => {
+    const typeIid = await Referencer.getIidByFileName(fileName);
+    if (!typeIid) {
+      throw "Type iid for" + fileName + "could not be found";
+    }
+    return typeIid;
   };
 
   static makeLocalIid = async (fid: string): Promise<string> => {
@@ -177,6 +182,7 @@ export default class Referencer {
     return Referencer.iidToTypeMap[iid];
   }
 
+  /*
   static getFriendIdFromFoamId = (
     foamId: string | undefined
   ): string | undefined => {
@@ -188,8 +194,11 @@ export default class Referencer {
     }
     return undefined;
   };
+  */
 
   //Ads friend relative path if the requester contains it and no other friendPath is specified
+
+  /*
   static updaterFoamIdWithFriendFolder = (
     fileName: string,
     requesterFoamId: string | undefined
@@ -209,6 +218,8 @@ export default class Referencer {
 
     return fileName;
   };
+
+  */
 
   static getRepoWithHyphenNames = async (): Promise<Map<string, NoteWrap>> => {
     if (Referencer.iidToNoteWrapWithHyphen.size === 0) {

@@ -140,7 +140,7 @@ export default class Publisher {
     runConfig: PublishExportRun,
     namesWithHyphen: boolean
   ) {
-    let tiid = await Referencer.makeIid(runConfig.property);
+    let tiid = await Referencer.getTypeIdByFileName(runConfig.property);
     let expr = Referencer.makeExpr(iid, tiid);
     let exportTemplate = Publisher.getExportTemplate(
       runConfig.exportTemplateId

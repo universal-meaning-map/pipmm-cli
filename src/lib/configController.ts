@@ -78,13 +78,13 @@ export default class ConfigController {
           "xavi-YAxr3c/trans-note-viewer-1641223323",
           "xavi-YAxr3c/pipmm-instructions-1644422409",
         ],
-        defaultContentProperty: "xavi-YAxr3c/prop-view-1612698885",
+        defaultContentProperty: Referencer.PROP_VIEW_FILENAME,
         defaultExpr:
           "[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3clzfmhs7a%22,[[%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3c2lf4dbua%22,%22i12D3KooWBSEYV1cK821KKdfVTHZc3gKaGkCQXjgoQotUDVYAxr3cl5uz4zaq%22]]]",
       },
       interplanetaryText: {
         compileArefs: false,
-        defaultAbstractionPointer: "xavi-YAxr3c/prop-name-1612697362",
+        defaultAbstractionPointer: Referencer.PROP_NAME_FILENAME,
       },
       export: {
         stringTemplates: [
@@ -106,17 +106,17 @@ export default class ConfigController {
           apiKey: "",
           subject: [
             {
-              property: "xavi-YAxr3c/prop-name-1612697362",
+              property: Referencer.PROP_NAME_FILENAME,
               exportTemplateId: "txt",
             },
           ],
           body: [
             {
-              property: "xavi-YAxr3c/prop-name-1612697362",
+              property: Referencer.PROP_NAME_FILENAME,
               exportTemplateId: "md",
             },
             {
-              property: "xavi-YAxr3c/prop-view-1612698885",
+              property: Referencer.PROP_VIEW_FILENAME,
               exportTemplateId: "md",
             },
           ],
@@ -126,11 +126,11 @@ export default class ConfigController {
           channelUserName: "",
           body: [
             {
-              property: "xavi-YAxr3c/prop-name-1612697362",
+              property: Referencer.PROP_NAME_FILENAME,
               exportTemplateId: "txt",
             },
             {
-              property: "xavi-YAxr3c/prop-view-1612698885",
+              property: Referencer.PROP_VIEW_FILENAME,
               exportTemplateId: "txt",
             },
           ],
@@ -139,11 +139,11 @@ export default class ConfigController {
           apiKey: "",
           body: [
             {
-              property: "xavi-YAxr3c/prop-name-1612697362",
+              property: Referencer.PROP_NAME_FILENAME,
               exportTemplateId: "txt",
             },
             {
-              property: "xavi-YAxr3c/prop-view-1612698885",
+              property: Referencer.PROP_VIEW_FILENAME,
               exportTemplateId: "txt",
             },
           ],

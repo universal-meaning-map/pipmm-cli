@@ -141,23 +141,17 @@ export default class SemanticSearch {
 
   static index = async (
     repo: Map<string, NoteWrap>,
-    foamIdPropToIndex: string,
+    propFileName: string,
     namesWithHyphen: boolean
   ) => {
     console.log("Renaming...");
 
-    const PIR_IID = await Referencer.getIidByFileName(
-      Referencer.PROP_PIR_FILENAME,
-      true,
-      "f:semantic indexing"
+    const PIR_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_PIR_FILENAME
     );
-    const NAME_IID = await Referencer.getIidByFileName(
-      Referencer.PROP_NAME_FILENAME,
-      true,
-      "f:semantic indexing"
+    const NAME_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_NAME_FILENAME
     );
-
-    if (!PIR_IID || !NAME_IID) throw "Pir or Name must exist";
 
     if (namesWithHyphen) {
       repo = await Referencer.getRepoWithHyphenNames();
@@ -170,7 +164,7 @@ export default class SemanticSearch {
     for (let [iid, note] of repo.entries()) {
       // console.log(iid);
       let config = {
-        property: "xavi-YAxr3c/" + foamIdPropToIndex,
+        property: propFileName,
         exportTemplateId: "txt",
       };
 
@@ -200,6 +194,7 @@ export default class SemanticSearch {
 
     for (const doc of docs) {
       //      console.log("Splitting " + doc.metadata.iid + " " + doc.metadata.name);
+      console.log(doc.metadata.name);
       const docTexts = await textSplitter.splitText(doc.pageContent);
       for (const text of docTexts) {
         texts.push(text);
@@ -207,7 +202,7 @@ export default class SemanticSearch {
       }
     }
 
-    console.log("Generating embeddings for " + foamIdPropToIndex);
+    console.log("Generating embeddings for " + propFileName);
     const embeddingsObject = new OpenAIEmbeddings({
       verbose: true,
       openAIApiKey: ConfigController._configFile.llm.openAiApiKey,
@@ -222,7 +217,7 @@ export default class SemanticSearch {
     // Save the vector store to a directory
 
     const dbPath = SemanticSearch.getVectorStorePath(
-      foamIdPropToIndex,
+      propFileName,
       namesWithHyphen
     );
     await vectorStore.save(dbPath);

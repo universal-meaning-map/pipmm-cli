@@ -1,4 +1,3 @@
-import { LLM } from "langchain/dist/llms/base";
 import ConfigController from "./configController";
 import Definer from "./definer";
 import DirectSearch from "./directSearch";
@@ -29,7 +28,7 @@ export interface ConceptScore {
 
 export default class DefinerStore {
   static hoursToMilis = 3600000;
-  static defaultLlmUpdatePeriod: number = 10 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
+  static defaultLlmUpdatePeriod: number = 0 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
   static definitions: Map<string, Definition> = new Map();
 
   static save = async (): Promise<void> => {
@@ -76,10 +75,12 @@ export default class DefinerStore {
     nameWithHyphen: string
   ): Promise<Definition | undefined> => {
     const name = Utils.renameFromHyphen(nameWithHyphen);
+    // const iid = await Referencer.getIidByFileName(fileName);
 
     const iid = await DirectSearch.getIidByName(name);
+    console.log("init def", name, iid);
 
-    if (iid == "") {
+    if (!iid) {
       return undefined;
     }
     //console.log("INIT " + nameWithHyphen);
@@ -136,8 +137,6 @@ export default class DefinerStore {
     if (DefinerStore.definitions.has(nameWithHyphen)) {
       d = DefinerStore.definitions.get(nameWithHyphen)!;
     } else {
-      // console.log(     "NEW " + nameWithHyphen + " " + DefinerStore.definitions.size  );
-
       const du = await DefinerStore.initDefinition(nameWithHyphen);
 
       if (!du) {
@@ -155,19 +154,21 @@ export default class DefinerStore {
     //always gets the last one
     if (needsDirect) {
       d = DefinerStore.definitions.get(nameWithHyphen)!;
-      if (d.directIntensions.length == 0) {
-        const docs = await DirectSearch.getAllDocsOfIid(d.iid, true);
-        if (docs.length == 0) console.log("🔴 " + nameWithHyphen);
+      // if (d.directIntensions.length == 0) {
+      const docs = await DirectSearch.getAllDocsOfIid(d.iid, true);
+      console.log("🚀 ~ DefinerStore ~ docs:", docs);
 
-        if (docs[0].pageContent == "") {
-          console.log("🟡 " + nameWithHyphen);
-        } else {
-          console.log("🟢  " + nameWithHyphen);
-          d = DefinerStore.definitions.get(nameWithHyphen)!;
-          d.directIntensions = Definer.docsToIntensions(docs);
-          DefinerStore.definitions.set(nameWithHyphen, d);
-        }
+      if (docs.length == 0) console.log("🔴 " + nameWithHyphen);
+
+      if (docs[0].pageContent == "") {
+        console.log("🟡 " + nameWithHyphen);
+      } else {
+        console.log("🟢  " + nameWithHyphen);
+        d = DefinerStore.definitions.get(nameWithHyphen)!;
+        d.directIntensions = Definer.docsToIntensions(docs);
+        DefinerStore.definitions.set(nameWithHyphen, d);
       }
+      //s }
     }
 
     if (needsBacklink) {

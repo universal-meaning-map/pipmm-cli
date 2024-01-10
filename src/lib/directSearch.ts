@@ -14,31 +14,24 @@ import ConfigController from "./configController";
 import Filter from "./filterController";
 
 export default class DirectSearch {
-  static getIidByName = async (text: string): Promise<string> => {
+  static getIidByName = async (name: string): Promise<string> => {
     let notes = Referencer.iidToNoteWrap;
 
-    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
+    const PROP_NAME_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_NAME_FILENAME
+    );
 
     for (let [iid, note] of notes.entries()) {
-      if (note.block.has(propNameIId)) {
-        let name = note.block.get(propNameIId);
+      if (note.block.has(PROP_NAME_IID)) {
+        let nameInNote = note.block.get(PROP_NAME_IID);
         //exact name
-        //console.log(name + " - " + text);
-        if (name.toLowerCase() == text.toLocaleLowerCase()) {
+        if (name.toLowerCase() == nameInNote.toLocaleLowerCase()) {
           return note.iid;
         }
         //TODO: semantic search over name and synonims.
       }
     }
     return "";
-    /*
-    //semantically similar
-    let res = await SemanticSearch.search(text);
-    console.log(res);
-    console.log(res[0].metadata.name);
-    if (res[0].metadata.confidence > 0.7) return res[0].metadata.iid;
-    return "";
-    */
   };
 
   static getLongLengthPenalty(corpus: string): number {
@@ -56,7 +49,7 @@ export default class DirectSearch {
   ): Promise<Document<Record<string, any>>[]> => {
     let config = {
       // property: "xavi-YAxr3c/prop-name-1612697362",
-      property: "xavi-YAxr3c/prop-view-1612698885",
+      property: Referencer.PROP_VIEW_FILENAME,
       exportTemplateId: "txt",
     };
 
@@ -77,13 +70,22 @@ export default class DirectSearch {
     });
 
     let docs: Document<Record<string, any>>[] = [];
-    let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FILENAME);
-    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
-    let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FILENAME);
+
+    const PROP_NAME_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_NAME_FILENAME
+    );
+
+    const PROP_VIEW_IDD = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_VIEW_FILENAME
+    );
+
+    const PROP_PIR_IDD = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_PIR_FILENAME
+    );
 
     for (let [iid, note] of repo.entries()) {
-      if (note.block.has(propViewIId)) {
-        let view = note.block.get(propViewIId).join(); //We make a string of the Interplanetary text
+      if (note.block.has(PROP_VIEW_IDD)) {
+        let view = note.block.get(PROP_VIEW_IDD).join(); //We make a string of the Interplanetary text
 
         const notInterested =
           includeBackLinks == false && backLinkIid != note.iid;
@@ -117,8 +119,8 @@ export default class DirectSearch {
               pageContent: chunk,
               metadata: {
                 iid: note.iid,
-                name: note.block.get(propNameIId),
-                pir: note.block.get(propPirIId),
+                name: note.block.get(PROP_NAME_IID),
+                pir: note.block.get(PROP_PIR_IDD),
                 pentalty: DirectSearch.getLongLengthPenalty(chunk),
                 relevance: relevance,
                 searchOrigin:
@@ -127,7 +129,7 @@ export default class DirectSearch {
                     : SEARCH_ORIGIN_BACKLINK,
                 confidence: getConfidenceScore(
                   relevance * DirectSearch.getLongLengthPenalty(chunk),
-                  note.block.get(propPirIId)
+                  note.block.get(PROP_PIR_IDD)
                 ),
               },
             };
@@ -149,28 +151,36 @@ export default class DirectSearch {
   ): Promise<Document<Record<string, any>>[]> => {
     let config = {
       // property: "xavi-YAxr3c/prop-name-1612697362",
-      property: "xavi-YAxr3c/prop-view-1612698885",
+      property: Referencer.PROP_VIEW_FILENAME,
       exportTemplateId: "txt",
     };
 
     let repo = Referencer.iidToNoteWrap;
-    let propViewIId = await Referencer.makeIid(Referencer.PROP_VIEW_FILENAME);
-    let propNameIId = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
-    let propPirIId = await Referencer.makeIid(Referencer.PROP_PIR_FILENAME);
+
+    const PROP_NAME_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_NAME_FILENAME
+    );
+    const PROP_VIEW_IDD = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_VIEW_FILENAME
+    );
+
+    const PROP_PIR_IDD = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_PIR_FILENAME
+    );
+
     let docs: Document<Record<string, any>>[] = [];
 
     const note = repo.get(iid);
 
     if (!note) return docs;
-    if (!note.block.has(propViewIId)) {
-      console.log("No VIEW for" + namesWithHyphen);
+    if (!note.block.has(PROP_VIEW_IDD)) {
       let emptyDoc: Document<Record<string, any>> = {
         pageContent: "",
         metadata: {},
       };
       return [emptyDoc];
     } else {
-      if (note.block.get(propViewIId) == "") {
+      if (note.block.get(PROP_VIEW_IDD) == "") {
         console.log("EMPPTY view");
       }
     }
@@ -195,14 +205,14 @@ export default class DirectSearch {
         pageContent: chunk,
         metadata: {
           iid: note.iid,
-          name: note.block.get(propNameIId),
-          pir: note.block.get(propPirIId),
+          name: note.block.get(PROP_NAME_IID),
+          pir: note.block.get(PROP_PIR_IDD),
           pentalty: DirectSearch.getLongLengthPenalty(chunk),
           relevance: 1,
           searchOrigin: "direct",
           confidence: getConfidenceScore(
             1 * DirectSearch.getLongLengthPenalty(chunk),
-            note.block.get(propPirIId)
+            note.block.get(PROP_PIR_IDD)
           ),
         },
       };
@@ -221,12 +231,15 @@ export default class DirectSearch {
 
     const iidDependencies = await DirectSearch.getAllIidsDependencies(iid);
     const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
+
+    const PROP_NAME_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_NAME_FILENAME
+    );
 
     let nameWithHyphenDependencies = iidDependencies.map((iid) => {
       const note = repoWithHyphen.get(iid);
-      if (note && note.block && note.block.has(NAME_IID)) {
-        return note.block.get(NAME_IID);
+      if (note && note.block && note.block.has(PROP_NAME_IID)) {
+        return note.block.get(PROP_NAME_IID);
       }
     });
     //console.log(nameWithHyphenDependencies);
@@ -237,14 +250,22 @@ export default class DirectSearch {
     let dependencyIids: string[] = [];
     const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
     const note = repoWithHyphen.get(iid);
-    const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
-    const VIEW_IDD = await Referencer.makeIid(Referencer.PROP_VIEW_FILENAME);
 
-    if (note && note.block && note.block.has(VIEW_IDD)) {
-      const viewIPT = note.block.get(VIEW_IDD);
+    const PROP_NAME_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_NAME_FILENAME
+    );
+
+    const PROP_VIEW_IID = await Referencer.getTypeIdByFileName(
+      Referencer.PROP_VIEW_FILENAME
+    );
+
+    if (note && note.block && note.block.has(PROP_VIEW_IID)) {
+      const viewIPT = note.block.get(PROP_VIEW_IID);
+
       for (let run of viewIPT) {
         //console.log(run);
         if (run[0] == "[") {
+          console.log(run[0]);
           let expr = JSON.parse(run);
           if (expr.length == 1) {
             const depIid = expr[0].split("/")[0];
@@ -256,6 +277,7 @@ export default class DirectSearch {
     } else {
     }
     const noDuplicates = [...new Set(dependencyIids)];
+
     return noDuplicates;
   };
 }

@@ -126,14 +126,10 @@ export default class Tokenizer {
 
     let fileName = runs[0];
 
-    let iid = await Referencer.getIidByFileName(
-      fileName,
-      false,
-      requesterFoamId
-    );
+    let iid = await Referencer.getIidByFileName(fileName);
 
     if (!iid) {
-      return "[" + wikilink + "](doesn't exist)";
+      return "<" + wikilink + ">(doesn't exist)";
     }
 
     /*
@@ -154,26 +150,16 @@ export default class Tokenizer {
           ConfigController._configFile.interplanetaryText
             .defaultAbstractionPointer;
         let abstractionPointer = await Referencer.getIidByFileName(
-          deafultPointerName,
-          true,
-          requesterFoamId
+          deafultPointerName
         );
 
         exp = exp + "/" + abstractionPointer;
       }
     } else if (runs.length > 1) {
       //let tiid = await Referencer.makeIid(backRuns[0]);
-      let tiid = await Referencer.getIidByFileName(
-        runs[1],
-        true,
-        requesterFoamId
-      );
+      let tiid = await Referencer.getIidByFileName(runs[1]);
       if (!tiid) {
-        tiid = await Referencer.getIidByFileName(
-          Referencer.PROP_NAME_FILENAME,
-          true,
-          requesterFoamId
-        );
+        tiid = await Referencer.getIidByFileName(Referencer.PROP_NAME_FILENAME);
       }
       exp = exp + "/" + tiid;
 

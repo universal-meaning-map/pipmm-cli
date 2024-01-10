@@ -1,5 +1,4 @@
 export default class Chunker {
- 
   static chunkItAll(str: string, lengthTrigger: number): string[] {
     if (str.length <= lengthTrigger) return [str];
 
@@ -25,17 +24,15 @@ export default class Chunker {
       if (c.length < maxLength) {
         output.push(c);
       } else {
+        if (!c.split) {
+          console.log("C Is not a string" + c);
+        }
         let chunks1 = c.split(token);
 
         if (chunks1.length == 1) {
           output.push(c);
         } else {
-          let chunks2 = Chunker.rejoin(
-            chunks1,
-            maxLength,
-            token,
-            followToken
-          );
+          let chunks2 = Chunker.rejoin(chunks1, maxLength, token, followToken);
 
           for (let k of chunks2) {
             output.push(k);

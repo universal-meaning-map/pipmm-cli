@@ -302,13 +302,10 @@ export default class Compiler {
       );
     }
 
-    const typeIId = await Referencer.getIidByFileName(
-      propertyFileName,
-      true,
-      requesterFoamId
-    );
+    const typeIId = await Referencer.getIidByFileName(propertyFileName);
 
-    if (!typeIId) throw propertyFileName + " file could not be found";
+    if (!typeIId)
+      throw "type `" + propertyFileName + "` fileName could not be found";
 
     //const typeIId = await Referencer.makeIid(typeFid);
 

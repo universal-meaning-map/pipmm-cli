@@ -176,10 +176,16 @@ export default class Utils {
   };
 
   static renameToHyphen(name: string): string {
+    if (!name.split) {
+      console.log("Is not a string" + name);
+    }
     return name.split(" ").join(Tokenizer.hyphenToken);
   }
 
   static renameFromHyphen(name: string): string {
+    if (!name.split) {
+      console.log("Is not a string" + name);
+    }
     return name.split(Tokenizer.hyphenToken).join(" ");
   }
 

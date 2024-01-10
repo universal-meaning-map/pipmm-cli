@@ -66,6 +66,8 @@ export default class TrainCommand extends Command {
     );
     // Name transform
 
+    console.log("🚀 ~ TrainCommand ~ run ~ size:");
+
     await SemanticSearch.index(
       filteredRepo,
       Referencer.PROP_VIEW_FILENAME,
