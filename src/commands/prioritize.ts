@@ -22,9 +22,10 @@ export default class PrioritizeCommand extends Command {
 
   static args = [
     {
-      name: "uri",
+      name: "keyConcepts",
       required: true,
-      description: "URI to the drafter document",
+      description:
+        "Comma separated list of meaning unit names. Its definitions will be included in the context. ",
       hidden: false,
     },
   ];
@@ -35,30 +36,64 @@ export default class PrioritizeCommand extends Command {
     const { args, flags } = this.parse(PrioritizeCommand);
 
     let workingPath = process.cwd();
+
     if (flags.repoPath) {
       workingPath = Utils.resolveHome(flags.repoPath);
     }
 
     if (!ConfigController.load(workingPath)) return;
 
+    // Compile
+    await Compiler.compileAll(
+      ConfigController.ipmmRepoPath,
+      ConfigController.foamRepoPath
+    );
+
+    let givenConcepts: string[] = args.keyConcepts.split(", ");
+
     await DefinerStore.load();
-    for (let [column, columnValue] of DefinerStore.definitions) {
-      for (let [row, rowValue] of DefinerStore.definitions) {
+
+    //Fetch scores
+    const processScores = givenConcepts.map(async (c: string) => {
+      const d = await DefinerStore.getDefinition(c, false, false, true, false);
+
+      if (!d) {
+        console.log(c + "Doesn't exist. Removing it from the list");
+        givenConcepts = givenConcepts.filter((item) => item !== c);
+      }
+    });
+
+    const all = await Promise.all(processScores);
+
+    //
+    for (let column of givenConcepts) {
+      let cd = DefinerStore.definitions.get(column);
+      if (!cd) {
+        console.log(column + "doesn't exist");
+        continue;
+      }
+      for (let row of givenConcepts) {
+        let rd = DefinerStore.definitions.get(row);
+
+        if (!rd) {
+          continue;
+        }
+
         let crs = 0;
-        let cr = columnValue.keyConceptsScores.find((c) => c.c === row);
+        let cr = cd.keyConceptsScores.find((c) => c.c === row);
         if (cr) crs = cr.s;
 
         let rcs = 0;
-        let rc = rowValue.keyConceptsScores.find((c) => c.c === column);
+        let rc = rd.keyConceptsScores.find((c) => c.c === column);
         if (rc) rcs = rc.s;
 
-        if (crs == 0 || rcs || 0) {
-          continue;
+        if (crs == 0 || rcs == 0) {
+          // continue;
         }
 
         console.log(column, row, crs, rcs, crs - rcs);
       }
     }
-    DefinerStore;
+    DefinerStore.save();
   }
 }
