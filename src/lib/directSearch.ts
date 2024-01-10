@@ -181,7 +181,7 @@ export default class DirectSearch {
       return [emptyDoc];
     } else {
       if (note.block.get(PROP_VIEW_IDD) == "") {
-        console.log("EMPPTY view");
+        console.log("EMPPTY view for " + iid);
       }
     }
 

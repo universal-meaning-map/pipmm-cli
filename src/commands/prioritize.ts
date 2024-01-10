@@ -53,20 +53,17 @@ export default class PrioritizeCommand extends Command {
 
     await DefinerStore.load();
 
-    console.log("B");
     //Fetch scores
     const processScores = givenConcepts.map(async (c: string) => {
       const d = await DefinerStore.getDefinition(c, false, false, true, false);
 
       if (!d) {
-        console.log("E");
         console.log(c + "Doesn't exist. Removing it from the list");
         givenConcepts = givenConcepts.filter((item) => item !== c);
       }
     });
 
     const all = await Promise.all(processScores);
-    console.log("C");
     //
     for (let column of givenConcepts) {
       let cd = DefinerStore.definitions.get(column);
@@ -83,14 +80,15 @@ export default class PrioritizeCommand extends Command {
 
         let crs = 0;
         let cr = cd.keyConceptsScores.find((c) => c.c === row);
+
         if (cr) crs = cr.s;
 
         let rcs = 0;
         let rc = rd.keyConceptsScores.find((c) => c.c === column);
         if (rc) rcs = rc.s;
 
-        if (crs == 0 || rcs == 0) {
-          // continue;
+        if (crs == rcs) {
+          continue;
         }
 
         console.log(column, row, crs, rcs, crs - rcs);

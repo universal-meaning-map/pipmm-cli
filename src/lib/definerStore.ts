@@ -156,7 +156,6 @@ export default class DefinerStore {
       d = DefinerStore.definitions.get(nameWithHyphen)!;
       // if (d.directIntensions.length == 0) {
       const docs = await DirectSearch.getAllDocsOfIid(d.iid, true);
-      console.log("🚀 ~ DefinerStore ~ docs:", docs);
 
       if (docs.length == 0) console.log("🔴 " + nameWithHyphen);
 
