@@ -129,7 +129,7 @@ export default class Tokenizer {
     let iid = await Referencer.getIidByFileName(fileName);
 
     if (!iid) {
-      return "<" + wikilink + ">(doesn't exist)";
+      return "<" + wikilink + " or " + requesterFoamId + ">(doesn't exist)";
     }
 
     /*
@@ -333,8 +333,6 @@ export default class Tokenizer {
     }
 
     for (let i = 0; i < validMatches.length; i++) {
-      console.log("\n" + fileName);
-
       let endOfValueIndex = undefined; //if undefined will get the content up until the end of it
       if (validMatches[i + 1]) endOfValueIndex = validMatches[i + 1].index;
 

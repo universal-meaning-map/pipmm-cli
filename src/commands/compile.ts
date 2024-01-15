@@ -329,11 +329,13 @@ export default class CompileCommand extends Command {
       await Utils.saveIpmmRepo();
     }
 
+    //log missing fileNames
+    /*
     const sortedMap = new Map(
       [...Referencer.missingFileNames.entries()].sort((a, b) => b[1] - a[1])
     );
     console.log(sortedMap);
-
+    */
     ErrorController.saveLogs();
     LogsController.logSummary(ErrorController.savedErrors);
   }
