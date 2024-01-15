@@ -28,7 +28,7 @@ export interface ConceptScore {
 
 export default class DefinerStore {
   static hoursToMilis = 3600000;
-  static defaultLlmUpdatePeriod: number = 0 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
+  static defaultLlmUpdatePeriod: number = 15 * 24 * DefinerStore.hoursToMilis; //miliseconds in a day
   static definitions: Map<string, Definition> = new Map();
 
   static save = async (): Promise<void> => {
@@ -78,7 +78,6 @@ export default class DefinerStore {
     // const iid = await Referencer.getIidByFileName(fileName);
 
     const iid = await DirectSearch.getIidByName(name);
-    console.log("init def", name, iid);
 
     if (!iid) {
       return undefined;

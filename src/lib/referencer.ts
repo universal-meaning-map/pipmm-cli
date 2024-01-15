@@ -225,7 +225,9 @@ export default class Referencer {
     if (Referencer.iidToNoteWrapWithHyphen.size === 0) {
       const newNotes: Map<string, NoteWrap> = new Map();
 
-      const NAME_IID = await Referencer.makeIid(Referencer.PROP_NAME_FILENAME);
+      const NAME_IID = await Referencer.getTypeIdByFileName(
+        Referencer.PROP_NAME_FILENAME
+      );
       // let renamed: Map<string, NoteWrap> = new Map();
       for (let [iid, note] of Referencer.iidToNoteWrap.entries()) {
         const newNote: NoteWrap = Utils.deepCloneNoteWrap(note);

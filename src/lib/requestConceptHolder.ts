@@ -57,6 +57,12 @@ export default class RequestConceptHolder {
   }
 
   async processGuesed(): Promise<void> {
+    if ((this.text = "")) {
+      console.log(
+        "🚀 ~ RequestConceptHolder ~ processGuesed ~ text:",
+        this.text
+      );
+    }
     let guessed = await Definer.guessMuFromText(GPT4TURBO, this.text);
     this.guessed = this.penalizeConceptScores(guessed, 0.85);
     this.guessedParents = await this.getCloneParentScoresForConcepts(

@@ -263,9 +263,7 @@ export default class DirectSearch {
       const viewIPT = note.block.get(PROP_VIEW_IID);
 
       for (let run of viewIPT) {
-        //console.log(run);
         if (run[0] == "[") {
-          console.log(run[0]);
           let expr = JSON.parse(run);
           if (expr.length == 1) {
             const depIid = expr[0].split("/")[0];

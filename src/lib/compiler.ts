@@ -172,16 +172,16 @@ export default class Compiler {
 
         //Process the content of the .md file and convert it into the the type expressed in the first line or the "view" if not expressed.
         if (frontMatter.content) {
-          //for FOAM repositories
-          const removedFoodNotes = frontMatter.content.split("[//begin]:")[0];
-          let content =
-            Tokenizer.getTypeNameAndValueForContent(removedFoodNotes);
+          //let content = Tokenizer.getFirstOrDefaultTypeAndValueForContent(frontMatter.content);
 
-          let value = content.value.trim();
-          if (value != "") {
+          let contentData = Tokenizer.getContentTypesAndValues(
+            frontMatter.content,
+            fileName
+          );
+          for (let prop of contentData) {
             const contentProp = await Compiler.processProperty(
-              content.type,
-              value,
+              prop.type,
+              prop.value,
               iid,
               fileName,
               false

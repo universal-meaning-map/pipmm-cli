@@ -73,10 +73,10 @@ export default class ConfigController {
       },
       misc: {
         alwaysCompile: [
-          "xavi-YAxr3c/trans-sub-abstraction-block-1639169078",
-          "xavi-YAxr3c/trans-column-navigator-1612122309",
-          "xavi-YAxr3c/trans-note-viewer-1641223323",
-          "xavi-YAxr3c/pipmm-instructions-1644422409",
+          "trans-sub-abstraction-block",
+          "trans-column-navigator",
+          "trans-note-viewer",
+          "pipmm-instructions",
         ],
         defaultContentProperty: Referencer.PROP_VIEW_FILENAME,
         defaultExpr:

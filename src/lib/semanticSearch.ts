@@ -133,7 +133,7 @@ export default class SemanticSearch {
     namesWithHyphen: boolean
   ): string {
     let dbName =
-      foamIdIndexed + (namesWithHyphen ? "-withHyphen" : "withSpace");
+      foamIdIndexed + (namesWithHyphen ? "-withHyphen" : "-withSpace");
     const dbLocation =
       ConfigController._configFile.llm.vectorStorePath + "/" + dbName;
     return dbLocation;

@@ -296,15 +296,13 @@ export default class Tokenizer {
     return true;
   }
 
-  static getTypeNameAndValueForContent(str: string) {
+  static getFirstOrDefaultTypeAndValueForContent(str: string) {
     let lines = str.split("\n");
     let expression = /\s*([^:]*?)\s*:\s*([^:\s]*)/g; //matches str in front of semicolon
     let regex = new RegExp(expression);
     let r = regex.exec(lines[0]);
 
-    if (r == null || r[1].indexOf(" ") != -1 || r[1].indexOf("prop") == -1) {
-      //Tokenizer.idDoesNotContainTimestamp(Tokenizer.getLocalFoamId(r[1]))
-
+    if (r == null || r[1].indexOf(" ") != -1) {
       return {
         type: ConfigController._configFile.misc.defaultContentProperty,
         value: str,
@@ -318,6 +316,47 @@ export default class Tokenizer {
         value: value,
       };
     }
+  }
+
+  static getContentTypesAndValues(
+    str: string,
+    fileName: string
+  ): { type: string; value: string }[] {
+    const res = [];
+    const validMatches: RegExpMatchArray[] = [];
+
+    const pattern: RegExp = /^(.*?):\n---/gm; //matches string between new line and ":\n---"
+    let match: RegExpMatchArray | null;
+
+    while ((match = pattern.exec(str)) !== null) {
+      validMatches.push(match);
+    }
+
+    for (let i = 0; i < validMatches.length; i++) {
+      console.log("\n" + fileName);
+
+      let endOfValueIndex = undefined; //if undefined will get the content up until the end of it
+      if (validMatches[i + 1]) endOfValueIndex = validMatches[i + 1].index;
+
+      let key = validMatches[i][1];
+      let value = str.substring(
+        validMatches[i].index! + key.length + ":\n---".length,
+        endOfValueIndex
+      );
+
+      res.push({
+        type: key,
+        value: value.trim(),
+      });
+    }
+    // if no "prop-x:\n___" we use the default in config and we assume there is only one prop in the document
+    if (res.length == 0) {
+      res.push({
+        type: ConfigController._configFile.misc.defaultContentProperty,
+        value: str.trim(),
+      });
+    }
+    return res;
   }
 
   static getLocalFoamId(foamId: string): string {
