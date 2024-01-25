@@ -92,99 +92,145 @@ export default class EnrichCommand extends Command {
       withHyphen
     );
 
-    if (draft == "" || question == "" || title == "" || styleId == "") {
-      console.log(args.draftFileName + " is missing a mandatory property");
+    if (draft == "") {
+      console.log(
+        args.draftFileName +
+          " is missing " +
+          Referencer.PROP_DRAFT_FILENAME +
+          " property"
+      );
     }
+    if (question == "") {
+      console.log(
+        args.draftFileName +
+          " is missing " +
+          Referencer.PROP_QUESTION_FILENAME +
+          " property"
+      );
+    }
+    if (title == "") {
+      console.log(
+        args.draftFileName +
+          " is missing " +
+          Referencer.PROP_TITLE_FILENAME +
+          " property"
+      );
+    }
+    if (styleId == "") {
+      console.log(
+        args.draftFileName +
+          " is missing " +
+          Referencer.PROP_COMPOSER_STYLE_FILENAME +
+          " property"
+      );
+    }
+
+    let qid = Composer.makeQuestionId(question);
+
+    //directories
+    let enrichPath = args.composerDirectory + "/framework/" + qid + "-e.md";
+    let autoPath = args.composerDirectory + "/framework/" + qid + "-a.md";
+    let stylePath = args.composerDirectory + "/styles/" + styleId + ".txt";
 
     //Check composer directory
-    let style = Utils.getFile(
-      args.composerDirectory + "/styles/" + styleId + ".txt"
-    );
+    let style = Utils.getFile(stylePath);
 
-    console.log(title, question, styleId, draft);
-    console.log(style);
+    // Get ernich if it exist
 
-    return;
+    let enrich = "";
+    try {
+      enrich = Utils.getFile(enrichPath);
+      console.log(enrich);
+    } catch {
+      console.log("No enrich path:\n" + enrichPath);
+    }
 
-    let draftDependencies =
-      await DirectSearch.getAllNamesWithHyphenDependencies(
-        Utils.renameToHyphen(args.draftFileName),
-        Referencer.PROP_DRAFT_FILENAME
+    //ENRICH
+    if (enrich == "") {
+      let draftDependencies =
+        await DirectSearch.getAllNamesWithHyphenDependencies(
+          Utils.renameToHyphen(args.draftFileName),
+          Referencer.PROP_DRAFT_FILENAME
+        );
+
+      await DefinerStore.load();
+
+      let rch = new RequestConceptHolder(draftDependencies, question, draft);
+      await rch.proces();
+      await DefinerStore.save();
+
+      const enrichReq = LlmRequests.Enrich;
+      enrichReq.identifierVariable = question;
+      const enrichModel = GPT4TURBO;
+      const promptTemplateChars = enrichReq.template.length;
+      const maxPromptContextChars = getPromptContextMaxChars(
+        enrichReq.maxPromptChars,
+        enrichReq.maxCompletitionChars,
+        promptTemplateChars,
+        enrichModel
       );
 
-    await DefinerStore.load();
+      let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.7);
 
-    let rch = new RequestConceptHolder(draftDependencies, question, draft);
-    await rch.proces();
-    await DefinerStore.save();
+      let allDefinitions: Definition[] =
+        await DefinerStore.getDefinitionsByConceptScoreList(trimedByScore);
 
-    const enrichReq = LlmRequests.Enrich;
-    enrichReq.identifierVariable = question;
-    const model = GPT4TURBO;
-    const promptTemplateChars = enrichReq.template.length;
-    const maxPromptContextChars = getPromptContextMaxChars(
-      enrichReq.maxPromptChars,
-      enrichReq.maxCompletitionChars,
-      promptTemplateChars,
-      model
-    );
+      let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
+        allDefinitions,
+        maxPromptContextChars
+      );
+      let definitionsText = maxedOutTextDefinitions.join("\n");
+      // definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
 
-    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.7);
-
-    let allDefinitions: Definition[] =
-      await DefinerStore.getDefinitionsByConceptScoreList(trimedByScore);
-
-    let maxedOutTextDefinitions: string[] = DefinerStore.getMaxOutDefinitions(
-      allDefinitions,
-      maxPromptContextChars
-    );
-    let definitionsText = maxedOutTextDefinitions.join("\n");
-    // definitionsText = definitionsText.replaceAll(Tokenizer.hyphenToken, " ");
-
-    for (let i = 0; i < maxedOutTextDefinitions.length; i++) {
-      console.log(i + ". " + allDefinitions[i].name);
-    }
-    console.log(`
+      for (let i = 0; i < maxedOutTextDefinitions.length; i++) {
+        console.log(i + ". " + allDefinitions[i].name);
+      }
+      console.log(`
     DEFINITIONS:
     Name: ${enrichReq.name}
     Id: ${enrichReq.identifierVariable}
     Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
     `);
 
-    let known = "";
+      let known = "";
 
-    if (args.known != " ") {
-      known =
-        "KNOWN CONCEPTS\n\nThe following concepts are well known by the audience and do not need explanation: " +
-        args.known;
+      if (args.known != " ") {
+        known =
+          "KNOWN CONCEPTS\n\nThe following concepts are well known by the audience and do not need explanation: " +
+          args.known;
+      }
+      const enrichInputVariables = {
+        draft: args.draft,
+        question: question,
+        known: known,
+        perspective: definitionsText,
+      };
+
+      enrich = await callLlm(enrichModel, enrichReq, enrichInputVariables);
+      Utils.saveFile(enrich, enrichPath);
+    } else {
+      console.log("Enrich found");
     }
-    const enrichInputVariables = {
-      draft: args.draft,
-      question: question,
-      known: known,
-      perspective: definitionsText,
-    };
 
-    let out1 = await callLlm(model, enrichReq, enrichInputVariables);
-
+    //STYLE
     const styleReq = LlmRequests.Style;
     styleReq.identifierVariable = question;
     const styleInputVariables = {
-      draft: out1,
+      draft: enrich,
       question: question,
       style: style,
     };
 
-    let out2 = await callLlm(model, styleReq, styleInputVariables);
+    let styleModel = GPT4TURBO;
+    let styled = await callLlm(styleModel, styleReq, styleInputVariables);
 
-    let md = matter.stringify(out2, {
+    let md = matter.stringify(styled, {
       question: question,
-      foamName: draft,
+      qid: qid,
+      styleId: styleId,
+      timestamp: Date.now(),
     });
 
-    let fileDirectory = args.outputDirectory + "/" + question + ".md";
-    console.log(fileDirectory);
-
-    Utils.saveFile(md, fileDirectory);
+    Utils.saveFile(md, autoPath);
   }
 }

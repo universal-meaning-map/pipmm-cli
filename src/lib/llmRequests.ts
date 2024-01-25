@@ -14,17 +14,17 @@ Your goal as background researcher is to address the QUESTION by rewriting the D
 GUIDELINES for the REWRITE
 
 - The REWRITE must be objective, technical and descriptive.
-    - Use precise language. Preserve technical terms. Preserve the use of hyphen.
+    - Use precise and concise language. Preserve technical terms. Preserve the use of hyphen.
     - Provide detailed and vivid descriptions of concepts, processes, or phenomena.
     - Never do subjective evaluations. Utilize a third-person omniscient perspective.
     - Do not write a conclusion.
 
 - Ensure that the REWRITE is thorough and highly comprehensive
+    - The REWRITE should be etremely extensive! (double the needed length). It should cover all aspects comprehensively.
     - Ensure specific focus on addressing all aspects of the QUESTION.
     - Many elements withing UMM FRAMEWORK are unrelated to the QUESTION, discard the ones that do not address the QUESTION.
     - Dive deep into all relevant domains and nuances related to the QUESTION
     - Strive for accuracy and depth, leaving no detail unexplored.
-    - The REWRITE should be extensive and cover all aspects comprehensively, regardless of the length required.
     
 - Organize information in a structured manner.
     - Synthesise key ideas between concepts.
