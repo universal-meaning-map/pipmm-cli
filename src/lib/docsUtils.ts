@@ -23,21 +23,23 @@ export default class DocsUtils {
     const namesWithHyphen = true;
     const includeDirectBacklinks = true;
 
+    /*
     const muIidWithSameName = await DirectSearch.getIidByName(concept);
+    console.log(muIidWithSameName, concept);
     // console.log("IID match: " + muIidWithSameName);
 
     if (muIidWithSameName) {
-      conceptDocs.push(
-        ...(await DirectSearch.getBacklinkDocs(
-          muIidWithSameName,
-          namesWithHyphen,
-          includeDirectBacklinks
-        ))
+      console.log("Getting back link docs for " + concept);
+      let docs = await DirectSearch.getBacklinkDocs(
+        muIidWithSameName,
+        namesWithHyphen,
+        includeDirectBacklinks
       );
+      conceptDocs.push(...docs);
     } else {
       //  console.log("No MU with exact name for: " + concept);
     }
-
+*/
     conceptDocs.push(
       ...(await SemanticSearch.search(
         concept,

@@ -153,12 +153,11 @@ export default class DefinerStore {
     //always gets the last one
     if (needsDirect) {
       d = DefinerStore.definitions.get(nameWithHyphen)!;
-      // if (d.directIntensions.length == 0) {
       const docs = await DirectSearch.getAllDocsOfIid(d.iid, true);
 
-      if (docs.length == 0) console.log("🔴 " + nameWithHyphen);
-
-      if (docs[0].pageContent == "") {
+      if (docs.length == 0) {
+        console.log("🔴 " + nameWithHyphen);
+      } else if (docs[0].pageContent == "") {
         console.log("🟡 " + nameWithHyphen);
       } else {
         console.log("🟢  " + nameWithHyphen);
@@ -176,13 +175,16 @@ export default class DefinerStore {
 
     d = DefinerStore.definitions.get(nameWithHyphen)!;
     // dependes on
-    if (needsKeyConcepts) {
+    if (needsKeyConcepts || d.directIntensions.length > 0) {
       if (
         Date.now() - d.lastKeyConceptsRequest >
         DefinerStore.defaultLlmUpdatePeriod
       ) {
         const dependencies =
-          await DirectSearch.getAllNamesWithHyphenDependencies(nameWithHyphen);
+          await DirectSearch.getAllNamesWithHyphenDependencies(
+            nameWithHyphen,
+            Referencer.PROP_VIEW_FILENAME
+          );
 
         const keyWordsScores = await Definer.getDefinitionScoredConcepts(
           d.nameWithHyphen,
@@ -404,7 +406,7 @@ export default class DefinerStore {
     for (let cs of conceptsScoreList) {
       const d = await DefinerStore.getDefinition(
         cs.c,
-        false,
+        true,
         false,
         false,
         false

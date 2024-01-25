@@ -182,6 +182,7 @@ export default class DirectSearch {
     } else {
       if (note.block.get(PROP_VIEW_IDD) == "") {
         console.log("EMPPTY view for " + iid);
+        return [];
       }
     }
 
@@ -223,13 +224,17 @@ export default class DirectSearch {
   };
 
   static getAllNamesWithHyphenDependencies = async (
-    nameWithHyphen: string
+    nameWithHyphen: string,
+    propertyFileName: string
   ): Promise<string[]> => {
     const iid = await DirectSearch.getIidByName(
       Utils.renameFromHyphen(nameWithHyphen)
     );
 
-    const iidDependencies = await DirectSearch.getAllIidsDependencies(iid);
+    const iidDependencies = await DirectSearch.getAllIidsDependencies(
+      iid,
+      propertyFileName
+    );
     const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
 
     const PROP_NAME_IID = await Referencer.getTypeIdByFileName(
@@ -246,7 +251,10 @@ export default class DirectSearch {
     return nameWithHyphenDependencies;
   };
 
-  static getAllIidsDependencies = async (iid: string): Promise<string[]> => {
+  static getAllIidsDependencies = async (
+    iid: string,
+    propertyFileName: string
+  ): Promise<string[]> => {
     let dependencyIids: string[] = [];
     const repoWithHyphen = await Referencer.getRepoWithHyphenNames();
     const note = repoWithHyphen.get(iid);
@@ -255,12 +263,10 @@ export default class DirectSearch {
       Referencer.PROP_NAME_FILENAME
     );
 
-    const PROP_VIEW_IID = await Referencer.getTypeIdByFileName(
-      Referencer.PROP_VIEW_FILENAME
-    );
+    const propertyIid = await Referencer.getTypeIdByFileName(propertyFileName);
 
-    if (note && note.block && note.block.has(PROP_VIEW_IID)) {
-      const viewIPT = note.block.get(PROP_VIEW_IID);
+    if (note && note.block && note.block.has(propertyIid)) {
+      const viewIPT = note.block.get(propertyIid);
 
       for (let run of viewIPT) {
         if (run[0] == "[") {

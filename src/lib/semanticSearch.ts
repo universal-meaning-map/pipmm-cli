@@ -194,11 +194,16 @@ export default class SemanticSearch {
 
     for (const doc of docs) {
       //      console.log("Splitting " + doc.metadata.iid + " " + doc.metadata.name);
-      console.log(doc.metadata.name);
-      const docTexts = await textSplitter.splitText(doc.pageContent);
-      for (const text of docTexts) {
-        texts.push(text);
-        metadatas.push(doc.metadata);
+      
+      if (doc.pageContent) {
+    
+        const docTexts = await textSplitter.splitText(doc.pageContent);
+        for (const text of docTexts) {
+          texts.push(text);
+          metadatas.push(doc.metadata);
+        }
+      } else {
+        console.log(doc.metadata.name + " No doc content");
       }
     }
 

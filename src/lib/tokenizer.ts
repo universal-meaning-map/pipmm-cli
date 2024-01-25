@@ -129,7 +129,7 @@ export default class Tokenizer {
     let iid = await Referencer.getIidByFileName(fileName);
 
     if (!iid) {
-      return "<" + wikilink + " or " + requesterFoamId + ">(doesn't exist)";
+      return "<" + wikilink + ">(doesnt exist)";
     }
 
     /*

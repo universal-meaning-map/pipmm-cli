@@ -9,9 +9,10 @@ export default class RequestConceptHolder {
   guessed: ConceptScore[];
   guessedParents: ConceptScore[];
   all: ConceptScore[];
-  text: string;
+  text1: string;
+  text2: string;
 
-  constructor(_given: string[], _text: string) {
+  constructor(_given: string[], _text1: string, _text2: string = "") {
     this.given = _given.map((c) => {
       return { c: c, s: 1 };
     });
@@ -19,7 +20,8 @@ export default class RequestConceptHolder {
     this.guessed = [];
     this.guessedParents = [];
     this.all = [];
-    this.text = _text;
+    this.text1 = _text1;
+    this.text2 = _text2;
   }
   async proces() {
     await Promise.all([this.processGiven(), this.processGuesed()]);
@@ -57,14 +59,22 @@ export default class RequestConceptHolder {
   }
 
   async processGuesed(): Promise<void> {
-    if ((this.text = "")) {
-      console.log(
-        "🚀 ~ RequestConceptHolder ~ processGuesed ~ text:",
-        this.text
+    // WHY GUESSES DON'T SHOW
+
+    //Todo parallelize these text1 and text2
+
+    if (this.text1)
+      this.guessed.push(
+        ...(await Definer.guessMuFromText(GPT4TURBO, this.text1))
       );
-    }
-    let guessed = await Definer.guessMuFromText(GPT4TURBO, this.text);
-    this.guessed = this.penalizeConceptScores(guessed, 0.85);
+    if (this.text2)
+      this.guessed.push(
+        ...(await Definer.guessMuFromText(GPT4TURBO, this.text2))
+      );
+
+    this.guessed = Definer.removeRepeatsAndNormalizeScore(this.guessed);
+
+    this.guessed = this.penalizeConceptScores(this.guessed, 0.85);
     this.guessedParents = await this.getCloneParentScoresForConcepts(
       this.guessed,
       0.8

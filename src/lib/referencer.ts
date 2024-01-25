@@ -13,6 +13,12 @@ export default class Referencer {
   static readonly PROP_VIEW_FILENAME = "prop-view";
   static readonly PROP_NAME_FILENAME = "prop-name";
   static readonly PROP_PIR_FILENAME = "prop-pir";
+  //Enrtich and Composer
+  static readonly PROP_DRAFT_FILENAME = "p.draft";
+  static readonly PROP_QUESTION_FILENAME = "p.question";
+  static readonly PROP_COMPOSER_STYLE_FILENAME = "p.composer-style";
+  static readonly PROP_TITLE_FILENAME = "p.title";
+
   static readonly PROP_FID = "fid";
   //static readonly SELF_FRIEND_ID = "x";
 
@@ -181,45 +187,6 @@ export default class Referencer {
   static getType(iid: string): IpmmType {
     return Referencer.iidToTypeMap[iid];
   }
-
-  /*
-  static getFriendIdFromFoamId = (
-    foamId: string | undefined
-  ): string | undefined => {
-    if (foamId) {
-      let runs = foamId.split("/");
-      if (runs.length == 2) {
-        return runs[0];
-      }
-    }
-    return undefined;
-  };
-  */
-
-  //Ads friend relative path if the requester contains it and no other friendPath is specified
-
-  /*
-  static updaterFoamIdWithFriendFolder = (
-    fileName: string,
-    requesterFoamId: string | undefined
-  ): string => {
-    let repoFolder = path.basename(
-      ConfigController._configFile.resources.notesRepo
-    );
-    let requesterFolder = Referencer.getFriendIdFromFoamId(requesterFoamId);
-    //the containing note lives in a friendFolder
-    if (requesterFolder && requesterFolder != repoFolder) {
-      //check if the reference is pointing to a friendFolder or to self
-      let runs = fileName.split("/");
-      if (runs.length == 1) {
-        return requesterFolder + "/" + fileName;
-      }
-    }
-
-    return fileName;
-  };
-
-  */
 
   static getRepoWithHyphenNames = async (): Promise<Map<string, NoteWrap>> => {
     if (Referencer.iidToNoteWrapWithHyphen.size === 0) {

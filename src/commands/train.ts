@@ -31,6 +31,8 @@ export default class TrainCommand extends Command {
   };
 
   async run() {
+    console.warn = () => {};
+
     const { args, flags } = this.parse(TrainCommand);
 
     let workingPath = process.cwd();

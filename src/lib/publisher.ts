@@ -159,6 +159,21 @@ export default class Publisher {
     return outuput;
   }
 
+  static async getTextFromProperty(
+    iid: string,
+    propertyFileName: string,
+    namesWithHyphen: boolean
+  ) {
+    return await Publisher.makePublishRun(
+      iid,
+      {
+        property: propertyFileName,
+        exportTemplateId: "txt",
+      },
+      namesWithHyphen
+    );
+  }
+
   static async sendButtonDownRequest(endpoint: string, obj: any) {
     const config = {
       headers: {

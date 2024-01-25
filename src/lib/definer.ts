@@ -7,12 +7,14 @@ import {
   SEARCH_ORIGIN_SEMANTIC,
   callLlm,
   GPT4TURBO,
+  SEARCH_ORIGIN_DIRECT,
 } from "./llm";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
 import { ConceptScore } from "./definerStore";
 import { ChainValues } from "langchain/dist/schema";
 import DocsUtils from "./docsUtils";
+import DirectSearch from "./directSearch";
 export default class Definer {
   static docsToIntensions(docs: Document<Record<string, any>>[]): string[] {
     let intensions: string[] = [];
@@ -192,22 +194,25 @@ JSON array of terms with prerequisit-score:
       maxCompletitionChars: 3000, //minimum chars saved for response
       maxPromptChars: 0,
       template: `"INSTRUCTIONS
-- Your goal is to rate concepts and ideas that important in TEXT.
-- TEXT uses unique unusual words. They are not misspelled. 
+- Your goal is to rate "key entitites" in TEXT
+- TEXT uses unique unusual words. They are not misspelled
+- Score from 0 to 1 based on its relevancy to the TEXT (2 decimal precision)
+- List as many "key entities" as possible (even if its score is not that high)
+- Relevancy is calculated based:
+    - How much of a prerequisit is to understand TEXT
+    - How unique entity idea is
 
-1. Suggest key ideas in the TEXT
-- A key idea is:
-    - important words in TEXT.
+A "key entity" is:
+- a word:
+    - key words
+    - a proper noun
+    - an unknown, strange or misspelled word
+    - words that use hyphen
     - a technical term.
-    - an unusual or strange or misspelled word.
-    - ideas that are not in the text but maybe releated.
-    - concepts contained in the TEXT.
-    - ideas that can capture the meaning of the TEXT in different words.
-2. Score each idea.
-    - Score from 0 to 1 based on its relevancy to the TEXT (2 decimal precision).
-    - Relevancy is calculated based:
-        - How much of a prerequisit is to understand TEXT
-        - How unique the idea is.
+- a concept or idea:
+    - key concepts or ideas
+    - releated ideas (even if they are not in the text)
+    - key concepts synonims
 
 Output:
 - A JSON object with an "scores" object containing an array of objects with concept (c) and its relevancy score (s) as fields.
@@ -252,39 +257,73 @@ JSON`,
       text
     );
 
-    console.log("Guessed key words");
+    console.log("Key entities in text");
     console.log(relatedConceptScored);
 
     let allDocs: Document<Record<string, any>>[] = [];
     for (let concept of relatedConceptScored) {
+      let conceptDocs: Document<Record<string, any>>[] = [];
+      //If it matches the name we get all the docs
+      const muIidWithSameName = await DirectSearch.getIidByName(concept.c);
+      if (muIidWithSameName) {
+        let withHyphen = true;
+
+        conceptDocs.push(
+          ...(await DirectSearch.getAllDocsOfIid(muIidWithSameName, withHyphen))
+        );
+      }
+
       //We get all the docs related to the semantic search
-      let docsForConcept = await DocsUtils.getContextDocsForConcept(concept.c, [
-        SEARCH_ORIGIN_SEMANTIC,
-      ]);
+      conceptDocs.push(
+        ...(await DocsUtils.getContextDocsForConcept(concept.c, [
+          SEARCH_ORIGIN_SEMANTIC,
+        ]))
+      );
 
       // we give the doc the score
       // we recalculate confidence based on that.
-      for (let d of docsForConcept) {
+      for (let d of conceptDocs) {
         d.metadata.textRelevanceScore = concept.s;
         d.metadata.confidence = d.metadata.confidence * concept.s;
       }
-
-      allDocs = allDocs.concat(docsForConcept);
+      allDocs.push(...conceptDocs);
     }
-
-    allDocs = DocsUtils.sortDocsByConfidence(allDocs);
     allDocs = DocsUtils.filterDocsByConfindence(allDocs, 0.6);
+    allDocs = DocsUtils.sortDocsByConfidence(allDocs);
 
     let guessedConcepts: ConceptScore[] = [];
 
     for (let d of allDocs) {
-      guessedConcepts.push({ c: d.metadata.name, s: d.metadata.confidence });
-    }
+      //  if (d.metadata.name && d.metadata.confidence) {
+      if (!d.metadata.name) {
+        console.log("Not found", d.metadata);
+        continue;
+      }
 
-    //guessedConcepts = [...new Set(guessedConcepts)]; //remove duplicates
-    return Definer.sortConceptScores(
-      Definer.removeRepeatsAndNormalizeScore(guessedConcepts)
-    );
+      let existingIndex = guessedConcepts.findIndex(
+        (c) => c.c == d.metadata.name
+      );
+
+      if (existingIndex == -1) {
+        //console.log("Adding", d.metadata.name, d.metadata.confidence);
+        guessedConcepts.push({
+          c: d.metadata.name,
+          s: d.metadata.confidence,
+        });
+      } else {
+        //Because its sorted it currently doesn't do anything
+        if (d.metadata.confidence > guessedConcepts[existingIndex].s) {
+          guessedConcepts[existingIndex].s = d.metadata.confidence;
+          //  console.log("Upgrading", d.metadata.name, d.metadata.confide);
+        }
+      }
+    }
+    // The function has a bug and removes one item
+    // guessedConcepts = Definer.removeRepeatsAndNormalizeScore(guessedConcepts);
+
+    guessedConcepts = Definer.sortConceptScores(guessedConcepts);
+
+    return guessedConcepts;
   };
 
   static sortConceptScores(conceptScores: ConceptScore[]): ConceptScore[] {
@@ -296,6 +335,8 @@ JSON`,
   }
 
   static removeRepeatsAndNormalizeScore(
+    //It has a bug.
+    // It kills a concept
     concepts: ConceptScore[]
   ): ConceptScore[] {
     concepts.sort((a, b) => {
@@ -334,94 +375,6 @@ JSON`,
 
     return Definer.sortConceptScores(uniques);
   }
-
-  static respondToQuestionRequest: LlmRequest = {
-    identifierVariable: "<not set>",
-    name: "Respond",
-    inputVariableNames: ["question", "definitions"],
-    temperature: 0.0,
-    maxCompletitionChars: 3000, //minimum chars saved for response,
-    maxPromptChars: 0,
-    template: `INSTRUCTIONS
-
-- You will give a RESPONSE to YOUR AUDIENCE about the QUESTION they asked.
-- You will act based on YOUR PERSONALITY.
-- Your RESPONSE is founded exclusively based on the IMPERSONATED PERSPECTIVE.
-- You will stick to the RESPONSE CONDITIONS.
-
-RESPONSE CONDITIONS
-
-- Only respond what the IMPERSONATED PERSPECTIVE concieves.
-- If you don't have a meaningful insight, do not respond. Suggest to frame the question differently instead.
-- Respond strictly based on the IMPERSONATED PERSPECTIVE.
-- Exclude from the RESPONSE elements of the IMPERSONATED PERSPECTIVE that are no relevant to the QUESTION.
-- Do not include external information.
-- Quality over quantity.
-- Delve deep into the QUESTION.
-- Strictly respond to the QUESTION.
-- Extend the response only if a mentioned requires clarification.
-- Your goal is to bring clarity to the QUESTION through reasoning based on IMPERSONATED PERSPECTIVE.
-- Provide in-depth, thoughtful RESPONSE.
-
-YOUR PERSONALITY
-
-Mindset and character:
-- Humble and respectful and approachable.
-- Unafraid to express opinions and strong convictions.
-- Confident about your unique perspective.
-- Objective evaluation of options and decisions.
-- Avoid unnecessary complexity or overthinking.
-- Consideration of consequences and risks.
-- Balance idealism with practicality.
-- Emphasis on rationality and reason.
-- Acceptance of what cannot be controlled.
-- Focus on what can be controlled, particularly one's thoughts and actions.
-
-Structure
-1. Start the RESPONSE general and accessible ideas.
-2. Proceed by adding more resolution,
-3. Continue adding details until all the nuances and details of QUESTION are fully covered.
-
-- Use a logical flow and clear transitions between ideas.
-- Use complex sentences for explaining intricate concepts. Use multiple clauses if needed.
-- Structure the explanation with the necessary paragraphs.
-
-
-Writing style:
-- Curious, observant, intellectual, and reflective tone.
-- Straightforward language. No unnecessary jargon and complexity.
-- Precise and technical language.
-- Do not use jargon exclusive to your vocabulary. Explain it instead.
-- Rich vocabulary spanning art, science, engineering, philosophy, and psychology.
-- Use complex sentences for explaining intricate concepts. These sentences often feature multiple clauses.
-- Well-structured with logical flow and clear transitions between ideas.
-- Descriptive writing with concise but vivid imagery.
-- Occasionally use rhetorical devices like analogies and metaphors for effective illustration.
-- Use impersonal and objective language.
-- Do not make references to yourself, or your perspevtive
-- Do not make appraisal or sentimental evaluations.
-
-YOUR AUDIENCE
-
-- Critical thinkers who engage in intellectual discussions.
-- Lifelong learners seeking educational resources.
-- Interest in depth of the human condition.
-- Diverse global community with various backgrounds and cultures.
-- Only like concise, information-rich content.
-- Do not know anything about your particular perspective and vocabulary.
-
-IMPERSONATED PERSPECTIVE
-
-The following vocabulary is the basis of IMPERSONATED PERSPECTIVE:
-
-{definitions}
-
-QUESTION
-
-{question}
-
-RESPONSE`,
-  };
 
   static respondQuestion2 = async (
     model: ModelConfig,
@@ -914,8 +867,6 @@ TERMINOLOGY
 
 
 OUTPUTS
-
---- Output1:Last draft
 
 {continue}`,
   };

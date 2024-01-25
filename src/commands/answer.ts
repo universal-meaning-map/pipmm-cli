@@ -14,6 +14,7 @@ import {
 } from "../lib/llm";
 import DefinerStore, { Definition } from "../lib/definerStore";
 import RequestConceptHolder from "../lib/requestConceptHolder";
+import LlmRequests from "../lib/llmRequests";
 
 export default class AnswerCommand extends Command {
   static description = "Uses LLMs to write about a topic in a specific format";
@@ -61,20 +62,23 @@ export default class AnswerCommand extends Command {
     //RCH
     let rch = new RequestConceptHolder(givenConcepts, semanticRequest);
     await rch.proces();
+    await DefinerStore.save();
+
+ 
 
     //ANSWER
-    const mmRq = Definer.meaningMakingRq;
-    mmRq.identifierVariable = semanticRequest;
+    const llmReg = LlmRequests.Enrich;
+    llmReg.identifierVariable = semanticRequest;
     const answerModel = GPT4TURBO;
-    const promptTemplateChars = mmRq.template.length;
+    const promptTemplateChars = llmReg.template.length;
     const maxPromptContextChars = getPromptContextMaxChars(
-      mmRq.maxPromptChars,
-      mmRq.maxCompletitionChars,
+      llmReg.maxPromptChars,
+      llmReg.maxCompletitionChars,
       promptTemplateChars,
       answerModel
     );
 
-    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.8);
+    let trimedByScore = DefinerStore.trimScoreList(rch.all, 0.7);
 
     let allDefinitions: Definition[] =
       await DefinerStore.getDefinitionsByConceptScoreList(trimedByScore);
@@ -91,31 +95,33 @@ export default class AnswerCommand extends Command {
     }
     console.log(`
     DEFINITIONS:
-    Name: ${mmRq.name}
-    Id: ${mmRq.identifierVariable}
+    Name: ${llmReg.name}
+    Id: ${llmReg.identifierVariable}
     Used defs: ${maxedOutTextDefinitions.length} /  ${allDefinitions.length}
     `);
 
     const inputVariables = {
-      request: request,
+      draft: request,
       perspective: definitionsText,
-      continue: baseOutput,
+      //  continue: baseOutput,
     };
 
-    let allOutputs = await callLlm(answerModel, mmRq, inputVariables);
+    let allOutputs = await callLlm(answerModel, llmReg, inputVariables);
 
+    /*
     let out = await Definer.getFinalOutcomeOrRetry(
       "--- Output3:Final text",
       allOutputs,
       answerModel,
-      mmRq,
+      llmReg,
       inputVariables,
       0
     );
+    */
 
     logLlmStats();
 
-    return out;
+    return allOutputs;
   }
 
   async run() {
@@ -147,7 +153,7 @@ export default class AnswerCommand extends Command {
       "",
       givenConcepts
     );
-    await DefinerStore.save();
+
     console.log(response);
   }
 }
