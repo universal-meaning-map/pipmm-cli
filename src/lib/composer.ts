@@ -1,6 +1,15 @@
 import AnswerCommand from "../commands/answer";
 import Utils from "./utils";
 
+export interface Resource {
+  title: string;
+  question: string;
+  qid: string;
+  styleId: string;
+  timestamp: number;
+  muoFileName: string;
+  public: boolean;
+}
 export interface SubSection {
   isGoodEnough: boolean;
   title: string;

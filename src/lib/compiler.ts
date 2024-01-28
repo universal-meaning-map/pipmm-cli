@@ -175,8 +175,7 @@ export default class Compiler {
           //let content = Tokenizer.getFirstOrDefaultTypeAndValueForContent(frontMatter.content);
 
           let contentData = Tokenizer.getContentTypesAndValues(
-            frontMatter.content,
-            fileName
+            frontMatter.content
           );
           for (let prop of contentData) {
             const contentProp = await Compiler.processProperty(

@@ -3,13 +3,11 @@ import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
 import Compiler from "../lib/compiler";
 import DefinerStore, { Definition } from "../lib/definerStore";
-import Composer, { SubSection } from "../lib/composer";
-import AnswerCommand from "./answer";
+import Composer, { Resource } from "../lib/composer";
 import RequestConceptHolder from "../lib/requestConceptHolder";
 import LlmRequests from "../lib/llmRequests";
 import { GPT4TURBO, callLlm, getPromptContextMaxChars } from "../lib/llm";
 import matter = require("gray-matter");
-import InterplanetaryText from "../lib/interplanetaryText";
 import Publisher from "../lib/publisher";
 import Referencer from "../lib/referencer";
 import DirectSearch from "../lib/directSearch";
@@ -128,8 +126,11 @@ export default class EnrichCommand extends Command {
     let qid = Composer.makeQuestionId(question);
 
     //directories
-    let enrichPath = args.composerDirectory + "/framework/" + qid + "-e.md";
-    let autoPath = args.composerDirectory + "/framework/" + qid + "-a.md";
+    let enrichPath =
+      args.composerDirectory + "/framework-support/" + qid + "-e.md";
+    let autoPath =
+      args.composerDirectory + "/framework-support/" + qid + "-a.md";
+    let manualPath = args.composerDirectory + "/framework/" + qid + ".md";
     let stylePath = args.composerDirectory + "/styles/" + styleId + ".txt";
 
     //Check composer directory
@@ -223,14 +224,34 @@ export default class EnrichCommand extends Command {
 
     let styleModel = GPT4TURBO;
     let styled = await callLlm(styleModel, styleReq, styleInputVariables);
+    Utils.saveFile(styled, autoPath);
 
-    let md = matter.stringify(styled, {
+    try {
+      Utils.getFile(manualPath);
+    } catch (e) {
+      //if manual doesn't exist we create it
+    }
+
+    let openMuo =
+      "[Draft](obsidian://open?vault=foam&file=" +
+      encodeURI(args.draftFileName) +
+      ")";
+    let openEnrich = "[Enriched](framework-support/" + qid + "-e)";
+    let transcludedAuto = "![[framework-support/" + qid + "-a]]";
+
+    let body =
+      openMuo + "  " + openEnrich + "\n\n" + transcludedAuto + "\n\n---\n";
+    let r: Resource = {
+      title: title,
       question: question,
       qid: qid,
       styleId: styleId,
       timestamp: Date.now(),
-    });
+      muoFileName: args.draftFileName,
+      public: false,
+    };
+    let md = matter.stringify(body, r);
 
-    Utils.saveFile(md, autoPath);
+    Utils.saveFile(md, manualPath);
   }
 }

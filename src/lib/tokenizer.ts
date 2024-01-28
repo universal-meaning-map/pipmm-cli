@@ -319,8 +319,7 @@ export default class Tokenizer {
   }
 
   static getContentTypesAndValues(
-    str: string,
-    fileName: string
+    str: string
   ): { type: string; value: string }[] {
     const res = [];
     const validMatches: RegExpMatchArray[] = [];

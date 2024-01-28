@@ -192,4 +192,26 @@ export default class Utils {
   static round(n: number, precision: number = 1000): number {
     return Math.round(n * precision) / precision;
   }
+
+  static deleteFolder(folderPath: string) {
+    if (fs.existsSync(folderPath)) {
+      fs.readdirSync(folderPath).forEach((file) => {
+        const currentPath = `${folderPath}/${file}`;
+
+        if (fs.lstatSync(currentPath).isDirectory()) {
+          // Recursively delete subfolders
+          Utils.deleteFolder(currentPath);
+        } else {
+          // Delete file
+          fs.unlinkSync(currentPath);
+        }
+      });
+
+      // Delete the empty folder
+      fs.rmdirSync(folderPath);
+      console.log(`Deleted folder: ${folderPath}`);
+    } else {
+      console.log(`Folder not found: ${folderPath}`);
+    }
+  }
 }
