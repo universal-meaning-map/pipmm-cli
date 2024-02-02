@@ -90,6 +90,12 @@ export default class EnrichCommand extends Command {
       withHyphen
     );
 
+    let unknown = await Publisher.getTextFromProperty(
+      iid,
+      Referencer.PROP_UNKNOWN_FILENAME,
+      withHyphen
+    );
+
     if (draft == "") {
       console.log(
         args.draftFileName +
@@ -123,7 +129,7 @@ export default class EnrichCommand extends Command {
       );
     }
 
-    let qid = Composer.makeQuestionId(question);
+    let qid = Composer.makeQuestionId(title);
 
     //directories
     let enrichPath =
@@ -131,7 +137,7 @@ export default class EnrichCommand extends Command {
     let autoPath =
       args.composerDirectory + "/framework-support/" + qid + "-a.md";
     let manualPath = args.composerDirectory + "/framework/" + qid + ".md";
-    let stylePath = args.composerDirectory + "/styles/" + styleId + ".txt";
+    let stylePath = args.composerDirectory + "/styles/" + styleId + ".md";
 
     //Check composer directory
     let style = Utils.getFile(stylePath);
@@ -156,7 +162,12 @@ export default class EnrichCommand extends Command {
 
       await DefinerStore.load();
 
-      let rch = new RequestConceptHolder(draftDependencies, question, draft);
+      let rch = new RequestConceptHolder(
+        [],
+        draft,
+        draftDependencies,
+        question
+      );
       await rch.proces();
       await DefinerStore.save();
 
@@ -195,13 +206,13 @@ export default class EnrichCommand extends Command {
 
       let known = "";
 
-      if (args.known != " ") {
+      if (known != "") {
         known =
           "KNOWN CONCEPTS\n\nThe following concepts are well known by the audience and do not need explanation: " +
           args.known;
       }
       const enrichInputVariables = {
-        draft: args.draft,
+        draft: draft,
         question: question,
         known: known,
         perspective: definitionsText,
@@ -216,10 +227,17 @@ export default class EnrichCommand extends Command {
     //STYLE
     const styleReq = LlmRequests.Style;
     styleReq.identifierVariable = question;
+
+    if (unknown != "") {
+      unknown =
+        "\n\nUNKWNOWN CONCEPTS\n\nThe following are unknown to the audience. Do not mention them, if they are very important explain them in a nameless manner: " +
+        unknown;
+    }
     const styleInputVariables = {
       draft: enrich,
       question: question,
       style: style,
+      unknown: unknown,
     };
 
     let styleModel = GPT4TURBO;

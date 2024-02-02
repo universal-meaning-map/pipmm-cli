@@ -10,22 +10,30 @@ export default class RequestConceptHolder {
   guessedParents: ConceptScore[];
   all: ConceptScore[];
   text1: string;
+  text1Dependencies: string[];
   text2: string;
 
-  constructor(_given: string[], _text1: string, _text2: string = "") {
+  constructor(
+    _given: string[],
+    _text1: string,
+    _text1Dependencies: string[],
+    _questionText: string = ""
+  ) {
     this.given = _given.map((c) => {
       return { c: c, s: 1 };
     });
+
     this.givenParents = [];
     this.guessed = [];
     this.guessedParents = [];
     this.all = [];
     this.text1 = _text1;
-    this.text2 = _text2;
+    this.text1Dependencies = _text1Dependencies;
+    this.text2 = _questionText;
   }
   async proces() {
     await Promise.all([this.processGiven(), this.processGuesed()]);
-    this.all = Definer.removeRepeatsAndNormalizeScore(
+    this.all = Definer.removeRepeatsCutOffAndNormalizeScore(
       (this.all = this.given.concat(
         this.givenParents,
         this.guessed,
@@ -53,7 +61,7 @@ export default class RequestConceptHolder {
       0.9
     );
 
-    this.givenParents = Definer.removeRepeatsAndNormalizeScore(
+    this.givenParents = Definer.removeRepeatsCutOffAndNormalizeScore(
       this.givenParents
     );
   }
@@ -64,22 +72,33 @@ export default class RequestConceptHolder {
     //Todo parallelize these text1 and text2
 
     if (this.text1)
-      this.guessed.push(
-        ...(await Definer.guessMuFromText(GPT4TURBO, this.text1))
-      );
+      if (this.text1Dependencies.length != 0) {
+        this.guessed.push(
+          ...(await Definer.getDefinitionScoredConcepts(
+            this.text2,
+            this.text1,
+            this.text1Dependencies
+          ))
+        );
+      } else {
+        this.guessed.push(
+          ...(await Definer.guessMuFromText(GPT4TURBO, this.text1))
+        );
+      }
+
     if (this.text2)
       this.guessed.push(
         ...(await Definer.guessMuFromText(GPT4TURBO, this.text2))
       );
 
-    this.guessed = Definer.removeRepeatsAndNormalizeScore(this.guessed);
+    this.guessed = Definer.removeRepeatsCutOffAndNormalizeScore(this.guessed);
 
     this.guessed = this.penalizeConceptScores(this.guessed, 0.85);
     this.guessedParents = await this.getCloneParentScoresForConcepts(
       this.guessed,
       0.8
     );
-    this.guessedParents = Definer.removeRepeatsAndNormalizeScore(
+    this.guessedParents = Definer.removeRepeatsCutOffAndNormalizeScore(
       this.guessedParents
     );
   }
@@ -89,7 +108,7 @@ export default class RequestConceptHolder {
     compensation: number
   ): Promise<ConceptScore[]> {
     const process = conceptScores.map(async (cs: ConceptScore) => {
-      console.log(cs.c);
+      console.log(cs);
 
       const d = await DefinerStore.getDefinition(
         cs.c,

@@ -60,11 +60,9 @@ export default class AnswerCommand extends Command {
     givenConcepts: string[]
   ): Promise<string> {
     //RCH
-    let rch = new RequestConceptHolder(givenConcepts, semanticRequest);
+    let rch = new RequestConceptHolder(givenConcepts, semanticRequest, []);
     await rch.proces();
     await DefinerStore.save();
-
- 
 
     //ANSWER
     const llmReg = LlmRequests.Enrich;

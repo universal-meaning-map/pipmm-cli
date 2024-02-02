@@ -160,7 +160,7 @@ export default class DefinerStore {
       } else if (docs[0].pageContent == "") {
         console.log("🟡 " + nameWithHyphen);
       } else {
-        console.log("🟢  " + nameWithHyphen);
+        //  console.log("🟢  " + nameWithHyphen);
         d = DefinerStore.definitions.get(nameWithHyphen)!;
         d.directIntensions = Definer.docsToIntensions(docs);
         DefinerStore.definitions.set(nameWithHyphen, d);
@@ -212,7 +212,7 @@ export default class DefinerStore {
         d.lastKeyConceptsRequest = Date.now();
         DefinerStore.definitions.set(nameWithHyphen, d);
       } else {
-        console.log(
+        /* console.log(
           nameWithHyphen +
             " Key Concepts was updated " +
             Utils.round(
@@ -222,6 +222,7 @@ export default class DefinerStore {
             ) +
             " hours ago"
         );
+        */
       }
     }
 

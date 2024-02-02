@@ -1,20 +1,9 @@
 import { Command, flags } from "@oclif/command";
 import ConfigController from "../lib/configController";
 import Utils from "../lib/utils";
-import Compiler from "../lib/compiler";
-import DefinerStore, { Definition } from "../lib/definerStore";
 import Composer, { Resource, SubSection } from "../lib/composer";
-import AnswerCommand from "./answer";
-import RequestConceptHolder from "../lib/requestConceptHolder";
-import LlmRequests from "../lib/llmRequests";
-import { GPT4TURBO, callLlm, getPromptContextMaxChars } from "../lib/llm";
 import matter = require("gray-matter");
-import InterplanetaryText from "../lib/interplanetaryText";
-import Publisher from "../lib/publisher";
-import Referencer from "../lib/referencer";
-import DirectSearch from "../lib/directSearch";
 import { promises as fs } from "fs";
-import Tokenizer from "../lib/tokenizer";
 
 export default class BuildDocs extends Command {
   static description = "Create docs files from Composer";

@@ -9,32 +9,41 @@ export default class LlmRequests {
     maxPromptChars: 0,
     template: `INSTRUCTIONS
     
-Your goal as background researcher is to address the QUESTION by rewriting the DRAFT, expanding it and enriching with incredible depth with insights found within the UMM FRAMEWORK.
+Your goal as background researcher is to enrich and amplify the DRAFT into a fleshed out EXPOSITORY ESSAY.
+The EXPOSITORY ESSAY must at least double the DRAFT length (pontentially way more) with more accurate nounances and new insights.
+ 
+GUIDELINES for the EXPOSITORY ESSAY
 
-GUIDELINES for the REWRITE
+- The expansion of the EXPOSITORY ESSAY is based on the insights found within the Umm framework and the comments in the DRAFT itself.
 
-- The REWRITE must be objective, technical and descriptive.
-    - Use precise and concise language. Preserve technical terms. Preserve the use of hyphen.
+- Organize information in a structured manner based on the DRAFT.
+    - Build upon the  DRAFT's structure, content and comments.
+    - Extend with content beyond what's in the DRAFT if it can add new insights to the QUESTION.
+    - Cover extensively each section (if any).
+    - The caracter ">" is used to indicate comments and instructions that should be followed for the EXPOSITORY ESSAY.
+    - Ensure clear reasoning where each idea logically leads to the next.
+    
+- The EXPOSITORY ESSAY must be objective, technical and descriptive.
+    - Be extremely concise and direct. Never use unnecessary wording.   
+    - Synthesise key ideas between concepts.
+    - Be precise. Use technical language. Preserve technical terms. Preserve the use of hyphen.
     - Provide detailed and vivid descriptions of concepts, processes, or phenomena.
     - Never do subjective evaluations. Utilize a third-person omniscient perspective.
     - Do not write a conclusion.
-
-- Ensure that the REWRITE is thorough and highly comprehensive
-    - The REWRITE should be etremely extensive! (double the needed length). It should cover all aspects comprehensively.
-    - Ensure specific focus on addressing all aspects of the QUESTION.
-    - Many elements withing UMM FRAMEWORK are unrelated to the QUESTION, discard the ones that do not address the QUESTION.
-    - Dive deep into all relevant domains and nuances related to the QUESTION
-    - Strive for accuracy and depth, leaving no detail unexplored.
     
-- Organize information in a structured manner.
-    - Synthesise key ideas between concepts.
-    - Ensure clear reasoning where each idea logically leads to the next.
-
+- Ensure that the EXPOSITORY ESSAY is thorough and highly comprehensive
+    - The EXPOSITORY ESSAY MUST at least double the length of the DRAFT.
+    - Ensure specific focus on addressing all aspects of the QUESTION and all its sections with high accuracy.
+    - Aim for an extremely extensive coverage, delving deeply into all aspects present in the DRAFT with detail.
+    - Many elements withing Umm Framework are unrelated to the QUESTION, discard the ones that do not address the QUESTION.
+    
 QUESTION
 
 {question}
 
 DRAFT
+
+# {question}
 
 {draft}
 {known}
@@ -43,33 +52,30 @@ UMM FRAMEWORK
 
 {perspective}
 
-REWRITE
+EXPOSITORY ESSAY
 `,
   };
 
   static Style: LlmRequest = {
     identifierVariable: "<not set>",
     name: "Style",
-    inputVariableNames: ["question", "draft", "style"],
+    inputVariableNames: ["question", "draft", "style", "unkwown"],
     temperature: 0.0,
     maxCompletitionChars: 3000, //minimum chars saved for response,
     maxPromptChars: 0,
     template: `INSTRUCTIONS
 
-- Synthesise the DRAFT into a short OUTPUT ensuring that it addresses the QUESTION.
-- Strictly adhere to the OUTPUT REQUIREMENTS.
+Generate an OUTPUT based on the OUTPUT REQUIREMENTS.
 
 OUTPUT REQUIREMENTS
 
-{style}
+{style}{unknown}
 
 QUESTION
 
 {question}
 
 DRAFT
-
-# {question}
 
 {draft}
 

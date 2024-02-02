@@ -11,7 +11,7 @@ import {
 } from "./llm";
 import Tokenizer from "./tokenizer";
 import Utils from "./utils";
-import { ConceptScore } from "./definerStore";
+import DefinerStore, { ConceptScore } from "./definerStore";
 import { ChainValues } from "langchain/dist/schema";
 import DocsUtils from "./docsUtils";
 import DirectSearch from "./directSearch";
@@ -136,7 +136,8 @@ Top words:`,
       temperature: 0.0,
       maxCompletitionChars: 8000, //minimum chars saved for response
       maxPromptChars: 0,
-      template: `- The following is a particular definition of "{concept}"
+      template: `INSTRUCTIONS
+- The following is a particular understanding of "{concept}"
 - Score the following list of Terms, prerequisits to understand "{concept}".
     - Score from 0 to 1 based on their prerequisit-score (2 decimal precision).
     - The prerequisit-score is higher if:
@@ -153,13 +154,14 @@ Top words:`,
     - Transform each word to its singular form.
     - Use the format: {{"c": "apple", "s": 0.75}}
 
-Definition of "{concept}":
+UNDERSTANDING OF: "{concept}":
+
 {conceptDefinition}
 
-Terms to score:
+TERMS TO SCORE:
 {terms}
 
-JSON array of terms with prerequisit-score:
+JSON ARRAY:
 `,
     };
 
@@ -334,7 +336,7 @@ JSON`,
     return conceptScores;
   }
 
-  static removeRepeatsAndNormalizeScore(
+  static removeRepeatsCutOffAndNormalizeScore(
     //It has a bug.
     // It kills a concept
     concepts: ConceptScore[]
@@ -373,7 +375,10 @@ JSON`,
       }
     }
 
-    return Definer.sortConceptScores(uniques);
+    let sorted = Definer.sortConceptScores(uniques);
+    let pruned = DefinerStore.filterKeyConceptByScore(sorted, 0.6);
+    console.log("Pruned: " + pruned.length + " Sorted: " + sorted.length);
+    return pruned;
   }
 
   static respondQuestion2 = async (

@@ -18,6 +18,7 @@ export default class Referencer {
   static readonly PROP_QUESTION_FILENAME = "p.question";
   static readonly PROP_COMPOSER_STYLE_FILENAME = "p.composer-style";
   static readonly PROP_TITLE_FILENAME = "p.title";
+  static readonly PROP_UNKNOWN_FILENAME = "p.unknown-concepts";
 
   static readonly PROP_FID = "fid";
   //static readonly SELF_FRIEND_ID = "x";

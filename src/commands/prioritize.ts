@@ -64,7 +64,7 @@ export default class PrioritizeCommand extends Command {
 
     await DefinerStore.load();
 
-    let rch = new RequestConceptHolder(givenConcepts, "");
+    let rch = new RequestConceptHolder(givenConcepts, "", []);
     await rch.proces();
 
     //If there is only one concept, we use its conccept dependencies
